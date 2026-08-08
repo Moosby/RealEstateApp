@@ -30,6 +30,46 @@
     const { useState, useEffect, useMemo, useRef } = React;
     const todayDateStr = new Date().toISOString().substring(0, 10);
 
+    // --- مكون القائمة المنسدلة الذكية (تُغلق عند الضغط خارجها) ---
+    function MultiSelectDropdown({ options, selected, onChange, placeholder }) {
+      const [isOpen, setIsOpen] = useState(false);
+      const dropdownRef = useRef(null);
+
+      useEffect(() => {
+        const handleClickOutside = (event) => {
+          if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+            setIsOpen(false);
+          }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+      }, []);
+
+      return (
+        <div className="relative z-20 w-full" ref={dropdownRef}>
+          <div className="w-full border p-2 text-sm rounded bg-white cursor-pointer font-bold flex justify-between items-center" onClick={() => setIsOpen(!isOpen)}>
+            <span className="truncate">{selected.length === 0 ? placeholder : `محدد (${selected.length})`}</span>
+            <span className="text-xs">▼</span>
+          </div>
+          {isOpen && (
+            <div className="absolute top-full right-0 w-full bg-white border mt-1 shadow-2xl max-h-48 overflow-y-auto z-50 p-2 space-y-2 rounded">
+              <label className="flex items-center gap-2 cursor-pointer font-bold border-b pb-2">
+                <input type="checkbox" checked={selected.length === 0} onChange={() => onChange([])} /> الكل / غير محدد
+              </label>
+              {options.map(opt => (
+                <label key={opt.id} className="flex items-center gap-2 cursor-pointer whitespace-nowrap text-sm">
+                  <input type="checkbox" checked={selected.includes(opt.id)} onChange={(e) => {
+                    const newIds = e.target.checked ? [...selected, opt.id] : selected.filter(id => id !== opt.id);
+                    onChange(newIds);
+                  }} /> {opt.label}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
     const initialData = { pinCode: '0000', buildings: [], units: [], categories: [], contracts: [], installments: [], custodies: [], transactions: [] };
 
     function MainApp() {
@@ -57,6 +97,7 @@
       
       const [dashboardCustodyFilter, setDashboardCustodyFilter] = useState(() => localStorage.getItem('real_estate_last_custody') || '');
       const [quickAdd, setQuickAdd] = useState({ show: false, type: 'income', amount: '', description: '', categoryId: '', date: todayDateStr });
+      const [showMonthDetails, setShowMonthDetails] = useState(false);
 
       const [selectedCustodies, setSelectedCustodies] = useState([]);
       const [custodyTabSub, setCustodyTabSub] = useState('income');
@@ -122,12 +163,8 @@
       const handlePrint = () => {
         const originalTitle = document.title;
         const printName = reportType === 'transactions' ? reportData.custodyName : 'تقرير_الاقساط';
-        // تغيير اسم الملف برمجياً ليتم حفظه بهذا الاسم
         document.title = `${printName.replace(/\s+/g, '_')}_${todayDateStr}.pdf`;
-        setTimeout(() => {
-          window.print();
-          document.title = originalTitle;
-        }, 100);
+        setTimeout(() => { window.print(); document.title = originalTitle; }, 100);
       };
 
       const handleTransactionAction = (trans) => {
@@ -146,13 +183,28 @@
       };
 
       const handleResetFactory = () => { if (!requirePin()) return showMsg('الرمز خطأ', true); if (window.confirm('سيتم مسح كل شيء نهائياً. متأكد؟')) { localStorage.removeItem('real_estate_core_data'); window.location.reload(); } };
-      
       const addBuilding = (e) => { e.preventDefault(); setData(p=>({...p, buildings: [...(p.buildings||[]), {id: 'b_'+Date.now(), name: newBuilding}]})); setNewBuilding(''); showMsg('تمت إضافة العمارة'); };
       const addUnit = (e) => { e.preventDefault(); setData(p => ({ ...p, units: [...(p.units || []), { id: 'u_' + Date.now(), ...newUnit, status: 'available' }] })); setNewUnit({ buildingId: '', unitNumber: '', price: '' }); showMsg('تمت الإضافة'); };
+      const addContract = (e) => { e.preventDefault(); const unit = (data.units || []).find(u => u.id === newContract.unitId); if (!unit) return showMsg('اختر الوحدة أولاً', true); const contractId = 'cont_' + Date.now(); const dp = Number(newContract.downPayment); const total = Number(newContract.totalAmount); const count = Number(newContract.installmentsCount); const contract = { id: contractId, clientName: newContract.clientName, unitId: unit.id, buildingId: unit.buildingId, totalAmount: total, downPayment: dp, date: todayDateStr, status: 'active' }; const newInsts = []; let curDate = new Date(newContract.firstInstallmentDate); const instAmount = count > 0 ? ((total - dp) / count) : 0; for(let i=0; i<count; i++) { newInsts.push({ id: 'inst_' + Date.now() + '_' + i, contractId, amount: instAmount, dueDate: curDate.toISOString().split('T')[0], status: 'pending' }); curDate.setMonth(curDate.getMonth() + 1); } const trans = { id: 't_' + Date.now(), type: 'income', amount: dp, buildingId: unit.buildingId, description: `مقدم تعاقد: ${newContract.clientName}`, date: todayDateStr }; setData(prev => ({ ...prev, contracts: [...(prev.contracts || []), contract], installments: [...(prev.installments || []), ...newInsts], transactions: [...(prev.transactions || []), trans], units: (prev.units || []).map(u => u.id === unit.id ? { ...u, status: 'sold' } : u) })); setNewContract({ clientName: '', unitId: '', totalAmount: '', downPayment: '', installmentsCount: '', firstInstallmentDate: '' }); showMsg('تم تسجيل العقد بنجاح'); };
+      const payInstallment = (instId, fullAmount, clientName, buildingId) => { const paidStr = window.prompt(`المبلغ المستحق: ${fullAmount}\nأدخل المبلغ المدفوع:`, fullAmount); if (!paidStr) return; const paid = Number(paidStr); if (paid <= 0 || paid > fullAmount) return showMsg('مبلغ غير صحيح', true); setData(prev => { let updatedInsts = prev.installments || []; if (paid === fullAmount) { updatedInsts = updatedInsts.map(i => i.id === instId ? { ...i, status: 'paid' } : i); } else { updatedInsts = updatedInsts.map(i => i.id === instId ? { ...i, amount: i.amount - paid } : i); } const trans = { id: 't_' + Date.now(), type: 'income', amount: paid, buildingId, description: `تحصيل قسط ${paid < fullAmount ? '(جزئي)' : ''}: ${clientName}`, date: todayDateStr }; return { ...prev, installments: updatedInsts, transactions: [...(prev.transactions || []), trans] }; }); showMsg('تم التحصيل'); };
+      const editInstallment = (instId) => { const inst = (data.installments || []).find(i => i.id === instId); const newDate = window.prompt('تعديل تاريخ الاستحقاق:', inst.dueDate); if (newDate === null) return; const newAmount = window.prompt('تعديل المبلغ:', inst.amount); if (newAmount === null) return; setData(prev => ({ ...prev, installments: (prev.installments || []).map(i => i.id === instId ? { ...i, dueDate: newDate || inst.dueDate, amount: newAmount ? Number(newAmount) : inst.amount } : i) })); showMsg('تم التعديل'); };
+      const addManualInstallment = (contractId) => { const amount = window.prompt('أدخل مبلغ القسط الجديد:'); if (!amount) return; const date = window.prompt('أدخل تاريخ الاستحقاق:', todayDateStr); if (!date) return; setData(prev => ({ ...prev, installments: [...(prev.installments || []), { id: 'inst_man_' + Date.now(), contractId, amount: Number(amount), dueDate: date, status: 'pending' }] })); showMsg('تمت الإضافة'); };
+      const cancelContract = (contractId, unitId) => { if (!requirePin()) return showMsg('الرمز خطأ!', true); if (window.confirm('هل أنت متأكد من فسخ العقد؟')) { setData(prev => ({ ...prev, contracts: (prev.contracts || []).map(c => c.id === contractId ? { ...c, status: 'canceled' } : c), installments: (prev.installments || []).filter(i => !(i.contractId === contractId && i.status === 'pending')), units: (prev.units || []).map(u => u.id === unitId ? { ...u, status: 'available' } : u) })); showMsg('تم فسخ العقد'); } };
       
+      const handleQuickAddSubmit = (e) => { 
+        e.preventDefault(); 
+        const item = { id: 't_quick_' + Date.now(), type: quickAdd.type, amount: Number(quickAdd.amount), categoryId: quickAdd.categoryId || '', buildingId: '', custodyId: dashboardCustodyFilter, description: quickAdd.description, date: quickAdd.date || todayDateStr }; 
+        setData(prev => ({ ...prev, transactions: [...(prev.transactions || []), item] })); 
+        setQuickAdd({ show: false, type: 'income', amount: '', description: '', categoryId: '', date: todayDateStr }); 
+        showMsg('تم التسجيل'); 
+      };
+
+      const thisMonth = new Date().toISOString().substring(0, 7);
+      const monthInstallments = (data.installments || []).filter(i => i.status === 'pending' && i.dueDate.startsWith(thisMonth));
+
       const tabs = [
         { id: 'dashboard', label: 'الرئيسية' },
-        { id: 'transactions', label: 'إيراد أو مصروف' },
+        { id: 'transactions', label: 'إيراد / مصروف' },
         { id: 'custody', label: 'العهدة' },
         { id: 'inventory', label: 'الوحدات' },
         { id: 'sales', label: 'المبيعات' },
@@ -166,9 +218,10 @@
             <button onClick={() => setActiveTab('settings')} className="text-2xl hover:scale-110 transition-transform">⚙️</button>
           </header>
 
-          <nav className="bg-slate-800 text-slate-200 flex overflow-x-auto border-b border-slate-700 no-scrollbar print-hide">
+          {/* تابات موزعة (تلتف تلقائياً لأسفل لتجنب السحب) */}
+          <nav className="bg-slate-800 text-slate-200 flex flex-wrap border-b border-slate-700 print-hide">
             {tabs.map(tab => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`p-3 text-sm font-bold whitespace-nowrap ${activeTab === tab.id ? 'bg-slate-700 text-emerald-400 border-b-2 border-emerald-400' : ''}`}>
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex-1 min-w-[30%] p-3 text-sm font-bold text-center ${activeTab === tab.id ? 'bg-slate-700 text-emerald-400 border-b-4 border-emerald-400' : 'hover:bg-slate-700'}`}>
                 {tab.label}
               </button>
             ))}
@@ -179,17 +232,73 @@
 
           <main className="flex-grow p-4 mx-auto w-full max-w-7xl">
             
-            {/* Dashboard */}
+            {/* 1. Dashboard */}
             {activeTab === 'dashboard' && (
               <div className="space-y-6 print-hide">
-                <div className="bg-white p-4 rounded-xl shadow border-r-4 border-amber-500">
-                  <p className="text-sm text-slate-500 mb-2">العهدة النشطة</p>
-                  <select className="w-full text-sm border rounded p-2 mb-3 bg-slate-50 font-bold" value={dashboardCustodyFilter} onChange={e => setDashboardCustodyFilter(e.target.value)}>
-                    <option value="">-- الخزينة العامة --</option>
-                    {custodyCalculations.map(c => <option key={c.id} value={c.id}>{c.personName}</option>)}
-                  </select>
-                  <p className="text-xl font-bold text-amber-600 mb-2">الصافي: {dashboardCustodyFilter ? (custodyCalculations.find(c=>c.id===dashboardCustodyFilter)?.remaining.toLocaleString() || 0) : '0'} ج.م</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  
+                  <div className="bg-white p-4 rounded-xl shadow border-r-4 border-blue-500 cursor-pointer hover:bg-blue-50 transition" onClick={() => setShowMonthDetails(!showMonthDetails)}>
+                    <div className="flex justify-between items-center">
+                      <p className="text-sm text-slate-500">مستحقات الشهر الحالي (اضغط للتفاصيل)</p>
+                      <span className="text-blue-500">{showMonthDetails ? '▲' : '▼'}</span>
+                    </div>
+                    <p className="text-2xl font-bold mt-2">{monthInstallments.reduce((sum, i) => sum + i.amount, 0).toLocaleString()} ج.م</p>
+                  </div>
+                  
+                  <div className="bg-white p-4 rounded-xl shadow border-r-4 border-amber-500">
+                    <p className="text-sm text-slate-500 mb-2">العهدة النشطة (استعلام وإضافة)</p>
+                    <select className="w-full text-sm border rounded p-2 mb-3 bg-slate-50 font-bold" value={dashboardCustodyFilter} onChange={e => { setDashboardCustodyFilter(e.target.value); setQuickAdd({...quickAdd, show: false}); }}>
+                      <option value="">-- الخزينة العامة --</option>
+                      {custodyCalculations.map(c => <option key={c.id} value={c.id}>{c.personName}</option>)}
+                    </select>
+                    <p className="text-xl font-bold text-amber-600 mb-2">الصافي: {dashboardCustodyFilter ? (custodyCalculations.find(c=>c.id===dashboardCustodyFilter)?.remaining.toLocaleString() || 0) : '0'} ج.م</p>
+
+                    {/* زراير الإضافة السريعة */}
+                    {!quickAdd.show && dashboardCustodyFilter && (
+                      <div className="flex gap-2 mt-3 pt-3 border-t border-slate-200">
+                        <button onClick={() => setQuickAdd({ show: true, type: 'income', amount: '', description: '', categoryId: '', date: todayDateStr })} className="flex-1 bg-emerald-500 text-white py-2 rounded text-sm font-bold shadow hover:bg-emerald-600">➕ إضافة إيراد</button>
+                        <button onClick={() => setQuickAdd({ show: true, type: 'expense', amount: '', description: '', categoryId: '', date: todayDateStr })} className="flex-1 bg-red-500 text-white py-2 rounded text-sm font-bold shadow hover:bg-red-600">➖ إضافة مصروف</button>
+                      </div>
+                    )}
+
+                    {quickAdd.show && (
+                      <form onSubmit={handleQuickAddSubmit} className="mt-3 pt-3 border-t border-slate-200 space-y-2">
+                        <h4 className="text-sm font-bold text-center mb-2">{quickAdd.type === 'expense' ? 'تسجيل مصروف للعهدة' : 'تسجيل إيراد للعهدة'}</h4>
+                        <div><label className="text-xs text-slate-500">التاريخ</label><input type="date" required className="w-full border p-2 text-sm rounded" value={quickAdd.date} onChange={e => setQuickAdd({...quickAdd, date: e.target.value})} /></div>
+                        <input type="number" placeholder="المبلغ" required className="w-full border p-2 text-sm rounded" value={quickAdd.amount} onChange={e => setQuickAdd({...quickAdd, amount: e.target.value})} />
+                        {quickAdd.type === 'expense' && (
+                          <select className="w-full border p-2 text-sm rounded" required value={quickAdd.categoryId} onChange={e => setQuickAdd({...quickAdd, categoryId: e.target.value})}>
+                            <option value="">-- تصنيف المصروف --</option>
+                            {(data.categories || []).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </select>
+                        )}
+                        <input type="text" placeholder="البيان / الوصف" required className="w-full border p-2 text-sm rounded" value={quickAdd.description} onChange={e => setQuickAdd({...quickAdd, description: e.target.value})} />
+                        <div className="flex gap-2 mt-2">
+                          <button type="submit" className="flex-1 bg-slate-800 text-white py-2 rounded text-sm font-bold">حفظ</button>
+                          <button type="button" onClick={() => setQuickAdd({...quickAdd, show: false})} className="flex-1 bg-gray-300 text-gray-800 py-2 rounded text-sm font-bold">إلغاء</button>
+                        </div>
+                      </form>
+                    )}
+                  </div>
+
                 </div>
+
+                {/* تفاصيل مستحقات الشهر */}
+                {showMonthDetails && (
+                  <div className="bg-white p-4 rounded-xl shadow animate-fade-in">
+                    <h3 className="font-bold mb-3 border-b pb-2 text-blue-800">تفاصيل مستحقات الشهر الحالي</h3>
+                    <table className="w-full text-right text-sm">
+                      <thead className="bg-slate-100"><tr><th className="p-2">العميل</th><th className="p-2">تاريخ الاستحقاق</th><th className="p-2">المبلغ</th></tr></thead>
+                      <tbody>
+                        {monthInstallments.map(inst => {
+                          const c = (data.contracts || []).find(ct => ct.id === inst.contractId);
+                          return <tr key={inst.id} className="border-b"><td className="p-2 font-bold">{c?.clientName}</td><td className="p-2" dir="ltr">{formatShortDate(inst.dueDate)}</td><td className="p-2 font-bold text-red-600">{inst.amount.toLocaleString()}</td></tr>
+                        })}
+                        {monthInstallments.length === 0 && <tr><td colSpan="3" className="text-center p-4 text-slate-400">لا توجد أقساط مستحقة هذا الشهر</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
 
@@ -201,7 +310,6 @@
                   e.preventDefault(); 
                   const item = { id: 't_' + Date.now(), ...newTransaction, amount: Number(newTransaction.amount) }; 
                   setData(prev => ({ ...prev, transactions: [...(prev.transactions || []), item] })); 
-                  // تم الاحتفاظ بكل الاختيارات ومسح المبلغ والبيان فقط
                   setNewTransaction(prev => ({ ...prev, amount: '', description: '' })); 
                   showMsg('تم الحفظ بنجاح'); 
                 }} className="space-y-4">
@@ -223,22 +331,14 @@
             {/* العهدة */}
             {activeTab === 'custody' && (
               <div className="bg-white p-4 rounded-xl shadow print-hide">
-                <div className="mb-4 bg-slate-50 p-3 rounded border relative">
+                <div className="mb-4 bg-slate-50 p-3 rounded border">
                   <label className="font-bold block mb-2 text-slate-800">تحديد العُهد (متعدد):</label>
-                  <details className="w-full border p-2 text-sm rounded bg-white relative z-10 cursor-pointer">
-                    <summary className="font-bold outline-none">{selectedCustodies.length === 0 ? '-- كل العهد والخزينة العامة --' : `تم تحديد (${selectedCustodies.length}) عهدة`}</summary>
-                    <div className="absolute top-full right-0 w-full bg-white border mt-1 shadow-2xl max-h-48 overflow-y-auto z-50 p-2 space-y-2 rounded">
-                      <label className="flex items-center gap-2 cursor-pointer font-bold border-b pb-2"><input type="checkbox" checked={selectedCustodies.length===0} onChange={() => setSelectedCustodies([])} /> إظهار الكل</label>
-                      {[...custodyCalculations].sort((a,b)=>b.id.localeCompare(a.id)).map(c => (
-                        <label key={c.id} className="flex items-center gap-2 cursor-pointer text-sm">
-                          <input type="checkbox" checked={selectedCustodies.includes(c.id)} onChange={(e) => {
-                            if (e.target.checked) setSelectedCustodies([...selectedCustodies, c.id]);
-                            else setSelectedCustodies(selectedCustodies.filter(id => id !== c.id));
-                          }} /> {c.personName}
-                        </label>
-                      ))}
-                    </div>
-                  </details>
+                  <MultiSelectDropdown 
+                    options={(data.custodies || []).map(c => ({ id: c.id, label: c.personName }))} 
+                    selected={selectedCustodies} 
+                    onChange={setSelectedCustodies} 
+                    placeholder="-- كل العهد والخزينة العامة --" 
+                  />
                 </div>
 
                 <div className="mb-4"><input type="text" placeholder="بحث سريع في البيان..." className="w-full border-2 border-blue-400 p-2 rounded text-lg font-bold" value={custodySearch} onChange={e => setCustodySearch(e.target.value)} /></div>
@@ -295,6 +395,62 @@
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Sales */}
+            {activeTab === 'sales' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print-hide">
+                <div className="bg-white p-4 rounded-xl shadow h-fit">
+                  <h3 className="font-bold mb-4 border-b pb-2">إنشاء عقد جديد</h3>
+                  <form onSubmit={addContract} className="space-y-3">
+                    <input type="text" placeholder="اسم العميل" className="w-full border p-2 rounded text-sm" required value={newContract.clientName} onChange={e => setNewContract({...newContract, clientName: e.target.value})} />
+                    <select className="w-full border p-2 rounded text-sm" required value={newContract.unitId} onChange={e => setNewContract({...newContract, unitId: e.target.value})}>
+                      <option value="">-- اختر الوحدة المتاحة --</option>
+                      {(data.units || []).filter(u => u.status === 'available').map(u => <option key={u.id} value={u.id}>{(data.buildings || []).find(b=>b.id===u.buildingId)?.name} - {u.unitNumber}</option>)}
+                    </select>
+                    <input type="number" placeholder="الإجمالي (ج.م)" className="w-full border p-2 rounded text-sm" required value={newContract.totalAmount} onChange={e => setNewContract({...newContract, totalAmount: e.target.value})} />
+                    <input type="number" placeholder="المقدم المدفوع حالا" className="w-full border p-2 rounded text-sm" required value={newContract.downPayment} onChange={e => setNewContract({...newContract, downPayment: e.target.value})} />
+                    <input type="number" placeholder="عدد الأقساط المبدئي" className="w-full border p-2 rounded text-sm" required value={newContract.installmentsCount} onChange={e => setNewContract({...newContract, installmentsCount: e.target.value})} />
+                    <div><label className="text-xs text-slate-500">تاريخ أول قسط</label><input type="date" className="w-full border p-2 rounded text-sm" required value={newContract.firstInstallmentDate} onChange={e => setNewContract({...newContract, firstInstallmentDate: e.target.value})} /></div>
+                    <button className="w-full bg-blue-600 text-white py-2 rounded font-bold text-sm">تسجيل العقد وإنشاء الأقساط</button>
+                  </form>
+                </div>
+                <div className="bg-white p-4 rounded-xl shadow lg:col-span-2">
+                  <h3 className="font-bold mb-4 border-b pb-2">إدارة العقود والأقساط</h3>
+                  <div className="space-y-4">
+                    {(data.contracts || []).filter(c => c.status === 'active').map(c => {
+                      const u = (data.units || []).find(un => un.id === c.unitId);
+                      const b = (data.buildings || []).find(bd => bd.id === c.buildingId);
+                      return (
+                        <div key={c.id} className="border p-4 rounded-lg bg-slate-50 shadow-sm">
+                          <div className="flex justify-between items-start mb-3 border-b pb-2">
+                            <div><p className="font-bold text-blue-800 text-lg">{c.clientName}</p><p className="text-sm font-semibold">{b?.name} - شقة {u?.unitNumber}</p></div>
+                            <button onClick={() => cancelContract(c.id, c.unitId)} className="text-xs text-red-600 border border-red-600 bg-white px-2 py-1 rounded hover:bg-red-100">فسخ العقد</button>
+                          </div>
+                          <div className="overflow-x-auto mb-3">
+                            <table className="w-full text-sm text-right">
+                              <thead><tr className="text-slate-500 border-b"><th className="p-2">التاريخ</th><th className="p-2">المبلغ</th><th className="p-2">الحالة</th><th className="p-2">إجراء</th></tr></thead>
+                              <tbody>
+                                {(data.installments || []).filter(i => i.contractId === c.id).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate)).map(inst => (
+                                  <tr key={inst.id} className="border-b">
+                                    <td className="p-2 font-mono" dir="ltr">{formatShortDate(inst.dueDate)}</td><td className="p-2 font-bold">{inst.amount.toLocaleString()}</td>
+                                    <td className="p-2">{inst.status === 'paid' ? <span className="text-emerald-600 font-bold">مدفوع</span> : 'مستحق'}</td>
+                                    <td className="p-2 flex gap-1">
+                                      {inst.status === 'pending' && <button onClick={() => payInstallment(inst.id, inst.amount, c.clientName, c.buildingId)} className="bg-emerald-500 text-white px-3 py-1 rounded text-xs font-bold shadow">تحصيل</button>}
+                                      {inst.status === 'pending' && <button onClick={() => editInstallment(inst.id)} className="bg-slate-600 text-white px-3 py-1 rounded text-xs font-bold shadow">تعديل</button>}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          <div className="text-left"><button onClick={() => addManualInstallment(c.id)} className="bg-blue-100 text-blue-800 border border-blue-300 px-3 py-1 rounded text-xs font-bold shadow-sm hover:bg-blue-200">➕ إضافة قسط يدوي</button></div>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
               </div>
             )}
@@ -368,24 +524,15 @@
                     <div><label className="text-xs font-bold block mb-1">من تاريخ</label><input type="date" className="w-full border p-2 text-sm rounded" value={reportFilter.startDate} onChange={e=>setReportFilter({...reportFilter, startDate: e.target.value})}/></div>
                     <div><label className="text-xs font-bold block mb-1">إلى تاريخ</label><input type="date" className="w-full border p-2 text-sm rounded" value={reportFilter.endDate} onChange={e=>setReportFilter({...reportFilter, endDate: e.target.value})}/></div>
                     
-                    {/* Multi-select Dropdown for Custody */}
                     {reportType === 'transactions' && (
-                      <div className="relative z-20">
+                      <div>
                         <label className="text-xs font-bold block mb-1">العهدة (متعدد)</label>
-                        <details className="w-full border p-2 text-sm rounded bg-white relative cursor-pointer">
-                          <summary className="font-bold outline-none">{reportFilter.custodyIds.length === 0 ? '-- كل العهد --' : `محدد (${reportFilter.custodyIds.length})`}</summary>
-                          <div className="absolute top-full right-0 w-full bg-white border mt-1 shadow-2xl max-h-48 overflow-y-auto z-50 p-2 space-y-2 rounded">
-                            <label className="flex items-center gap-2 cursor-pointer font-bold border-b pb-1"><input type="checkbox" checked={reportFilter.custodyIds.length===0} onChange={()=>setReportFilter({...reportFilter, custodyIds: []})}/> الكل</label>
-                            {(data.custodies||[]).map(c => (
-                              <label key={c.id} className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
-                                <input type="checkbox" checked={reportFilter.custodyIds.includes(c.id)} onChange={(e)=>{
-                                  const newIds = e.target.checked ? [...reportFilter.custodyIds, c.id] : reportFilter.custodyIds.filter(id=>id!==c.id);
-                                  setReportFilter({...reportFilter, custodyIds: newIds});
-                                }}/> {c.personName}
-                              </label>
-                            ))}
-                          </div>
-                        </details>
+                        <MultiSelectDropdown 
+                          options={(data.custodies||[]).map(c => ({ id: c.id, label: c.personName }))}
+                          selected={reportFilter.custodyIds}
+                          onChange={(newIds) => setReportFilter({...reportFilter, custodyIds: newIds})}
+                          placeholder="-- كل العهد --"
+                        />
                       </div>
                     )}
                   </div>

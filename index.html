@@ -30,16 +30,14 @@
     const { useState, useEffect, useMemo, useRef } = React;
     const todayDateStr = new Date().toISOString().substring(0, 10);
 
-    // --- مكون القائمة المنسدلة الذكية (تُغلق عند الضغط خارجها) ---
+    // مكون القائمة المنسدلة الذكية (تغلق بالضغط خارجها)
     function MultiSelectDropdown({ options, selected, onChange, placeholder }) {
       const [isOpen, setIsOpen] = useState(false);
       const dropdownRef = useRef(null);
 
       useEffect(() => {
         const handleClickOutside = (event) => {
-          if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-            setIsOpen(false);
-          }
+          if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setIsOpen(false);
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -95,20 +93,42 @@
       const [reportType, setReportType] = useState('transactions'); 
       const [reportFilter, setReportFilter] = useState({ startDate: '', endDate: '', custodyIds: [], buildingIds: [] });
       
-      const [dashboardCustodyFilter, setDashboardCustodyFilter] = useState(() => localStorage.getItem('real_estate_last_custody') || '');
-      const [quickAdd, setQuickAdd] = useState({ show: false, type: 'income', amount: '', description: '', categoryId: '', date: todayDateStr });
-      const [showMonthDetails, setShowMonthDetails] = useState(false);
+      // حفظ العهدة المحددة في الرئيسية كمصفوفة لدعم التحديد المتعدد
+      const [dashboardCustodyFilter, setDashboardCustodyFilter] = useState(() => {
+         try {
+           const saved = localStorage.getItem('real_estate_last_custody');
+           if (!saved) return [];
+           const parsed = JSON.parse(saved);
+           return Array.isArray(parsed) ? parsed : [saved];
+         } catch(e) { return []; }
+      });
 
+      const [showMonthDetails, setShowMonthDetails] = useState(false);
       const [selectedCustodies, setSelectedCustodies] = useState([]);
       const [custodyTabSub, setCustodyTabSub] = useState('income');
       const [custodySearch, setCustodySearch] = useState('');
 
+      // Autocomplete state
+      const [descFocus, setDescFocus] = useState(false);
+
       useEffect(() => { localStorage.setItem('real_estate_core_data', JSON.stringify(data)); }, [data]);
-      useEffect(() => { localStorage.setItem('real_estate_last_custody', dashboardCustodyFilter); }, [dashboardCustodyFilter]);
+      useEffect(() => { localStorage.setItem('real_estate_last_custody', JSON.stringify(dashboardCustodyFilter)); }, [dashboardCustodyFilter]);
 
       const showMsg = (msg, isError = false) => { isError ? setErrorMsg(msg) : setSuccessMsg(msg); setTimeout(() => { setErrorMsg(''); setSuccessMsg(''); }, 3000); };
       const requirePin = () => { const pin = window.prompt('أدخل رمز الحماية (PIN) لإتمام هذه العملية:'); return pin === data.pinCode; };
       const formatShortDate = (d) => { if(!d) return ''; const p = d.split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0].substring(2)}` : d; };
+
+      // جلب ووصف الكلمات السابقة للبحث التلقائي (من الأحدث للأقدم)
+      const allDescriptions = useMemo(() => {
+        const descs = [];
+        for (let i = (data.transactions || []).length - 1; i >= 0; i--) {
+          const d = data.transactions[i].description;
+          if (d && !descs.includes(d)) descs.push(d);
+        }
+        return descs;
+      }, [data.transactions]);
+
+      const filteredDescs = newTransaction.description ? allDescriptions.filter(d => d.includes(newTransaction.description) && d !== newTransaction.description) : [];
 
       const custodyCalculations = useMemo(() => {
         return (data.custodies || []).map(c => {
@@ -117,6 +137,9 @@
           return { ...c, used: expenses, incomes, remaining: Number(c.totalAmount) + incomes - expenses };
         });
       }, [data]);
+
+      // صافي العهد المحددة في الرئيسية
+      const dashboardNet = dashboardCustodyFilter.length === 0 ? 0 : custodyCalculations.filter(c => dashboardCustodyFilter.includes(c.id)).reduce((s, c) => s + c.remaining, 0);
 
       const filteredCustodyTrans = useMemo(() => {
         return (data.transactions || []).filter(t => {
@@ -191,12 +214,10 @@
       const addManualInstallment = (contractId) => { const amount = window.prompt('أدخل مبلغ القسط الجديد:'); if (!amount) return; const date = window.prompt('أدخل تاريخ الاستحقاق:', todayDateStr); if (!date) return; setData(prev => ({ ...prev, installments: [...(prev.installments || []), { id: 'inst_man_' + Date.now(), contractId, amount: Number(amount), dueDate: date, status: 'pending' }] })); showMsg('تمت الإضافة'); };
       const cancelContract = (contractId, unitId) => { if (!requirePin()) return showMsg('الرمز خطأ!', true); if (window.confirm('هل أنت متأكد من فسخ العقد؟')) { setData(prev => ({ ...prev, contracts: (prev.contracts || []).map(c => c.id === contractId ? { ...c, status: 'canceled' } : c), installments: (prev.installments || []).filter(i => !(i.contractId === contractId && i.status === 'pending')), units: (prev.units || []).map(u => u.id === unitId ? { ...u, status: 'available' } : u) })); showMsg('تم فسخ العقد'); } };
       
-      const handleQuickAddSubmit = (e) => { 
-        e.preventDefault(); 
-        const item = { id: 't_quick_' + Date.now(), type: quickAdd.type, amount: Number(quickAdd.amount), categoryId: quickAdd.categoryId || '', buildingId: '', custodyId: dashboardCustodyFilter, description: quickAdd.description, date: quickAdd.date || todayDateStr }; 
-        setData(prev => ({ ...prev, transactions: [...(prev.transactions || []), item] })); 
-        setQuickAdd({ show: false, type: 'income', amount: '', description: '', categoryId: '', date: todayDateStr }); 
-        showMsg('تم التسجيل'); 
+      const goToTransaction = (type) => {
+        const preSelectedCustody = dashboardCustodyFilter.length > 0 ? dashboardCustodyFilter[0] : '';
+        setNewTransaction(prev => ({ ...prev, type, custodyId: preSelectedCustody }));
+        setActiveTab('transactions');
       };
 
       const thisMonth = new Date().toISOString().substring(0, 7);
@@ -211,6 +232,11 @@
         { id: 'reports', label: 'التقارير' }
       ];
 
+      // دوال مساعدة لترتيب القوائم المنسدلة (الأحدث أولاً)
+      const sortedCustodies = [...(data.custodies || [])].reverse();
+      const sortedBuildings = [...(data.buildings || [])].reverse();
+      const sortedCategories = [...(data.categories || [])].reverse();
+
       return (
         <div className="min-h-screen flex flex-col bg-slate-50">
           <header className="bg-slate-900 text-white p-4 shadow print-hide flex justify-between items-center">
@@ -218,7 +244,6 @@
             <button onClick={() => setActiveTab('settings')} className="text-2xl hover:scale-110 transition-transform">⚙️</button>
           </header>
 
-          {/* تابات موزعة (تلتف تلقائياً لأسفل لتجنب السحب) */}
           <nav className="bg-slate-800 text-slate-200 flex flex-wrap border-b border-slate-700 print-hide">
             {tabs.map(tab => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex-1 min-w-[30%] p-3 text-sm font-bold text-center ${activeTab === tab.id ? 'bg-slate-700 text-emerald-400 border-b-4 border-emerald-400' : 'hover:bg-slate-700'}`}>
@@ -232,7 +257,7 @@
 
           <main className="flex-grow p-4 mx-auto w-full max-w-7xl">
             
-            {/* 1. Dashboard */}
+            {/* Dashboard */}
             {activeTab === 'dashboard' && (
               <div className="space-y-6 print-hide">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -246,49 +271,27 @@
                   </div>
                   
                   <div className="bg-white p-4 rounded-xl shadow border-r-4 border-amber-500">
-                    <p className="text-sm text-slate-500 mb-2">العهدة النشطة (استعلام وإضافة)</p>
-                    <select className="w-full text-sm border rounded p-2 mb-3 bg-slate-50 font-bold" value={dashboardCustodyFilter} onChange={e => { setDashboardCustodyFilter(e.target.value); setQuickAdd({...quickAdd, show: false}); }}>
-                      <option value="">-- الخزينة العامة --</option>
-                      {custodyCalculations.map(c => <option key={c.id} value={c.id}>{c.personName}</option>)}
-                    </select>
-                    <p className="text-xl font-bold text-amber-600 mb-2">الصافي: {dashboardCustodyFilter ? (custodyCalculations.find(c=>c.id===dashboardCustodyFilter)?.remaining.toLocaleString() || 0) : '0'} ج.م</p>
+                    <p className="text-sm text-slate-500 mb-2">العهدة النشطة</p>
+                    <MultiSelectDropdown 
+                      options={sortedCustodies.map(c => ({ id: c.id, label: c.personName }))} 
+                      selected={dashboardCustodyFilter} 
+                      onChange={setDashboardCustodyFilter} 
+                      placeholder="-- الخزينة العامة --" 
+                    />
+                    <p className="text-xl font-bold text-amber-600 mb-2 mt-2">الصافي: {dashboardNet.toLocaleString()} ج.م</p>
 
-                    {/* زراير الإضافة السريعة */}
-                    {!quickAdd.show && dashboardCustodyFilter && (
-                      <div className="flex gap-2 mt-3 pt-3 border-t border-slate-200">
-                        <button onClick={() => setQuickAdd({ show: true, type: 'income', amount: '', description: '', categoryId: '', date: todayDateStr })} className="flex-1 bg-emerald-500 text-white py-2 rounded text-sm font-bold shadow hover:bg-emerald-600">➕ إضافة إيراد</button>
-                        <button onClick={() => setQuickAdd({ show: true, type: 'expense', amount: '', description: '', categoryId: '', date: todayDateStr })} className="flex-1 bg-red-500 text-white py-2 rounded text-sm font-bold shadow hover:bg-red-600">➖ إضافة مصروف</button>
-                      </div>
-                    )}
-
-                    {quickAdd.show && (
-                      <form onSubmit={handleQuickAddSubmit} className="mt-3 pt-3 border-t border-slate-200 space-y-2">
-                        <h4 className="text-sm font-bold text-center mb-2">{quickAdd.type === 'expense' ? 'تسجيل مصروف للعهدة' : 'تسجيل إيراد للعهدة'}</h4>
-                        <div><label className="text-xs text-slate-500">التاريخ</label><input type="date" required className="w-full border p-2 text-sm rounded" value={quickAdd.date} onChange={e => setQuickAdd({...quickAdd, date: e.target.value})} /></div>
-                        <input type="number" placeholder="المبلغ" required className="w-full border p-2 text-sm rounded" value={quickAdd.amount} onChange={e => setQuickAdd({...quickAdd, amount: e.target.value})} />
-                        {quickAdd.type === 'expense' && (
-                          <select className="w-full border p-2 text-sm rounded" required value={quickAdd.categoryId} onChange={e => setQuickAdd({...quickAdd, categoryId: e.target.value})}>
-                            <option value="">-- تصنيف المصروف --</option>
-                            {(data.categories || []).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                          </select>
-                        )}
-                        <input type="text" placeholder="البيان / الوصف" required className="w-full border p-2 text-sm rounded" value={quickAdd.description} onChange={e => setQuickAdd({...quickAdd, description: e.target.value})} />
-                        <div className="flex gap-2 mt-2">
-                          <button type="submit" className="flex-1 bg-slate-800 text-white py-2 rounded text-sm font-bold">حفظ</button>
-                          <button type="button" onClick={() => setQuickAdd({...quickAdd, show: false})} className="flex-1 bg-gray-300 text-gray-800 py-2 rounded text-sm font-bold">إلغاء</button>
-                        </div>
-                      </form>
-                    )}
+                    <div className="flex gap-2 mt-3 pt-3 border-t border-slate-200">
+                      <button onClick={() => goToTransaction('income')} className="flex-1 bg-emerald-500 text-white py-2 rounded text-sm font-bold shadow hover:bg-emerald-600">➕ إضافة إيراد</button>
+                      <button onClick={() => goToTransaction('expense')} className="flex-1 bg-red-500 text-white py-2 rounded text-sm font-bold shadow hover:bg-red-600">➖ إضافة مصروف</button>
+                    </div>
                   </div>
-
                 </div>
 
-                {/* تفاصيل مستحقات الشهر */}
                 {showMonthDetails && (
                   <div className="bg-white p-4 rounded-xl shadow animate-fade-in">
                     <h3 className="font-bold mb-3 border-b pb-2 text-blue-800">تفاصيل مستحقات الشهر الحالي</h3>
                     <table className="w-full text-right text-sm">
-                      <thead className="bg-slate-100"><tr><th className="p-2">العميل</th><th className="p-2">تاريخ الاستحقاق</th><th className="p-2">المبلغ</th></tr></thead>
+                      <thead className="bg-slate-100"><tr><th className="p-2">العميل</th><th className="p-2">الاستحقاق</th><th className="p-2">المبلغ</th></tr></thead>
                       <tbody>
                         {monthInstallments.map(inst => {
                           const c = (data.contracts || []).find(ct => ct.id === inst.contractId);
@@ -319,10 +322,26 @@
                   </div>
                   <div><label className="text-xs text-slate-500">التاريخ</label><input type="date" required className="w-full border p-2 text-sm rounded" value={newTransaction.date} onChange={e=>setNewTransaction({...newTransaction, date: e.target.value})}/></div>
                   <div><label className="text-xs text-slate-500">المبلغ</label><input type="number" required className="w-full border p-2 text-sm rounded" value={newTransaction.amount} onChange={e=>setNewTransaction({...newTransaction, amount: e.target.value})}/></div>
-                  <div><label className="text-xs text-slate-500">العهدة / الخزينة</label><select className="w-full border p-2 text-sm rounded font-bold text-blue-800" value={newTransaction.custodyId} onChange={e=>setNewTransaction({...newTransaction, custodyId: e.target.value})}><option value="">-- الخزينة العامة --</option>{(data.custodies || []).map(c=><option key={c.id} value={c.id}>{c.personName}</option>)}</select></div>
-                  <div><label className="text-xs text-slate-500">العمارة (اختياري)</label><select className="w-full border p-2 text-sm rounded" value={newTransaction.buildingId} onChange={e=>setNewTransaction({...newTransaction, buildingId: e.target.value})}><option value="">-- عام --</option>{(data.buildings || []).map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
-                  {newTransaction.type === 'expense' && <div><label className="text-xs text-slate-500">تصنيف المصروف</label><select className="w-full border p-2 text-sm rounded" required value={newTransaction.categoryId} onChange={e=>setNewTransaction({...newTransaction, categoryId: e.target.value})}><option value="">-- اختر التصنيف --</option>{(data.categories || []).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>}
-                  <div><label className="text-xs text-slate-500">البيان</label><input type="text" required className="w-full border p-2 text-sm rounded" value={newTransaction.description} onChange={e=>setNewTransaction({...newTransaction, description: e.target.value})}/></div>
+                  <div><label className="text-xs text-slate-500">العهدة / الخزينة</label><select className="w-full border p-2 text-sm rounded font-bold text-blue-800" value={newTransaction.custodyId} onChange={e=>setNewTransaction({...newTransaction, custodyId: e.target.value})}><option value="">-- الخزينة العامة --</option>{sortedCustodies.map(c=><option key={c.id} value={c.id}>{c.personName}</option>)}</select></div>
+                  <div><label className="text-xs text-slate-500">العمارة (اختياري)</label><select className="w-full border p-2 text-sm rounded" value={newTransaction.buildingId} onChange={e=>setNewTransaction({...newTransaction, buildingId: e.target.value})}><option value="">-- عام --</option>{sortedBuildings.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
+                  {newTransaction.type === 'expense' && <div><label className="text-xs text-slate-500">تصنيف المصروف</label><select className="w-full border p-2 text-sm rounded" required value={newTransaction.categoryId} onChange={e=>setNewTransaction({...newTransaction, categoryId: e.target.value})}><option value="">-- اختر التصنيف --</option>{sortedCategories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>}
+                  
+                  {/* Autocomplete for Description */}
+                  <div className="relative">
+                    <label className="text-xs text-slate-500">البيان</label>
+                    <input type="text" required className="w-full border p-2 text-sm rounded" value={newTransaction.description} 
+                      onChange={e => setNewTransaction({...newTransaction, description: e.target.value})}
+                      onFocus={() => setDescFocus(true)} onBlur={() => setTimeout(() => setDescFocus(false), 200)}
+                    />
+                    {descFocus && newTransaction.description && filteredDescs.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 bg-white border shadow-xl z-50 max-h-40 overflow-y-auto rounded-b">
+                        {filteredDescs.map((d, idx) => (
+                          <div key={idx} className="p-2 text-sm border-b hover:bg-slate-100 cursor-pointer" onMouseDown={() => setNewTransaction({...newTransaction, description: d})}>{d}</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   <button className="w-full bg-slate-800 text-white py-2 rounded font-bold shadow">حفظ الحركة</button>
                 </form>
               </div>
@@ -331,10 +350,10 @@
             {/* العهدة */}
             {activeTab === 'custody' && (
               <div className="bg-white p-4 rounded-xl shadow print-hide">
-                <div className="mb-4 bg-slate-50 p-3 rounded border">
+                <div className="mb-4 bg-slate-50 p-3 rounded border relative">
                   <label className="font-bold block mb-2 text-slate-800">تحديد العُهد (متعدد):</label>
                   <MultiSelectDropdown 
-                    options={(data.custodies || []).map(c => ({ id: c.id, label: c.personName }))} 
+                    options={sortedCustodies.map(c => ({ id: c.id, label: c.personName }))} 
                     selected={selectedCustodies} 
                     onChange={setSelectedCustodies} 
                     placeholder="-- كل العهد والخزينة العامة --" 
@@ -378,14 +397,14 @@
                 <div className="bg-white p-6 rounded shadow max-w-md mx-auto">
                   <h3 className="font-bold mb-4 border-b pb-2 text-center text-lg text-blue-800">إضافة وحدة عقارية (شقة/محل)</h3>
                   <form onSubmit={addUnit} className="flex flex-col gap-3">
-                    <div><label className="text-xs text-slate-500">اختر العمارة</label><select className="border p-2 rounded text-sm w-full font-bold" required value={newUnit.buildingId} onChange={e => setNewUnit({...newUnit, buildingId: e.target.value})}><option value="">-- العمارة --</option>{(data.buildings || []).map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
+                    <div><label className="text-xs text-slate-500">اختر العمارة</label><select className="border p-2 rounded text-sm w-full font-bold" required value={newUnit.buildingId} onChange={e => setNewUnit({...newUnit, buildingId: e.target.value})}><option value="">-- العمارة --</option>{sortedBuildings.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
                     <div><label className="text-xs text-slate-500">رقم أو اسم الوحدة</label><input type="text" placeholder="مثال: شقة 14" className="border p-2 rounded text-sm w-full font-bold" required value={newUnit.unitNumber} onChange={e => setNewUnit({...newUnit, unitNumber: e.target.value})} /></div>
                     <button className="bg-blue-800 text-white px-4 py-3 rounded text-md font-bold w-full shadow-lg">حفظ الوحدة</button>
                   </form>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(data.buildings || []).map(b => (
+                  {sortedBuildings.map(b => (
                     <div key={b.id} className="bg-white p-4 rounded shadow border-t-4 border-slate-800">
                       <h4 className="font-bold text-center mb-3 bg-slate-100 p-2 rounded">{b.name}</h4>
                       <div className="grid grid-cols-4 gap-2">
@@ -472,7 +491,7 @@
                           <thead>
                             <tr className="bg-slate-200">
                               <th className="w-[80%] text-right print-header border-black">رصيد بداية المدة</th>
-                              <th className="w-[20%] border-black text-xl">{reportData.openingBalance.toLocaleString()}</th>
+                              <th className="w-[20%] border-black text-xl text-center">{reportData.openingBalance.toLocaleString()}</th>
                             </tr>
                           </thead>
                         </table>
@@ -480,11 +499,11 @@
                       
                       <h4 className="text-xl font-bold border-b-2 border-black mt-4 mb-2">الإيرادات</h4>
                       <table>
-                        <thead><tr><th className="w-[15%]">التاريخ</th><th className="w-[65%]">البيان</th><th className="w-[20%]">المبلغ</th></tr></thead>
+                        <thead><tr><th className="w-[15%] text-center">التاريخ</th><th className="w-[65%] text-right">البيان</th><th className="w-[20%] text-center">المبلغ</th></tr></thead>
                         <tbody>
                           {reportData.incomes.map(t => (
                             <tr key={t.id} className="print-row-text">
-                              <td dir="ltr" className="text-center">{formatShortDate(t.date)}</td><td>{t.description}</td><td className="text-center">{Number(t.amount).toLocaleString()}</td>
+                              <td dir="ltr" className="text-center">{formatShortDate(t.date)}</td><td>{t.description}</td><td className="text-center font-bold">{Number(t.amount).toLocaleString()}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -493,11 +512,11 @@
 
                       <h4 className="text-xl font-bold border-b-2 border-black mt-4 mb-2">المصروفات</h4>
                       <table>
-                        <thead><tr><th className="w-[15%]">التاريخ</th><th className="w-[65%]">البيان</th><th className="w-[20%]">المبلغ</th></tr></thead>
+                        <thead><tr><th className="w-[15%] text-center">التاريخ</th><th className="w-[65%] text-right">البيان</th><th className="w-[20%] text-center">المبلغ</th></tr></thead>
                         <tbody>
                           {reportData.expenses.map(t => (
                             <tr key={t.id} className="print-row-text">
-                              <td dir="ltr" className="text-center">{formatShortDate(t.date)}</td><td>{t.description}</td><td className="text-center">{Number(t.amount).toLocaleString()}</td>
+                              <td dir="ltr" className="text-center">{formatShortDate(t.date)}</td><td>{t.description}</td><td className="text-center font-bold">{Number(t.amount).toLocaleString()}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -528,13 +547,23 @@
                       <div>
                         <label className="text-xs font-bold block mb-1">العهدة (متعدد)</label>
                         <MultiSelectDropdown 
-                          options={(data.custodies||[]).map(c => ({ id: c.id, label: c.personName }))}
+                          options={sortedCustodies.map(c => ({ id: c.id, label: c.personName }))}
                           selected={reportFilter.custodyIds}
                           onChange={(newIds) => setReportFilter({...reportFilter, custodyIds: newIds})}
                           placeholder="-- كل العهد --"
                         />
                       </div>
                     )}
+                    
+                    <div>
+                      <label className="text-xs font-bold block mb-1">العمارة (متعدد)</label>
+                      <MultiSelectDropdown 
+                        options={sortedBuildings.map(b => ({ id: b.id, label: b.name }))}
+                        selected={reportFilter.buildingIds}
+                        onChange={(newIds) => setReportFilter({...reportFilter, buildingIds: newIds})}
+                        placeholder="-- كل العمارات --"
+                      />
+                    </div>
                   </div>
 
                   <button onClick={handlePrint} className="w-full bg-slate-800 text-white py-3 rounded font-bold mb-4 shadow-lg text-lg">🖨️ طباعة التقرير PDF</button>
@@ -551,7 +580,7 @@
                     <input required type="text" placeholder="مثال: تشطيبات..." className="border p-2 text-sm flex-grow rounded" value={newCategory} onChange={e=>setNewCategory(e.target.value)}/>
                     <button className="bg-slate-800 text-white px-4 rounded text-sm shadow">إضافة</button>
                   </form>
-                  <div className="flex flex-wrap gap-2">{(data.categories || []).map(c=><span key={c.id} className="bg-slate-100 border p-1 px-2 rounded text-xs">{c.name}</span>)}</div>
+                  <div className="flex flex-wrap gap-2">{sortedCategories.map(c=><span key={c.id} className="bg-slate-100 border p-1 px-2 rounded text-xs">{c.name}</span>)}</div>
                 </div>
                 
                 <div className="bg-white p-4 shadow rounded border-t-4 border-slate-800">

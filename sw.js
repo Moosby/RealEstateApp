@@ -1,4 +1,4 @@
-const CACHE_NAME = 'real-estate-offline-v3';
+const CACHE_NAME = 'real-estate-offline-v6';
 const urlsToCache = [
   'index.html',
   'manifest.json',

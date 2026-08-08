@@ -6,6 +6,7 @@
   <title>نظام إدارة العقارات المتكامل</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#1e293b">
+  
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -47,7 +48,9 @@
       const [newTransaction, setNewTransaction] = useState({ type: 'expense', amount: '', categoryId: '', buildingId: '', custodyId: '', description: '' });
       const [newContract, setNewContract] = useState({ clientName: '', unitId: '', totalAmount: '', downPayment: '', installmentsCount: '', firstInstallmentDate: '' });
       const [reportFilter, setReportFilter] = useState({ startDate: '', endDate: '', custodyId: '', buildingId: '' });
+      
       const [dashboardCustodyFilter, setDashboardCustodyFilter] = useState('');
+      const [quickAdd, setQuickAdd] = useState({ show: false, type: 'expense', amount: '', description: '', categoryId: '' });
 
       useEffect(() => { localStorage.setItem('real_estate_core_data', JSON.stringify(data)); }, [data]);
 
@@ -113,6 +116,7 @@
           transactions: [...prev.transactions, trans],
           units: prev.units.map(u => u.id === unit.id ? { ...u, status: 'sold' } : u)
         }));
+        setNewContract({ clientName: '', unitId: '', totalAmount: '', downPayment: '', installmentsCount: '', firstInstallmentDate: '' });
         showMsg('تم تسجيل العقد بنجاح');
       };
 
@@ -135,14 +139,33 @@
         showMsg('تم التحصيل بنجاح');
       };
 
+      // تعديل القسط (تاريخ ومبلغ)
       const editInstallment = (instId) => {
         const inst = data.installments.find(i => i.id === instId);
-        const newDate = window.prompt('تعديل تاريخ الاستحقاق:', inst.dueDate);
+        const newDate = window.prompt('تعديل تاريخ الاستحقاق (سنة-شهر-يوم):', inst.dueDate);
+        if (newDate === null) return;
         const newAmount = window.prompt('تعديل المبلغ:', inst.amount);
-        if (newDate && newAmount) {
-          setData(prev => ({ ...prev, installments: prev.installments.map(i => i.id === instId ? { ...i, dueDate: newDate, amount: Number(newAmount) } : i) }));
-          showMsg('تم التعديل بنجاح');
-        }
+        if (newAmount === null) return;
+
+        setData(prev => ({
+          ...prev,
+          installments: prev.installments.map(i => i.id === instId ? { ...i, dueDate: newDate || inst.dueDate, amount: newAmount ? Number(newAmount) : inst.amount } : i)
+        }));
+        showMsg('تم التعديل بنجاح');
+      };
+
+      // إضافة قسط يدوي جديد
+      const addManualInstallment = (contractId) => {
+        const amount = window.prompt('أدخل مبلغ القسط الجديد:');
+        if (!amount) return;
+        const date = window.prompt('أدخل تاريخ استحقاق القسط (YYYY-MM-DD):', todayDate);
+        if (!date) return;
+        
+        setData(prev => ({
+          ...prev,
+          installments: [...prev.installments, { id: 'inst_man_' + Date.now(), contractId, amount: Number(amount), dueDate: date, status: 'pending' }]
+        }));
+        showMsg('تمت إضافة القسط اليدوي بنجاح');
       };
 
       const cancelContract = (contractId, unitId) => {
@@ -158,16 +181,33 @@
         }
       };
 
+      const handleQuickAddSubmit = (e) => {
+        e.preventDefault();
+        const item = { 
+          id: 't_quick_' + Date.now(), 
+          type: quickAdd.type, 
+          amount: Number(quickAdd.amount), 
+          categoryId: quickAdd.categoryId || '', 
+          buildingId: '', 
+          custodyId: dashboardCustodyFilter, 
+          description: quickAdd.description, 
+          date: todayDate 
+        };
+        setData(prev => ({ ...prev, transactions: [...prev.transactions, item] }));
+        setQuickAdd({ show: false, type: 'expense', amount: '', description: '', categoryId: '' });
+        showMsg('تم تسجيل الحركة للعهدة بنجاح');
+      };
+
       return (
         <div className="min-h-screen flex flex-col bg-slate-50">
           <header className="bg-slate-900 text-white p-4 shadow">
-            <h1 className="text-xl font-bold">🏢 إدارة الأملاك والعقارات (ERP)</h1>
+            <h1 className="text-xl font-bold">🏢 إدارة الأملاك والعقارات</h1>
           </header>
 
           <nav className="bg-slate-800 text-slate-200 flex overflow-x-auto border-b border-slate-700 no-scrollbar">
             {['dashboard', 'inventory', 'sales', 'custody', 'reports', 'settings'].map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)} className={`p-3 text-sm font-medium whitespace-nowrap ${activeTab === tab ? 'bg-slate-700 text-emerald-400 border-b-2 border-emerald-400' : ''}`}>
-                {tab === 'dashboard' ? 'الرئيسية' : tab === 'inventory' ? 'الوحدات (المخزون)' : tab === 'sales' ? 'المبيعات' : tab === 'custody' ? 'الخزينة والعُهد' : tab === 'reports' ? 'التقارير' : 'الإعدادات'}
+                {tab === 'dashboard' ? 'الرئيسية' : tab === 'inventory' ? 'الوحدات' : tab === 'sales' ? 'المبيعات والأقساط' : tab === 'custody' ? 'الخزينة والعُهد' : tab === 'reports' ? 'التقارير' : 'الإعدادات'}
               </button>
             ))}
           </nav>
@@ -177,7 +217,7 @@
 
           <main className="flex-grow p-4 mx-auto w-full max-w-7xl">
             
-            {/* Dashboard */}
+            {/* 1. Dashboard */}
             {activeTab === 'dashboard' && (
               <div className="space-y-6">
                 {overdueInstallments.length > 0 && (
@@ -202,16 +242,42 @@
                     <p className="text-2xl font-bold text-emerald-600">{data.transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0).toLocaleString()}</p>
                   </div>
                   <div className="bg-white p-4 rounded-xl shadow border-r-4 border-amber-500">
-                    <div className="flex justify-between items-center mb-1">
-                      <p className="text-sm text-slate-500">استعلام عن صافي عُهدة</p>
-                    </div>
-                    <select className="w-full text-sm border rounded p-1 mb-2" onChange={e => setDashboardCustodyFilter(e.target.value)}>
+                    <p className="text-sm text-slate-500 mb-2">استعلام سريع عن عُهدة</p>
+                    <select className="w-full text-sm border rounded p-2 mb-3 bg-slate-50" value={dashboardCustodyFilter} onChange={e => { setDashboardCustodyFilter(e.target.value); setQuickAdd({...quickAdd, show: false}); }}>
                       <option value="">-- اختر العهدة --</option>
                       {custodyCalculations.map(c => <option key={c.id} value={c.id}>{c.personName}</option>)}
                     </select>
-                    <p className="text-xl font-bold text-amber-600">
-                      {dashboardCustodyFilter ? (custodyCalculations.find(c=>c.id===dashboardCustodyFilter)?.remaining.toLocaleString() || 0) : '0'} ج.م
+                    
+                    <p className="text-xl font-bold text-amber-600 mb-2">
+                      الصافي: {dashboardCustodyFilter ? (custodyCalculations.find(c=>c.id===dashboardCustodyFilter)?.remaining.toLocaleString() || 0) : '0'} ج.م
                     </p>
+
+                    {/* Quick Add Buttons for Dashboard */}
+                    {dashboardCustodyFilter && !quickAdd.show && (
+                      <div className="flex gap-2 mt-3 pt-3 border-t">
+                        <button onClick={() => setQuickAdd({ show: true, type: 'expense', amount: '', description: '', categoryId: '' })} className="flex-1 bg-red-500 text-white py-1 rounded text-sm font-bold shadow">➖ مصروف</button>
+                        <button onClick={() => setQuickAdd({ show: true, type: 'income', amount: '', description: '', categoryId: '' })} className="flex-1 bg-emerald-500 text-white py-1 rounded text-sm font-bold shadow">➕ إيراد</button>
+                      </div>
+                    )}
+
+                    {/* Quick Add Form */}
+                    {dashboardCustodyFilter && quickAdd.show && (
+                      <form onSubmit={handleQuickAddSubmit} className="mt-3 pt-3 border-t space-y-2">
+                        <h4 className="text-xs font-bold text-center mb-2">{quickAdd.type === 'expense' ? 'تسجيل مصروف للعهدة' : 'تسجيل إيراد للعهدة'}</h4>
+                        <input type="number" placeholder="المبلغ" required className="w-full border p-2 text-sm rounded" value={quickAdd.amount} onChange={e => setQuickAdd({...quickAdd, amount: e.target.value})} />
+                        {quickAdd.type === 'expense' && (
+                          <select className="w-full border p-2 text-sm rounded" required value={quickAdd.categoryId} onChange={e => setQuickAdd({...quickAdd, categoryId: e.target.value})}>
+                            <option value="">-- تصنيف المصروف --</option>
+                            {data.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </select>
+                        )}
+                        <input type="text" placeholder="البيان / الوصف" required className="w-full border p-2 text-sm rounded" value={quickAdd.description} onChange={e => setQuickAdd({...quickAdd, description: e.target.value})} />
+                        <div className="flex gap-2">
+                          <button type="submit" className="flex-1 bg-slate-800 text-white py-1 rounded text-sm">حفظ</button>
+                          <button type="button" onClick={() => setQuickAdd({...quickAdd, show: false})} className="flex-1 bg-gray-300 text-gray-800 py-1 rounded text-sm">إلغاء</button>
+                        </div>
+                      </form>
+                    )}
                   </div>
                 </div>
 
@@ -222,34 +288,35 @@
                     <tbody>
                       {monthInstallments.map(inst => {
                         const c = data.contracts.find(ct => ct.id === inst.contractId);
-                        return <tr key={inst.id} className="border-b"><td className="p-2 font-bold">{c?.clientName}</td><td className="p-2">{inst.dueDate}</td><td className="p-2">{inst.amount.toLocaleString()}</td></tr>
+                        return <tr key={inst.id} className="border-b"><td className="p-2 font-bold">{c?.clientName}</td><td className="p-2" dir="ltr">{inst.dueDate}</td><td className="p-2">{inst.amount.toLocaleString()}</td></tr>
                       })}
+                      {monthInstallments.length === 0 && <tr><td colSpan="3" className="text-center p-4 text-slate-400">لا توجد أقساط مستحقة هذا الشهر</td></tr>}
                     </tbody>
                   </table>
                 </div>
               </div>
             )}
 
-            {/* Inventory */}
+            {/* 2. Inventory */}
             {activeTab === 'inventory' && (
               <div className="space-y-6">
                 <div className="bg-white p-4 rounded shadow">
-                  <h3 className="font-bold mb-4 border-b pb-2">إضافة وحدة عقارية</h3>
+                  <h3 className="font-bold mb-4 border-b pb-2">إضافة وحدة عقارية (شقة/محل)</h3>
                   <form onSubmit={addUnit} className="flex gap-2">
                     <select className="border p-2 rounded text-sm" required value={newUnit.buildingId} onChange={e => setNewUnit({...newUnit, buildingId: e.target.value})}>
                       <option value="">العمارة...</option>{data.buildings.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                     </select>
-                    <input type="text" placeholder="رقم الشقة/الوحدة" className="border p-2 rounded text-sm" required value={newUnit.unitNumber} onChange={e => setNewUnit({...newUnit, unitNumber: e.target.value})} />
+                    <input type="text" placeholder="رقم الشقة/الوحدة" className="border p-2 rounded text-sm flex-grow" required value={newUnit.unitNumber} onChange={e => setNewUnit({...newUnit, unitNumber: e.target.value})} />
                     <button className="bg-slate-800 text-white px-4 py-2 rounded text-sm">إضافة</button>
                   </form>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {data.buildings.map(b => (
-                    <div key={b.id} className="bg-white p-4 rounded shadow">
+                    <div key={b.id} className="bg-white p-4 rounded shadow border-t-4 border-slate-800">
                       <h4 className="font-bold text-center mb-3 bg-slate-100 p-2 rounded">{b.name}</h4>
                       <div className="grid grid-cols-4 gap-2">
                         {data.units.filter(u => u.buildingId === b.id).map(u => (
-                          <div key={u.id} className={`p-2 text-center text-xs rounded font-bold text-white ${u.status === 'available' ? 'bg-emerald-500' : 'bg-red-500'}`}>
+                          <div key={u.id} className={`p-2 text-center text-xs rounded font-bold text-white shadow-sm ${u.status === 'available' ? 'bg-emerald-500' : 'bg-red-500'}`}>
                             {u.unitNumber}<br/>{u.status === 'available' ? 'متاح' : 'مباع'}
                           </div>
                         ))}
@@ -260,7 +327,7 @@
               </div>
             )}
 
-            {/* Sales */}
+            {/* 3. Sales */}
             {activeTab === 'sales' && (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="bg-white p-4 rounded-xl shadow h-fit">
@@ -271,11 +338,11 @@
                       <option value="">-- اختر الوحدة المتاحة --</option>
                       {data.units.filter(u => u.status === 'available').map(u => <option key={u.id} value={u.id}>{data.buildings.find(b=>b.id===u.buildingId)?.name} - {u.unitNumber}</option>)}
                     </select>
-                    <input type="number" placeholder="الإجمالي" className="w-full border p-2 rounded text-sm" required value={newContract.totalAmount} onChange={e => setNewContract({...newContract, totalAmount: e.target.value})} />
-                    <input type="number" placeholder="المقدم" className="w-full border p-2 rounded text-sm" required value={newContract.downPayment} onChange={e => setNewContract({...newContract, downPayment: e.target.value})} />
+                    <input type="number" placeholder="الإجمالي (ج.م)" className="w-full border p-2 rounded text-sm" required value={newContract.totalAmount} onChange={e => setNewContract({...newContract, totalAmount: e.target.value})} />
+                    <input type="number" placeholder="المقدم المدفوع حالا" className="w-full border p-2 rounded text-sm" required value={newContract.downPayment} onChange={e => setNewContract({...newContract, downPayment: e.target.value})} />
                     <input type="number" placeholder="عدد الأقساط المبدئي" className="w-full border p-2 rounded text-sm" required value={newContract.installmentsCount} onChange={e => setNewContract({...newContract, installmentsCount: e.target.value})} />
-                    <input type="date" className="w-full border p-2 rounded text-sm" required value={newContract.firstInstallmentDate} onChange={e => setNewContract({...newContract, firstInstallmentDate: e.target.value})} />
-                    <button className="w-full bg-blue-600 text-white py-2 rounded font-bold text-sm">تسجيل العقد</button>
+                    <div><label className="text-xs text-slate-500">تاريخ أول قسط</label><input type="date" className="w-full border p-2 rounded text-sm" required value={newContract.firstInstallmentDate} onChange={e => setNewContract({...newContract, firstInstallmentDate: e.target.value})} /></div>
+                    <button className="w-full bg-blue-600 text-white py-2 rounded font-bold text-sm">تسجيل العقد وإنشاء الأقساط</button>
                   </form>
                 </div>
                 <div className="bg-white p-4 rounded-xl shadow lg:col-span-2">
@@ -285,27 +352,35 @@
                       const u = data.units.find(un => un.id === c.unitId);
                       const b = data.buildings.find(bd => bd.id === c.buildingId);
                       return (
-                        <div key={c.id} className="border p-3 rounded-lg bg-slate-50">
-                          <div className="flex justify-between items-start mb-2 border-b pb-2">
-                            <div><p className="font-bold text-blue-800">{c.clientName}</p><p className="text-xs">{b?.name} - شقة {u?.unitNumber}</p></div>
-                            <button onClick={() => cancelContract(c.id, c.unitId)} className="text-xs text-red-600 border border-red-600 px-2 py-1 rounded hover:bg-red-100">فسخ العقد</button>
+                        <div key={c.id} className="border p-4 rounded-lg bg-slate-50 shadow-sm">
+                          <div className="flex justify-between items-start mb-3 border-b pb-2">
+                            <div><p className="font-bold text-blue-800 text-lg">{c.clientName}</p><p className="text-sm font-semibold">{b?.name} - شقة {u?.unitNumber}</p></div>
+                            <button onClick={() => cancelContract(c.id, c.unitId)} className="text-xs text-red-600 border border-red-600 bg-white px-2 py-1 rounded hover:bg-red-100">فسخ العقد</button>
                           </div>
-                          <div className="overflow-x-auto">
+                          
+                          <div className="overflow-x-auto mb-3">
                             <table className="w-full text-sm text-right">
-                              <thead><tr className="text-slate-500"><th className="p-1">التاريخ</th><th className="p-1">المبلغ</th><th className="p-1">الحالة</th><th className="p-1">إجراء</th></tr></thead>
+                              <thead><tr className="text-slate-500 border-b"><th className="p-2">التاريخ</th><th className="p-2">المبلغ</th><th className="p-2">الحالة</th><th className="p-2">إجراء</th></tr></thead>
                               <tbody>
                                 {data.installments.filter(i => i.contractId === c.id).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate)).map(inst => (
-                                  <tr key={inst.id} className="border-t">
-                                    <td className="p-1">{inst.dueDate}</td><td className="p-1">{inst.amount.toLocaleString()}</td>
-                                    <td className="p-1">{inst.status === 'paid' ? <span className="text-emerald-600">مدفوع</span> : 'مستحق'}</td>
-                                    <td className="p-1 flex gap-1">
-                                      {inst.status === 'pending' && <button onClick={() => payInstallment(inst.id, inst.amount, c.clientName, c.buildingId)} className="bg-emerald-500 text-white px-2 rounded text-xs">تحصيل</button>}
-                                      {inst.status === 'pending' && <button onClick={() => editInstallment(inst.id)} className="bg-slate-400 text-white px-2 rounded text-xs">تعديل</button>}
+                                  <tr key={inst.id} className="border-b">
+                                    <td className="p-2 font-mono" dir="ltr">{inst.dueDate}</td><td className="p-2 font-bold">{inst.amount.toLocaleString()}</td>
+                                    <td className="p-2">{inst.status === 'paid' ? <span className="text-emerald-600 font-bold">مدفوع</span> : 'مستحق'}</td>
+                                    <td className="p-2 flex gap-1">
+                                      {inst.status === 'pending' && <button onClick={() => payInstallment(inst.id, inst.amount, c.clientName, c.buildingId)} className="bg-emerald-500 text-white px-3 py-1 rounded text-xs font-bold shadow">تحصيل</button>}
+                                      {inst.status === 'pending' && <button onClick={() => editInstallment(inst.id)} className="bg-slate-600 text-white px-3 py-1 rounded text-xs font-bold shadow">تعديل</button>}
                                     </td>
                                   </tr>
                                 ))}
                               </tbody>
                             </table>
+                          </div>
+                          
+                          {/* زر إضافة قسط يدوي */}
+                          <div className="text-left">
+                            <button onClick={() => addManualInstallment(c.id)} className="bg-blue-100 text-blue-800 border border-blue-300 px-3 py-1 rounded text-xs font-bold shadow-sm hover:bg-blue-200">
+                              ➕ إضافة قسط يدوي
+                            </button>
                           </div>
                         </div>
                       )
@@ -315,82 +390,143 @@
               </div>
             )}
 
-            {/* Custody (Same as before, abbreviated for space, functionality intact via transactions) */}
+            {/* 4. Custody & Transactions (الخزينة والعهد - Fixed White Screen) */}
             {activeTab === 'custody' && (
-              <div className="bg-white p-4 rounded shadow max-w-lg mx-auto mb-6">
-                <h3 className="font-bold mb-4 border-b pb-2">تسجيل إيراد أو مصروف</h3>
-                <form onSubmit={(e) => {
-                  e.preventDefault();
-                  const item = { id: 't_' + Date.now(), ...newTransaction, amount: Number(newTransaction.amount), date: todayDate };
-                  setData(prev => ({ ...prev, transactions: [...prev.transactions, item] }));
-                  setNewTransaction({ type: 'expense', amount: '', categoryId: '', buildingId: '', custodyId: '', description: '' });
-                  showMsg('تم الحفظ');
-                }} className="space-y-3">
-                  <div className="flex gap-4"><label><input type="radio" checked={newTransaction.type === 'expense'} onChange={()=>setNewTransaction({...newTransaction, type:'expense'})}/> مصروف</label><label><input type="radio" checked={newTransaction.type === 'income'} onChange={()=>setNewTransaction({...newTransaction, type:'income'})}/> إيراد</label></div>
-                  <input type="number" placeholder="المبلغ" required className="w-full border p-2 text-sm" value={newTransaction.amount} onChange={e=>setNewTransaction({...newTransaction, amount: e.target.value})}/>
-                  <select className="w-full border p-2 text-sm" value={newTransaction.buildingId} onChange={e=>setNewTransaction({...newTransaction, buildingId: e.target.value})}><option value="">-- العمارة (اختياري) --</option>{data.buildings.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select>
-                  {newTransaction.type === 'expense' && <select className="w-full border p-2 text-sm" required value={newTransaction.categoryId} onChange={e=>setNewTransaction({...newTransaction, categoryId: e.target.value})}><option value="">-- تصنيف المصروف --</option>{data.categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select>}
-                  {newTransaction.type === 'expense' && <select className="w-full border p-2 text-sm" value={newTransaction.custodyId} onChange={e=>setNewTransaction({...newTransaction, custodyId: e.target.value})}><option value="">-- الخزينة العامة --</option>{data.custodies.map(c=><option key={c.id} value={c.id}>{c.personName}</option>)}</select>}
-                  <input type="text" placeholder="البيان" required className="w-full border p-2 text-sm" value={newTransaction.description} onChange={e=>setNewTransaction({...newTransaction, description: e.target.value})}/>
-                  <button className="w-full bg-emerald-600 text-white py-2 rounded">حفظ</button>
-                </form>
-              </div>
-            )}
-
-            {/* Reports */}
-            {activeTab === 'reports' && (
-              <div className="bg-white p-4 rounded shadow">
-                <div className="flex justify-between mb-4"><h3 className="font-bold">تقرير شامل</h3><button onClick={()=>window.print()} className="bg-slate-800 text-white px-3 py-1 rounded text-sm">طباعة</button></div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
-                  <input type="date" className="border p-1 text-sm" onChange={e=>setReportFilter({...reportFilter, startDate: e.target.value})}/>
-                  <input type="date" className="border p-1 text-sm" onChange={e=>setReportFilter({...reportFilter, endDate: e.target.value})}/>
-                  <select className="border p-1 text-sm" onChange={e=>setReportFilter({...reportFilter, custodyId: e.target.value})}><option value="">كل العهد</option>{data.custodies.map(c=><option key={c.id} value={c.id}>{c.personName}</option>)}</select>
-                  <select className="border p-1 text-sm" onChange={e=>setReportFilter({...reportFilter, buildingId: e.target.value})}><option value="">كل العمارات</option>{data.buildings.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select>
-                </div>
-                <table className="w-full text-right text-sm"><thead className="bg-slate-100"><tr><th>التاريخ</th><th>النوع</th><th>البيان</th><th>المبلغ</th></tr></thead>
-                <tbody>
-                  {data.transactions.filter(t => {
-                    if (reportFilter.startDate && t.date < reportFilter.startDate) return false;
-                    if (reportFilter.endDate && t.date > reportFilter.endDate) return false;
-                    if (reportFilter.custodyId && t.custodyId !== reportFilter.custodyId) return false;
-                    if (reportFilter.buildingId && t.buildingId !== reportFilter.buildingId) return false;
-                    return true;
-                  }).map(t => (
-                    <tr key={t.id} className="border-b"><td className="p-1">{t.date}</td><td className="p-1">{t.type==='income'?'إيراد':'مصروف'}</td><td className="p-1">{t.description}</td><td className="p-1">{t.amount}</td></tr>
-                  ))}
-                </tbody></table>
-              </div>
-            )}
-
-            {/* Settings */}
-            {activeTab === 'settings' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-white p-4 shadow rounded">
-                  <h4 className="font-bold mb-2 text-red-600">تغيير رمز الحماية (PIN)</h4>
-                  <p className="text-xs mb-2">يُستخدم لمنع فسخ العقود بالخطأ. الحالي: {data.pinCode}</p>
-                  <div className="flex gap-2"><input type="text" maxLength="4" className="border p-2 text-sm" value={newPin} onChange={e=>setNewPin(e.target.value)} placeholder="0000"/><button onClick={()=>{setData(p=>({...p, pinCode: newPin})); showMsg('تم التغيير');}} className="bg-slate-800 text-white px-3 rounded text-sm">حفظ</button></div>
-                </div>
-                <div className="bg-white p-4 shadow rounded">
-                  <h4 className="font-bold mb-2">إضافة عمارة/مشروع</h4>
-                  <form onSubmit={(e)=>{e.preventDefault(); setData(p=>({...p, buildings: [...p.buildings, {id: 'b_'+Date.now(), name: newBuilding}]})); setNewBuilding('');}} className="flex gap-2"><input required type="text" className="border p-2 text-sm flex-grow" value={newBuilding} onChange={e=>setNewBuilding(e.target.value)}/><button className="bg-slate-800 text-white px-3 rounded">إضافة</button></form>
-                </div>
-                <div className="bg-white p-4 shadow rounded">
-                  <h4 className="font-bold mb-2">إضافة تصنيف مصروفات</h4>
-                  <form onSubmit={(e)=>{e.preventDefault(); setData(p=>({...p, categories: [...p.categories, {id: 'c_'+Date.now(), name: newCategory}]})); setNewCategory('');}} className="flex gap-2"><input required type="text" className="border p-2 text-sm flex-grow" value={newCategory} onChange={e=>setNewCategory(e.target.value)}/><button className="bg-slate-800 text-white px-3 rounded">إضافة</button></form>
-                </div>
-                <div className="bg-white p-4 shadow rounded">
-                  <h4 className="font-bold mb-2">إضافة عهدة لمسؤول</h4>
-                  <form onSubmit={(e)=>{e.preventDefault(); setData(p=>({...p, custodies: [...p.custodies, {id: 'cus_'+Date.now(), ...newCustody}]})); setNewCustody({personName:'', totalAmount:'', notes:''});}} className="space-y-2">
-                    <input required type="text" placeholder="الاسم" className="border p-2 text-sm w-full" value={newCustody.personName} onChange={e=>setNewCustody({...newCustody, personName:e.target.value})}/>
-                    <input required type="number" placeholder="المبلغ" className="border p-2 text-sm w-full" value={newCustody.totalAmount} onChange={e=>setNewCustody({...newCustody, totalAmount:e.target.value})}/>
-                    <button className="bg-slate-800 text-white p-2 rounded w-full">إضافة</button>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="bg-white p-4 rounded shadow h-fit">
+                  <h3 className="font-bold mb-4 border-b pb-2">تسجيل حركة عامة</h3>
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    const item = { id: 't_' + Date.now(), ...newTransaction, amount: Number(newTransaction.amount), date: todayDate };
+                    setData(prev => ({ ...prev, transactions: [...prev.transactions, item] }));
+                    setNewTransaction({ type: 'expense', amount: '', categoryId: '', buildingId: '', custodyId: '', description: '' });
+                    showMsg('تم الحفظ بنجاح');
+                  }} className="space-y-4">
+                    <div className="flex gap-4 p-2 bg-slate-50 rounded border">
+                      <label className="flex items-center gap-1 cursor-pointer font-bold text-red-600"><input type="radio" checked={newTransaction.type === 'expense'} onChange={()=>setNewTransaction({...newTransaction, type:'expense'})}/> مصروف</label>
+                      <label className="flex items-center gap-1 cursor-pointer font-bold text-emerald-600"><input type="radio" checked={newTransaction.type === 'income'} onChange={()=>setNewTransaction({...newTransaction, type:'income'})}/> إيراد</label>
+                    </div>
+                    <div><label className="text-xs text-slate-500">المبلغ</label><input type="number" required className="w-full border p-2 text-sm rounded" value={newTransaction.amount} onChange={e=>setNewTransaction({...newTransaction, amount: e.target.value})}/></div>
+                    <div><label className="text-xs text-slate-500">العمارة (اختياري)</label><select className="w-full border p-2 text-sm rounded" value={newTransaction.buildingId} onChange={e=>setNewTransaction({...newTransaction, buildingId: e.target.value})}><option value="">-- عام --</option>{data.buildings.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
+                    {newTransaction.type === 'expense' && <div><label className="text-xs text-slate-500">تصنيف المصروف</label><select className="w-full border p-2 text-sm rounded" required value={newTransaction.categoryId} onChange={e=>setNewTransaction({...newTransaction, categoryId: e.target.value})}><option value="">-- اختر التصنيف --</option>{data.categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>}
+                    <div><label className="text-xs text-slate-500">العهدة / الخزينة</label><select className="w-full border p-2 text-sm rounded" value={newTransaction.custodyId} onChange={e=>setNewTransaction({...newTransaction, custodyId: e.target.value})}><option value="">-- الخزينة العامة --</option>{data.custodies.map(c=><option key={c.id} value={c.id}>{c.personName}</option>)}</select></div>
+                    <div><label className="text-xs text-slate-500">البيان والتفاصيل</label><input type="text" required className="w-full border p-2 text-sm rounded" value={newTransaction.description} onChange={e=>setNewTransaction({...newTransaction, description: e.target.value})}/></div>
+                    <button className="w-full bg-slate-800 text-white py-2 rounded font-bold shadow">تأكيد وحفظ</button>
                   </form>
                 </div>
-                <div className="bg-white p-4 shadow rounded md:col-span-2 text-center border border-red-500">
-                  <h4 className="font-bold mb-2 text-red-600">النسخ الاحتياطي (ضروري يومياً)</h4>
+                
+                <div className="bg-white p-4 rounded shadow lg:col-span-2">
+                  <h3 className="font-bold mb-4 border-b pb-2">أرصدة العُهد الحالية</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-right text-sm">
+                      <thead className="bg-slate-100 border-b"><tr><th className="p-3">اسم المسؤول</th><th className="p-3">المبلغ الأصلي</th><th className="p-3">المنصرف</th><th className="p-3">الصافي المتبقي</th></tr></thead>
+                      <tbody>
+                        {custodyCalculations.map(c => (
+                          <tr key={c.id} className="border-b">
+                            <td className="p-3 font-bold text-slate-800">{c.personName}</td>
+                            <td className="p-3">{c.totalAmount.toLocaleString()}</td>
+                            <td className="p-3 text-red-600 font-bold">{c.used.toLocaleString()}</td>
+                            <td className="p-3 text-emerald-600 font-bold text-lg">{c.remaining.toLocaleString()}</td>
+                          </tr>
+                        ))}
+                        {custodyCalculations.length === 0 && <tr><td colSpan="4" className="p-4 text-center text-slate-400">لا توجد عهد مسجلة حالياً</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 5. Reports */}
+            {activeTab === 'reports' && (
+              <div className="bg-white p-4 rounded shadow">
+                <div className="flex justify-between mb-4 border-b pb-2"><h3 className="font-bold text-lg">التقارير المفصلة</h3><button onClick={()=>window.print()} className="bg-slate-800 text-white px-4 py-1 rounded text-sm shadow">طباعة التقرير</button></div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 bg-slate-50 p-4 rounded border">
+                  <div><label className="text-xs font-bold block mb-1">من تاريخ</label><input type="date" className="w-full border p-2 text-sm rounded" value={reportFilter.startDate} onChange={e=>setReportFilter({...reportFilter, startDate: e.target.value})}/></div>
+                  <div><label className="text-xs font-bold block mb-1">إلى تاريخ</label><input type="date" className="w-full border p-2 text-sm rounded" value={reportFilter.endDate} onChange={e=>setReportFilter({...reportFilter, endDate: e.target.value})}/></div>
+                  <div>
+                    <label className="text-xs font-bold block mb-1">تصفية بالعهدة</label>
+                    <select className="w-full border p-2 text-sm rounded" value={reportFilter.custodyId} onChange={e=>setReportFilter({...reportFilter, custodyId: e.target.value})}><option value="">-- كل العهد والخزينة --</option>{data.custodies.map(c=><option key={c.id} value={c.id}>{c.personName}</option>)}</select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold block mb-1">تصفية بالعمارة</label>
+                    <select className="w-full border p-2 text-sm rounded" value={reportFilter.buildingId} onChange={e=>setReportFilter({...reportFilter, buildingId: e.target.value})}><option value="">-- كل العمارات --</option>{data.buildings.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select>
+                  </div>
+                </div>
+                
+                <div className="overflow-x-auto">
+                  <table className="w-full text-right text-sm">
+                    <thead className="bg-slate-800 text-white"><tr><th className="p-2">التاريخ</th><th className="p-2">النوع</th><th className="p-2">التصنيف</th><th className="p-2">البيان</th><th className="p-2">العهدة</th><th className="p-2">المبلغ</th></tr></thead>
+                    <tbody>
+                      {data.transactions.filter(t => {
+                        if (reportFilter.startDate && t.date < reportFilter.startDate) return false;
+                        if (reportFilter.endDate && t.date > reportFilter.endDate) return false;
+                        if (reportFilter.custodyId && t.custodyId !== reportFilter.custodyId) return false;
+                        if (reportFilter.buildingId && t.buildingId !== reportFilter.buildingId) return false;
+                        return true;
+                      }).map(t => {
+                        const cat = data.categories.find(c => c.id === t.categoryId)?.name || '-';
+                        const cst = data.custodies.find(c => c.id === t.custodyId)?.personName || 'الخزينة العامة';
+                        return (
+                          <tr key={t.id} className="border-b hover:bg-slate-50">
+                            <td className="p-2" dir="ltr">{t.date}</td>
+                            <td className="p-2">{t.type==='income'?<span className="text-emerald-600 font-bold">إيراد</span>:<span className="text-red-500 font-bold">مصروف</span>}</td>
+                            <td className="p-2">{cat}</td><td className="p-2">{t.description}</td><td className="p-2">{cst}</td><td className="p-2 font-bold">{t.amount.toLocaleString()}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* 6. Settings */}
+            {activeTab === 'settings' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white p-4 shadow rounded border-t-4 border-slate-800">
+                  <h4 className="font-bold mb-3">إضافة تصنيف مصروفات</h4>
+                  <form onSubmit={(e)=>{e.preventDefault(); setData(p=>({...p, categories: [...p.categories, {id: 'c_'+Date.now(), name: newCategory}]})); setNewCategory(''); showMsg('تمت الإضافة');}} className="flex gap-2 mb-3">
+                    <input required type="text" placeholder="مثال: تشطيبات، بوفيه..." className="border p-2 text-sm flex-grow rounded" value={newCategory} onChange={e=>setNewCategory(e.target.value)}/>
+                    <button className="bg-slate-800 text-white px-4 rounded text-sm shadow">إضافة</button>
+                  </form>
+                  <div className="flex flex-wrap gap-2">{data.categories.map(c=><span key={c.id} className="bg-slate-100 border p-1 px-2 rounded text-xs">{c.name}</span>)}</div>
+                </div>
+                
+                <div className="bg-white p-4 shadow rounded border-t-4 border-slate-800">
+                  <h4 className="font-bold mb-3">تسليم عهدة لمسؤول جديد</h4>
+                  <form onSubmit={(e)=>{e.preventDefault(); setData(p=>({...p, custodies: [...p.custodies, {id: 'cus_'+Date.now(), ...newCustody}]})); setNewCustody({personName:'', totalAmount:'', notes:''}); showMsg('تم تسجيل العهدة');}} className="space-y-2">
+                    <input required type="text" placeholder="اسم المسؤول" className="border p-2 text-sm w-full rounded" value={newCustody.personName} onChange={e=>setNewCustody({...newCustody, personName:e.target.value})}/>
+                    <input required type="number" placeholder="المبلغ الأصلي" className="border p-2 text-sm w-full rounded" value={newCustody.totalAmount} onChange={e=>setNewCustody({...newCustody, totalAmount:e.target.value})}/>
+                    <input type="text" placeholder="ملاحظات العهدة" className="border p-2 text-sm w-full rounded" value={newCustody.notes} onChange={e=>setNewCustody({...newCustody, notes:e.target.value})}/>
+                    <button className="bg-slate-800 text-white p-2 rounded w-full text-sm font-bold shadow">حفظ العهدة</button>
+                  </form>
+                </div>
+
+                <div className="bg-white p-4 shadow rounded border-t-4 border-slate-800">
+                  <h4 className="font-bold mb-3">إضافة عمارة/مشروع جديد</h4>
+                  <form onSubmit={(e)=>{e.preventDefault(); setData(p=>({...p, buildings: [...p.buildings, {id: 'b_'+Date.now(), name: newBuilding}]})); setNewBuilding(''); showMsg('تمت الإضافة');}} className="flex gap-2 mb-3">
+                    <input required type="text" placeholder="اسم العمارة" className="border p-2 text-sm flex-grow rounded" value={newBuilding} onChange={e=>setNewBuilding(e.target.value)}/>
+                    <button className="bg-slate-800 text-white px-4 rounded text-sm shadow">إضافة</button>
+                  </form>
+                  <div className="flex flex-wrap gap-2">{data.buildings.map(b=><span key={b.id} className="bg-slate-100 border p-1 px-2 rounded text-xs">{b.name}</span>)}</div>
+                </div>
+                
+                <div className="bg-white p-4 shadow rounded border-t-4 border-red-500">
+                  <h4 className="font-bold mb-2 text-red-600">تغيير رمز الحماية (PIN)</h4>
+                  <p className="text-xs mb-3 text-slate-500">يُستخدم لمنع فسخ العقود بالخطأ. الحالي: <span className="font-bold">{data.pinCode}</span></p>
+                  <div className="flex gap-2">
+                    <input type="text" maxLength="4" className="border p-2 text-sm rounded flex-grow" value={newPin} onChange={e=>setNewPin(e.target.value)} placeholder="أدخل 4 أرقام جديدة"/>
+                    <button onClick={()=>{if(newPin.length>0){setData(p=>({...p, pinCode: newPin})); setNewPin(''); showMsg('تم تغيير الرمز بنجاح');}}} className="bg-red-600 text-white px-4 rounded text-sm font-bold shadow">حفظ الرمز</button>
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 shadow rounded md:col-span-2 text-center border-2 border-dashed border-blue-400">
+                  <h4 className="font-bold mb-2 text-blue-800 text-lg">النسخ الاحتياطي للأمان (هام جداً)</h4>
+                  <p className="text-xs mb-4 text-slate-500">احفظ نسخة من بياناتك كل يومين على الأقل لتجنب فقدانها من الموبايل.</p>
                   <div className="flex gap-4 justify-center">
-                    <button onClick={()=>{const b=new Blob([JSON.stringify(data)],{type:'application/json'});const l=document.createElement('a');l.href=URL.createObjectURL(b);l.download='Backup.json';l.click();}} className="bg-blue-600 text-white px-4 py-2 rounded">تحميل نسخة</button>
-                    <label className="bg-amber-600 text-white px-4 py-2 rounded cursor-pointer">استرجاع نسخة<input type="file" className="hidden" onChange={(e)=>{const r=new FileReader();r.onload=(ev)=>{try{setData(JSON.parse(ev.target.result));showMsg('تم الاسترجاع');}catch{showMsg('خطأ',true);}};if(e.target.files[0])r.readAsText(e.target.files[0]);}}/></label>
+                    <button onClick={()=>{const b=new Blob([JSON.stringify(data)],{type:'application/json'});const l=document.createElement('a');l.href=URL.createObjectURL(b);l.download=`RealEstate_Backup_${todayDate}.json`;l.click();}} className="bg-blue-600 text-white px-6 py-2 rounded font-bold shadow hover:bg-blue-700 transition">تحميل نسخة احتياطية</button>
+                    <label className="bg-amber-600 text-white px-6 py-2 rounded font-bold shadow hover:bg-amber-700 transition cursor-pointer">استرجاع بيانات سابقة<input type="file" accept=".json" className="hidden" onChange={(e)=>{const r=new FileReader();r.onload=(ev)=>{try{setData(JSON.parse(ev.target.result));showMsg('تم استرجاع البيانات بنجاح');}catch{showMsg('ملف غير صالح',true);}};if(e.target.files[0])r.readAsText(e.target.files[0]);}}/></label>
                   </div>
                 </div>
               </div>

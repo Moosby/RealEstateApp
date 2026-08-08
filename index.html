@@ -21,8 +21,8 @@
       .print-row-text { font-size: 0.95rem !important; }
       .print-header { font-size: 1.2rem !important; }
     }
-    @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-    .animate-slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+    @keyframes slideUp { from { transform: translateY(10%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .animate-slide-up { animation: slideUp 0.2s ease-out; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     .animate-fade-in { animation: fadeIn 0.2s ease-out; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -151,7 +151,7 @@
       
       const [reportType, setReportType] = useState('transactions'); 
       const [reportFilter, setReportFilter] = useState({ startDate: '', endDate: '', custodyIds: [], buildingIds: [] });
-      const [dashboardCustodyFilter, setDashboardCustodyFilter] = useState(() => localStorage.getItem('real_estate_last_custody') || '');
+      const [dashboardCustodyFilter, setDashboardCustodyFilter] = useState(() => { try { const s=localStorage.getItem('real_estate_last_custody'); if(!s) return []; const p = JSON.parse(s); return Array.isArray(p) ? p : [p].filter(Boolean); }catch(e){return [];} });
       
       const [selectedCustodies, setSelectedCustodies] = useState([]);
       const [custodyTabSub, setCustodyTabSub] = useState('income');
@@ -159,8 +159,12 @@
       const [descFocus, setDescFocus] = useState(false);
       const [showMonthDetails, setShowMonthDetails] = useState(false);
 
+      // Collapsible states for Sales
+      const [expandedContracts, setExpandedContracts] = useState({});
+      const [showOverdue, setShowOverdue] = useState(false);
+
       useEffect(() => { localStorage.setItem('real_estate_core_data', JSON.stringify(data)); }, [data]);
-      useEffect(() => { localStorage.setItem('real_estate_last_custody', dashboardCustodyFilter); }, [dashboardCustodyFilter]);
+      useEffect(() => { localStorage.setItem('real_estate_last_custody', JSON.stringify(dashboardCustodyFilter)); }, [dashboardCustodyFilter]);
 
       const isExiting = useRef(false);
       useEffect(() => {
@@ -168,12 +172,8 @@
         const handlePopState = () => {
           if (isExiting.current) return;
           setAppModal({ show: true, type: 'CONFIRM', props: { 
-            title: lang==='ar'?'تأكيد الخروج':'Exit', 
-            message: lang==='ar'?'هل تريد الخروج من البرنامج؟':'Do you want to exit?', 
-            onConfirm: () => { 
-              isExiting.current = true;
-              window.history.go(-2); 
-            } 
+            title: lang==='ar'?'تأكيد الخروج':'Exit', message: lang==='ar'?'هل تريد الخروج من البرنامج؟':'Do you want to exit?', 
+            onConfirm: () => { isExiting.current = true; window.history.go(-2); } 
           }});
           window.history.pushState(null, '', window.location.href);
         };
@@ -202,19 +202,22 @@
       }, [data]);
 
       let dashboardNet = 0;
-      if (dashboardCustodyFilter === '') {
+      if (dashboardCustodyFilter.length === 0) {
          const inc = (data.transactions||[]).filter(t=>t.type==='income' && !t.custodyId).reduce((s,t)=>s+Number(t.amount||0),0);
          const exp = (data.transactions||[]).filter(t=>t.type==='expense' && !t.custodyId).reduce((s,t)=>s+Number(t.amount||0),0);
          dashboardNet = inc - exp;
-      } else if (dashboardCustodyFilter === 'ALL') {
+      } else if (dashboardCustodyFilter.includes('ALL')) {
          const inc = (data.transactions||[]).filter(t=>t.type==='income').reduce((s,t)=>s+Number(t.amount||0),0);
          const exp = (data.transactions||[]).filter(t=>t.type==='expense').reduce((s,t)=>s+Number(t.amount||0),0);
          const initCust = (data.custodies||[]).reduce((s,c)=>s+Number(c.totalAmount||0),0);
          dashboardNet = initCust + inc - exp;
       } else {
-         const c = custodyCalculations.find(c => c.id === dashboardCustodyFilter);
-         dashboardNet = c ? c.remaining : 0;
+         dashboardNet = custodyCalculations.filter(c => dashboardCustodyFilter.includes(c.id)).reduce((s, c) => s + c.remaining, 0);
       }
+
+      // Custody Income Opening Balance Logic
+      const selectedCustodiesObjs = selectedCustodies.length > 0 ? (data.custodies || []).filter(c => selectedCustodies.includes(c.id)) : (data.custodies || []);
+      const totalOpeningBalance = selectedCustodiesObjs.reduce((sum, c) => sum + Number(c.totalAmount || 0), 0);
 
       const filteredCustodyTrans = useMemo(() => {
         return (data.transactions || []).filter(t => {
@@ -227,9 +230,9 @@
 
       const reportData = useMemo(() => {
         let openingBalance = 0;
-        let selectedCustodyObjs = (reportFilter.custodyIds || []).length > 0 ? (data.custodies || []).filter(c => (reportFilter.custodyIds || []).includes(c.id)) : (data.custodies || []);
+        let selectedCustodyObjsR = (reportFilter.custodyIds || []).length > 0 ? (data.custodies || []).filter(c => (reportFilter.custodyIds || []).includes(c.id)) : (data.custodies || []);
         
-        selectedCustodyObjs.forEach(c => {
+        selectedCustodyObjsR.forEach(c => {
            let bal = Number(c.totalAmount || 0);
            if (reportFilter.startDate) {
               const beforeTrans = (data.transactions || []).filter(t => t.custodyId === c.id && t.date < reportFilter.startDate);
@@ -239,7 +242,8 @@
            openingBalance += bal;
         });
 
-        const custodyName = (reportFilter.custodyIds || []).length === 0 ? (lang==='ar'?'كل العهد / الخزينة العامة':'General Safe') : selectedCustodyObjs.map(c=>c.personName).join(' + ');
+        const custodyName = (reportFilter.custodyIds || []).length === 0 ? (lang==='ar'?'كل العهد / الخزينة العامة':'General Safe') : selectedCustodyObjsR.map(c=>c.personName).join(' + ');
+        const buildingName = (reportFilter.buildingIds || []).length === 0 ? (lang==='ar'?'كل العمارات والوحدات':'All Buildings') : (data.buildings||[]).filter(b=>reportFilter.buildingIds.includes(b.id)).map(b=>b.name).join(' + ');
 
         const filtered = (data.transactions || []).filter(t => {
           if (reportFilter.startDate && t.date < reportFilter.startDate) return false;
@@ -254,7 +258,7 @@
         const totalIncomes = incomes.reduce((s,t) => s + Number(t.amount || 0), 0);
         const totalExpenses = expenses.reduce((s,t) => s + Number(t.amount || 0), 0);
         
-        return { openingBalance, incomes, expenses, totalIncomes, totalExpenses, finalBalance: openingBalance + totalIncomes - totalExpenses, custodyName };
+        return { openingBalance, incomes, expenses, totalIncomes, totalExpenses, finalBalance: openingBalance + totalIncomes - totalExpenses, custodyName, buildingName };
       }, [data, reportFilter, lang]);
 
       const reportInstallments = useMemo(() => {
@@ -329,13 +333,14 @@
       };
 
       const goToTransaction = (type) => {
-        const preSelectedCustody = dashboardCustodyFilter === 'ALL' || dashboardCustodyFilter === '' ? '' : dashboardCustodyFilter;
+        const preSelectedCustody = dashboardCustodyFilter.length > 0 && dashboardCustodyFilter[0] !== 'ALL' ? dashboardCustodyFilter[0] : '';
         setNewTransaction(prev => ({ ...prev, type, custodyId: preSelectedCustody }));
         setActiveTab('transactions');
       };
 
       const thisMonth = new Date().toISOString().substring(0, 7);
       const monthInstallments = (data.installments || []).filter(i => i.status === 'pending' && i.dueDate?.startsWith(thisMonth)).sort((a,b)=>new Date(a.dueDate||0)-new Date(b.dueDate||0));
+      const overdueInstallments = (data.installments || []).filter(i => i.status === 'pending' && i.dueDate < todayDateStr).sort((a,b)=>new Date(a.dueDate||0)-new Date(b.dueDate||0));
 
       const tabs = [
         { id: 'dashboard', label: t.tab_dash }, { id: 'transactions', label: t.tab_tx },
@@ -346,6 +351,8 @@
       const sortedCustodies = [...(data.custodies || [])].reverse();
       const sortedBuildings = [...(data.buildings || [])].reverse();
       const sortedCategories = [...(data.categories || [])].reverse();
+
+      const lastCustodyNet = sortedCustodies.length > 0 ? (custodyCalculations.find(c => c.id === sortedCustodies[0].id)?.remaining || 0) : 0;
 
       return (
         <div className="min-h-screen flex flex-col bg-slate-100 pb-10">
@@ -445,17 +452,18 @@
                         <p className="text-sm text-blue-800 font-bold">{t.monthDues}</p>
                         <span className="text-blue-600 bg-white px-3 py-1 rounded-lg text-xs font-bold shadow-sm">{showMonthDetails ? t.hideDetails : t.showDetails}</span>
                       </div>
-                      <p className="text-4xl font-black text-blue-900 mt-2">{monthInstallments.reduce((sum, i) => sum + Number(i.amount||0), 0).toLocaleString()} </p>
+                      <p className="text-4xl font-black text-blue-900 mt-2">{monthInstallments.reduce((sum, i) => sum + Number(i.amount||0), 0).toLocaleString()} <span className="text-lg font-bold">ج.م</span></p>
                     </div>
                     
                     <div className="bg-gradient-to-br from-amber-50 to-orange-100 p-5 rounded-2xl border border-amber-200 shadow-inner">
                       <p className="text-sm text-amber-900 mb-2 font-bold">{t.activeCustody}</p>
-                      <select className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl font-bold bg-white focus:border-blue-400 outline-none transition" value={dashboardCustodyFilter} onChange={e => setDashboardCustodyFilter(e.target.value)}>
-                        <option value="">-- الخزينة العامة فقط --</option>
-                        <option value="ALL">-- جميع العهد والخزينة --</option>
-                        {sortedCustodies.map(c => <option key={c.id} value={c.id}>{c.personName}</option>)}
-                      </select>
-                      <p className="text-3xl font-black text-amber-600 mt-4">{t.net}: {dashboardNet.toLocaleString()} </p>
+                      <MultiSelectDropdown 
+                        options={[{id:'ALL', label:'-- جميع العهد والخزينة --'}, ...sortedCustodies.map(c => ({ id: c.id, label: c.personName }))]} 
+                        selected={dashboardCustodyFilter} 
+                        onChange={setDashboardCustodyFilter} 
+                        placeholder="-- الخزينة العامة فقط --" 
+                      />
+                      <p className="text-3xl font-black text-amber-600 mt-4">{t.net}: {dashboardNet.toLocaleString()} <span className="text-lg font-bold">ج.م</span></p>
                       <div className="flex gap-3 mt-5 pt-4 border-t border-amber-200/60">
                         <button onClick={() => goToTransaction('income')} className="flex-1 bg-emerald-500 text-white py-3 rounded-xl text-sm font-bold shadow-md hover:bg-emerald-600 transition">➕</button>
                         <button onClick={() => goToTransaction('expense')} className="flex-1 bg-red-500 text-white py-3 rounded-xl text-sm font-bold shadow-md hover:bg-red-600 transition">➖</button>
@@ -463,17 +471,27 @@
                     </div>
                   </div>
                 </div>
+
                 {showMonthDetails && (
                   <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 animate-slide-up">
                     <h3 className="font-bold mb-4 border-b pb-2 text-blue-800 text-lg">تفاصيل أقساط الشهر</h3>
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead className="bg-slate-50 text-slate-500"><tr><th className="p-3">العميل</th><th className="p-3">الاستحقاق</th><th className="p-3">المبلغ</th></tr></thead>
+                      <table className="w-full text-sm text-right">
+                        <thead className="bg-slate-50 text-slate-500"><tr><th className="p-3">العميل</th><th className="p-3">الاستحقاق</th><th className="p-3">المبلغ</th><th className="p-3">إجراء</th></tr></thead>
                         <tbody>
                           {monthInstallments.map(inst => {
                             const c = (data.contracts || []).find(ct => ct.id === inst.contractId);
-                            return <tr key={inst.id} className="border-b border-slate-100 hover:bg-slate-50"><td className="p-3 font-bold text-slate-700">{c?.clientName}</td><td className="p-3 font-mono text-slate-500" dir="ltr">{formatShortDate(inst.dueDate)}</td><td className="p-3 font-black text-red-600 text-lg">{Number(inst.amount).toLocaleString()}</td></tr>
+                            return (
+                              <tr key={inst.id} className="border-b border-slate-100 hover:bg-slate-50">
+                                <td className="p-3 font-bold text-slate-700">{c?.clientName}</td><td className="p-3 font-mono text-slate-500" dir="ltr">{formatShortDate(inst.dueDate)}</td><td className="p-3 font-black text-red-600 text-lg">{Number(inst.amount).toLocaleString()}</td>
+                                <td className="p-3 flex gap-2">
+                                  <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title:'تحصيل القسط', defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId)=>payInstallment(inst.id, inst.amount, c?.clientName, c?.buildingId, amt, dt, custId) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">تحصيل</button>
+                                  <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title:'تعديل القسط', showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>{ setData(p=>({...p, installments: p.installments.map(i=>i.id===inst.id?{...i, amount:Number(amt), dueDate:dt}:i)})); showMsg('تم التعديل'); } }})} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">تعديل</button>
+                                </td>
+                              </tr>
+                            )
                           })}
+                          {monthInstallments.length === 0 && <tr><td colSpan="4" className="text-center p-6 text-slate-400 font-medium">لا توجد أقساط مستحقة هذا الشهر</td></tr>}
                         </tbody>
                       </table>
                     </div>
@@ -533,15 +551,22 @@
                   <table className="w-full text-sm">
                     <thead className="text-slate-400 border-b-2"><tr><th className="p-3 pb-2 font-medium">التاريخ</th><th className="p-3 pb-2 font-medium">البيان</th><th className="p-3 pb-2 font-medium">المبلغ</th></tr></thead>
                     <tbody>
+                      {custodyTabSub === 'income' && (
+                        <tr className="border-b-2 border-slate-300 bg-slate-100">
+                          <td className="p-3 text-slate-500 font-mono text-xs">--</td>
+                          <td className="p-3 font-bold text-slate-800">رصيد أول المدة (للعهد المحددة)</td>
+                          <td className="p-3 font-black text-slate-900 text-lg">{Number(totalOpeningBalance).toLocaleString()}</td>
+                        </tr>
+                      )}
                       {filteredCustodyTrans.map(t => (
                         <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer" onClick={() => handleTxClick(t)}>
-                          <td className="p-3 text-slate-500 font-mono text-xs whitespace-nowrap" dir="ltr">{formatShortDate(t.date)}</td><td className="p-3 font-bold text-slate-800">{t.description}</td><td className="p-3 font-black text-slate-900 text-lg">{Number(t.amount).toLocaleString()}</td>
+                          <td className="p-3 text-slate-500 font-mono text-xs whitespace-nowrap" dir="ltr">{formatShortDate(t.date)}</td><td className="p-3 font-medium text-slate-800">{t.description}</td><td className="p-3 font-bold text-slate-900 text-base">{Number(t.amount).toLocaleString()}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                   <div className={`mt-6 p-4 rounded-xl font-black text-2xl text-center text-white shadow-inner ${custodyTabSub === 'expense' ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-gradient-to-r from-emerald-500 to-emerald-600'}`}>
-                    الإجمالي: {filteredCustodyTrans.reduce((s,tx)=>s+Number(tx.amount||0),0).toLocaleString()}
+                    الإجمالي: {(filteredCustodyTrans.reduce((s,tx)=>s+Number(tx.amount||0),0) + (custodyTabSub === 'income' ? totalOpeningBalance : 0)).toLocaleString()}
                   </div>
                 </div>
               </div>
@@ -613,37 +638,80 @@
                     <button className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-md shadow-lg hover:bg-blue-700 transition mt-2">تسجيل العقد وإنشاء الأقساط</button>
                   </form>
                 </div>
+                
                 <div className="bg-transparent lg:col-span-2 space-y-5">
-                  {(data.contracts || []).filter(c => c.status === 'active').map(c => {
-                    const u = (data.units || []).find(un => un.id === c.unitId);
-                    const b = (data.buildings || []).find(bd => bd.id === c.buildingId);
-                    return (
-                      <div key={c.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                        <div className="flex justify-between items-start mb-4 border-b pb-3">
-                          <div><p className="font-black text-blue-900 text-xl mb-1">{c.clientName}</p><p className="text-xs font-bold text-slate-600 bg-slate-100 inline-block px-3 py-1.5 rounded-lg border">{b?.name} - {u?.unitNumber}</p></div>
-                          <button onClick={() => { requirePin(()=>setAppModal({show:true, type:'CONFIRM', props:{title:'تأكيد الفسخ', message:'متأكد من الفسخ؟', onConfirm:()=>{ setData(p=>({...p, contracts: p.contracts.map(ct=>ct.id===c.id?{...ct,status:'canceled'}:ct), installments: p.installments.filter(i=>!(i.contractId===c.id && i.status==='pending')), units: p.units.map(un=>un.id===c.unitId?{...un,status:'available'}:un)})); showMsg('تم فسخ العقد'); }}})); }} className="text-xs text-red-600 bg-red-50 px-4 py-2 rounded-xl font-bold border border-red-100 hover:bg-red-100 transition">فسخ العقد</button>
-                        </div>
-                        <div className="overflow-x-auto mb-4">
+                  
+                  {/* قسم الأقساط المتأخرة والمستحقة */}
+                  {overdueInstallments.length > 0 && (
+                    <div className="bg-red-50 p-5 rounded-2xl shadow-sm border border-red-200 cursor-pointer hover:shadow-md transition" onClick={() => setShowOverdue(!showOverdue)}>
+                      <div className="flex justify-between items-center">
+                        <p className="text-lg text-red-800 font-bold">⚠️ أقساط متأخرة ومستحقة ({overdueInstallments.length})</p>
+                        <span className="text-red-600 bg-white px-3 py-1 rounded-lg text-xs font-bold shadow-sm">{showOverdue ? t.hideDetails : t.showDetails}</span>
+                      </div>
+                      {showOverdue && (
+                        <div className="overflow-x-auto mt-4 animate-slide-up" onClick={e=>e.stopPropagation()}>
                           <table className="w-full text-sm text-right">
-                            <thead className="text-slate-400 border-b-2"><tr><th className="p-2 pb-2 font-medium">الاستحقاق</th><th className="p-2 pb-2 font-medium">المبلغ</th><th className="p-2 pb-2 font-medium">الحالة</th><th className="p-2 pb-2 font-medium">إجراء</th></tr></thead>
+                            <thead className="bg-red-100 text-red-800"><tr><th className="p-2 pb-2">العميل</th><th className="p-2 pb-2">الاستحقاق</th><th className="p-2 pb-2">المبلغ</th><th className="p-2 pb-2">إجراء</th></tr></thead>
                             <tbody>
-                              {(data.installments || []).filter(i => i.contractId === c.id).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate)).map(inst => (
-                                <tr key={inst.id} className="border-b border-slate-50 hover:bg-slate-50">
-                                  <td className="p-2 font-mono text-xs text-slate-500 whitespace-nowrap" dir="ltr">{formatShortDate(inst.dueDate)}</td><td className="p-2 font-bold text-slate-800 text-base">{Number(inst.amount).toLocaleString()}</td>
-                                  <td className="p-2">{inst.status === 'paid' ? <span className="text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-lg text-xs border border-emerald-100">مدفوع</span> : <span className="text-amber-500 font-bold text-xs bg-amber-50 px-3 py-1 rounded-lg border border-amber-100">مستحق</span>}</td>
-                                  <td className="p-2 flex gap-2">
-                                    {inst.status === 'pending' && <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title:'تحصيل القسط', defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId)=>payInstallment(inst.id, inst.amount, c.clientName, c.buildingId, amt, dt, custId) }})} className="bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-bold shadow hover:bg-emerald-600 transition">تحصيل</button>}
-                                    {inst.status === 'pending' && <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title:'تعديل القسط', showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>{ setData(p=>({...p, installments: p.installments.map(i=>i.id===inst.id?{...i, amount:Number(amt), dueDate:dt}:i)})); showMsg('تم التعديل'); } }})} className="bg-slate-100 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">تعديل</button>}
-                                  </td>
-                                </tr>
-                              ))}
+                              {overdueInstallments.map(inst => {
+                                const c = (data.contracts || []).find(ct => ct.id === inst.contractId);
+                                return (
+                                  <tr key={inst.id} className="border-b border-red-100 hover:bg-white transition-colors">
+                                    <td className="p-2 font-bold text-slate-800">{c?.clientName}</td><td className="p-2 font-mono text-xs text-red-600" dir="ltr">{formatShortDate(inst.dueDate)}</td><td className="p-2 font-black text-slate-900 text-base">{Number(inst.amount).toLocaleString()}</td>
+                                    <td className="p-2 flex gap-2">
+                                      <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title:'تحصيل القسط', defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId)=>payInstallment(inst.id, inst.amount, c.clientName, c.buildingId, amt, dt, custId) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">تحصيل</button>
+                                      <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title:'تعديل القسط', showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>{ setData(p=>({...p, installments: p.installments.map(i=>i.id===inst.id?{...i, amount:Number(amt), dueDate:dt}:i)})); showMsg('تم التعديل'); } }})} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">تعديل</button>
+                                    </td>
+                                  </tr>
+                                )
+                              })}
                             </tbody>
                           </table>
                         </div>
-                        <div className="text-left"><button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title:'قسط يدوي جديد', showDate:true, defaultDate: todayDateStr, onConfirm:(amt,dt)=>{ setData(p=>({...p, installments: [...(p.installments||[]), {id:'inst_man_'+Date.now(), contractId:c.id, amount:Number(amt), dueDate:dt, status:'pending'}]})); showMsg('تمت الإضافة'); } }})} className="bg-blue-50 text-blue-700 border border-blue-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-blue-100 transition">➕ إضافة قسط يدوي</button></div>
+                      )}
+                    </div>
+                  )}
+
+                  {(data.contracts || []).filter(c => c.status === 'active').map(c => {
+                    const u = (data.units || []).find(un => un.id === c.unitId);
+                    const b = (data.buildings || []).find(bd => bd.id === c.buildingId);
+                    const isExpanded = expandedContracts[c.id];
+                    return (
+                      <div key={c.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 cursor-pointer hover:border-blue-300 transition" onClick={() => setExpandedContracts(p => ({...p, [c.id]: !p[c.id]}))}>
+                        <div className="flex justify-between items-center">
+                          <div><p className="font-black text-blue-900 text-xl mb-1">{c.clientName}</p><p className="text-xs font-bold text-slate-600 bg-slate-100 inline-block px-3 py-1.5 rounded-lg border">{b?.name} - {u?.unitNumber}</p></div>
+                          <div className="flex flex-col items-end gap-2">
+                            <span className="text-blue-600 bg-blue-50 px-3 py-1 rounded-lg text-xs font-bold shadow-sm">{isExpanded ? t.hideDetails : t.showDetails}</span>
+                            {isExpanded && <button onClick={(e) => { e.stopPropagation(); requirePin(()=>setAppModal({show:true, type:'CONFIRM', props:{title:'تأكيد الفسخ', message:'متأكد من الفسخ؟', onConfirm:()=>{ setData(p=>({...p, contracts: p.contracts.map(ct=>ct.id===c.id?{...ct,status:'canceled'}:ct), installments: p.installments.filter(i=>!(i.contractId===c.id && i.status==='pending')), units: p.units.map(un=>un.id===c.unitId?{...un,status:'available'}:un)})); showMsg('تم فسخ العقد'); }}})); }} className="text-xs text-red-600 bg-red-50 px-4 py-2 rounded-xl font-bold border border-red-100 hover:bg-red-100 transition">فسخ العقد</button>}
+                          </div>
+                        </div>
+                        
+                        {isExpanded && (
+                          <div className="mt-4 border-t pt-4 animate-slide-up" onClick={e=>e.stopPropagation()}>
+                            <div className="overflow-x-auto mb-4">
+                              <table className="w-full text-sm text-right">
+                                <thead className="text-slate-400 border-b-2"><tr><th className="p-2 pb-2 font-medium">الاستحقاق</th><th className="p-2 pb-2 font-medium">المبلغ</th><th className="p-2 pb-2 font-medium">الحالة</th><th className="p-2 pb-2 font-medium">إجراء</th></tr></thead>
+                                <tbody>
+                                  {(data.installments || []).filter(i => i.contractId === c.id).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate)).map(inst => (
+                                    <tr key={inst.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                                      <td className="p-2 font-mono text-xs text-slate-500 whitespace-nowrap" dir="ltr">{formatShortDate(inst.dueDate)}</td><td className="p-2 font-bold text-slate-800 text-base">{Number(inst.amount).toLocaleString()}</td>
+                                      <td className="p-2">{inst.status === 'paid' ? <span className="text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-lg text-xs border border-emerald-100">مدفوع</span> : <span className="text-amber-500 font-bold text-xs bg-amber-50 px-3 py-1 rounded-lg border border-amber-100">مستحق</span>}</td>
+                                      <td className="p-2 flex gap-2">
+                                        {inst.status === 'pending' && <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title:'تحصيل القسط', defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId)=>payInstallment(inst.id, inst.amount, c.clientName, c.buildingId, amt, dt, custId) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">تحصيل</button>}
+                                        {inst.status === 'pending' && <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title:'تعديل القسط', showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>{ setData(p=>({...p, installments: p.installments.map(i=>i.id===inst.id?{...i, amount:Number(amt), dueDate:dt}:i)})); showMsg('تم التعديل'); } }})} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">تعديل</button>}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            <div className="text-left"><button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title:'قسط يدوي جديد', showDate:true, defaultDate: todayDateStr, onConfirm:(amt,dt)=>{ setData(p=>({...p, installments: [...(p.installments||[]), {id:'inst_man_'+Date.now(), contractId:c.id, amount:Number(amt), dueDate:dt, status:'pending'}]})); showMsg('تمت الإضافة'); } }})} className="bg-blue-50 text-blue-700 border border-blue-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-blue-100 transition">➕ إضافة قسط يدوي</button></div>
+                          </div>
+                        )}
                       </div>
                     )
                   })}
+                  {(data.contracts || []).filter(c => c.status === 'active').length === 0 && <div className="text-center p-10 text-slate-400 font-bold bg-white rounded-2xl shadow-sm border border-slate-200">لا توجد عقود مبيعات نشطة حالياً</div>}
                 </div>
               </div>
             )}
@@ -651,9 +719,11 @@
             {/* Reports Tab */}
             {activeTab === 'reports' && (
               <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 animate-fade-in">
+                
+                {/* --- PDF PRINT VIEW --- */}
                 <div className="hidden print-show text-black">
                   <h2 className="text-3xl text-center mb-2 font-black tracking-wide">تقرير كشف حساب</h2>
-                  <h3 className="text-2xl text-center mb-2 font-bold bg-gray-100 p-2 inline-block mx-auto rounded">{reportData.custodyName}</h3>
+                  <h3 className="text-2xl text-center mb-2 font-bold bg-gray-100 p-2 inline-block mx-auto rounded">{reportType === 'transactions' ? reportData.custodyName : reportData.buildingName}</h3>
                   <h4 className="text-lg text-center mb-6 font-bold text-gray-700">الفترة من: {reportFilter.startDate ? formatShortDate(reportFilter.startDate) : 'البداية'} إلى: {reportFilter.endDate ? formatShortDate(reportFilter.endDate) : 'الآن'}</h4>
 
                   {reportType === 'transactions' ? (
@@ -663,26 +733,28 @@
                       )}
                       <h4 className="text-2xl font-black border-b-4 border-black mt-6 mb-3 pb-1 inline-block">جدول الإيرادات</h4>
                       <table>
-                        <thead className="bg-gray-100 text-lg"><tr><th className="w-[15%] text-center">التاريخ</th><th className="w-[65%] text-right">البيان</th><th className="w-[20%] text-center">المبلغ</th></tr></thead>
+                        <thead className="bg-gray-100 text-lg"><tr><th className="w-[15%] text-center">التاريخ</th><th className="w-[65%] text-right">البيان والتفاصيل</th><th className="w-[20%] text-center">المبلغ</th></tr></thead>
                         <tbody>
                           {reportData.incomes.map(t => (
                             <tr key={t.id} className="print-row-text"><td dir="ltr" className="text-center font-mono">{formatShortDate(t.date)}</td><td className="font-bold text-lg">{t.description}</td><td className="text-center font-bold text-xl">{Number(t.amount).toLocaleString()}</td></tr>
                           ))}
+                          {reportData.incomes.length === 0 && <tr><td colSpan="3" className="text-center py-3 text-gray-500 font-bold">لا توجد إيرادات مسجلة في هذه الفترة</td></tr>}
                         </tbody>
                       </table>
-                      <div className="text-left mt-3 mb-8 text-2xl font-black bg-gray-100 p-2 border-2 border-black inline-block float-left rounded">إجمالي الإيراد: {(reportData.totalIncomes + reportData.openingBalance).toLocaleString()}</div>
+                      <div className="text-left mt-3 mb-8 text-2xl font-black bg-gray-100 p-2 border-2 border-black inline-block float-left rounded">إجمالي الإيراد (شامل البداية): {(reportData.totalIncomes + reportData.openingBalance).toLocaleString()}</div>
                       <div className="clear-both"></div>
 
                       <h4 className="text-2xl font-black border-b-4 border-black mt-6 mb-3 pb-1 inline-block">جدول المصروفات</h4>
                       <table>
-                        <thead className="bg-gray-100 text-lg"><tr><th className="w-[15%] text-center">التاريخ</th><th className="w-[65%] text-right">البيان</th><th className="w-[20%] text-center">المبلغ</th></tr></thead>
+                        <thead className="bg-gray-100 text-lg"><tr><th className="w-[15%] text-center">التاريخ</th><th className="w-[65%] text-right">البيان والتفاصيل</th><th className="w-[20%] text-center">المبلغ</th></tr></thead>
                         <tbody>
                           {reportData.expenses.map(t => (
                             <tr key={t.id} className="print-row-text"><td dir="ltr" className="text-center font-mono">{formatShortDate(t.date)}</td><td className="font-bold text-lg">{t.description}</td><td className="text-center font-bold text-xl">{Number(t.amount).toLocaleString()}</td></tr>
                           ))}
+                          {reportData.expenses.length === 0 && <tr><td colSpan="3" className="text-center py-3 text-gray-500 font-bold">لا توجد مصروفات مسجلة في هذه الفترة</td></tr>}
                         </tbody>
                       </table>
-                      <div className="text-left mt-3 mb-8 text-2xl font-black bg-gray-100 p-2 border-2 border-black inline-block float-left rounded">إجمالي المصروفات: {reportData.totalExpenses.toLocaleString()}</div>
+                      <div className="text-left mt-3 mb-8 text-2xl font-black bg-gray-100 p-2 border-2 border-black inline-block float-left rounded">إجمالي المصروفات للفترة: {reportData.totalExpenses.toLocaleString()}</div>
                       <div className="clear-both"></div>
 
                       <div className="p-4 text-center text-3xl border-4 border-black mt-10 bg-gray-200 font-black rounded-lg shadow-sm">
@@ -693,13 +765,20 @@
                     <>
                       <h4 className="text-2xl font-black border-b-4 border-black mt-4 mb-3 pb-1 inline-block">تقرير الأقساط والمستحقات</h4>
                       <table>
-                        <thead className="bg-gray-100 text-lg"><tr><th>التاريخ</th><th>العميل</th><th>العمارة</th><th>الحالة</th><th>المبلغ</th></tr></thead>
+                        <thead className="bg-gray-100 text-lg"><tr><th>التاريخ</th><th>اسم العميل</th><th>الوحدة / العمارة</th><th>الحالة</th><th>المبلغ</th></tr></thead>
                         <tbody>
                           {reportInstallments.map(i => {
                             const c = (data.contracts||[]).find(ct=>ct.id===i.contractId);
                             const b = (data.buildings||[]).find(bd=>bd.id===c?.buildingId);
                             return <tr key={i.id}><td dir="ltr" className="text-center font-mono print-row-text">{formatShortDate(i.dueDate)}</td><td className="font-bold text-lg">{c?.clientName}</td><td className="text-center font-bold text-lg">{b?.name}</td><td className="text-center font-bold text-lg">{i.status==='paid'?'مدفوع':'مستحق'}</td><td className="text-center font-black text-xl">{Number(i.amount).toLocaleString()}</td></tr>
                           })}
+                          {reportInstallments.length === 0 && <tr><td colSpan="5" className="text-center py-3 text-gray-500 font-bold">لا توجد أقساط مطابقة للبحث</td></tr>}
+                          {reportInstallments.length > 0 && (
+                            <tr className="bg-gray-200">
+                              <td colSpan="4" className="text-left font-black text-xl">الإجمالي:</td>
+                              <td className="text-center font-black text-xl">{reportInstallments.reduce((s,i)=>s+Number(i.amount),0).toLocaleString()}</td>
+                            </tr>
+                          )}
                         </tbody>
                       </table>
                     </>
@@ -708,8 +787,8 @@
 
                 <div className="print-hide">
                   <div className="flex bg-slate-100 p-1.5 rounded-xl mb-6 shadow-inner">
-                    <button onClick={()=>setReportType('transactions')} className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${reportType==='transactions'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500'}`}>كشف حساب العهد</button>
-                    <button onClick={()=>setReportType('installments')} className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${reportType==='installments'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500'}`}>تقرير الأقساط</button>
+                    <button onClick={()=>setReportType('transactions')} className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${reportType==='transactions'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>كشف حساب العهد</button>
+                    <button onClick={()=>setReportType('installments')} className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${reportType==='installments'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>تقرير المبيعات والأقساط</button>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6 bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner">
                     <div><label className="text-xs font-bold text-slate-500 mb-1 block">من تاريخ</label><input type="date" className="w-full border-2 p-3 text-sm rounded-xl font-bold focus:border-blue-400 outline-none bg-white font-mono" value={reportFilter.startDate} onChange={e=>setReportFilter({...reportFilter, startDate: e.target.value})}/></div>
@@ -757,9 +836,15 @@
                 
                 <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200">
                   <h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">👤 {t.newCustody}</h4>
-                  <form onSubmit={(e)=>{e.preventDefault(); setData(p=>({...p, custodies: [...(p.custodies || []), {id: 'cus_'+Date.now(), ...newCustody}]})); setNewCustody({personName:'', totalAmount:'', notes:''}); showMsg('Saved');}} className="space-y-4">
-                    <input required type="text" placeholder="..." className="border-2 p-3 text-sm w-full rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCustody.personName} onChange={e=>setNewCustody({...newCustody, personName:e.target.value})}/>
-                    <NumberInput required placeholder="0.00" className="border-2 p-3 text-sm w-full rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCustody.totalAmount} onChange={v=>setNewCustody({...newCustody, totalAmount:v})}/>
+                  <form onSubmit={(e)=>{e.preventDefault(); setData(p=>({...p, custodies: [...(p.custodies || []), {id: 'cus_'+Date.now(), ...newCustody}]})); setNewCustody({personName:'', totalAmount:'', notes:''}); showMsg('Saved');}} className="space-y-4 relative">
+                    <input required list="custodyNames" type="text" placeholder="اسم المسؤول..." className="border-2 p-3 text-sm w-full rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCustody.personName} onChange={e=>setNewCustody({...newCustody, personName:e.target.value})}/>
+                    <datalist id="custodyNames">
+                      {[...new Set((data.custodies||[]).map(c=>c.personName))].map(name => <option key={name} value={name} />)}
+                    </datalist>
+                    <div>
+                      <NumberInput required placeholder="0.00" className="border-2 p-3 text-sm w-full rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCustody.totalAmount} onChange={v=>setNewCustody({...newCustody, totalAmount:v})}/>
+                      {lastCustodyNet > 0 && <span onClick={() => setNewCustody({...newCustody, totalAmount: lastCustodyNet.toString()})} className="block text-xs font-bold text-blue-600 mt-1 cursor-pointer hover:underline">💡 مقترح: صافي آخر عهدة ({lastCustodyNet.toLocaleString()})</span>}
+                    </div>
                     <button className="bg-slate-800 text-white p-4 rounded-xl w-full text-md font-bold shadow-lg hover:bg-slate-900 transition">{t.save}</button>
                   </form>
                 </div>

@@ -1,18 +1,18 @@
 {
   "short_name": "العقارات",
-  "name": "إدارة العقارات والأقساط",
-  "description": "تطبيق محلي لإدارة العقارات والمصروفات والأقساط",
+  "name": "إدارة العقارات والأملاك",
+  "description": "نظام محاسبي احترافي لإدارة العقارات والعهد",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/609/609803.png",
+      "src": "https://cdn-icons-png.flaticon.com/512/3135/3135673.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"
     }
   ],
   "start_url": "index.html",
-  "background_color": "#1e293b",
-  "theme_color": "#1e293b",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
   "display": "standalone",
   "orientation": "portrait"
 }

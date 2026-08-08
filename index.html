@@ -35,7 +35,36 @@
     const { useState, useEffect, useMemo, useRef } = React;
     const todayDateStr = new Date().toISOString().substring(0, 10);
 
-    // --- مكون الحماية (صائد الأخطاء لمنع الشاشة البيضاء) ---
+    // --- قاموس الترجمة (i18n) ---
+    const dict = {
+      ar: {
+        appTitle: "إدارة العقارات",
+        tab_dash: "الرئيسية", tab_tx: "إيراد/مصروف", tab_cust: "العهد", tab_inv: "الوحدات", tab_sales: "المبيعات", tab_rep: "التقارير",
+        income: "إيراد", expense: "مصروف", addIncome: "➕ إضافة إيراد", addExpense: "➖ تسجيل مصروف",
+        date: "التاريخ", amount: "المبلغ (ج.م)", desc: "البيان (التفاصيل)",
+        custody: "العهدة / الخزينة", building: "العمارة", unit: "الوحدة", category: "تصنيف المصروف",
+        save: "حفظ في السجل", update: "تحديث البيانات", cancel: "إلغاء", edit: "تعديل", delete: "حذف",
+        allCustodies: "-- الخزينة العامة --", allBuildings: "-- عام --", selectCat: "-- اختر التصنيف --",
+        monthDues: "مستحق هذا الشهر", activeCustody: "الاستعلام السريع عن العهد", net: "الصافي",
+        addCat: "إضافة تصنيف مصروفات", newCustody: "تسليم عهدة لمسؤول جديد", settings: "الإعدادات والأمان",
+        backup: "النسخ الاحتياطي للأمان", reset: "إعادة ضبط المصنع",
+        lang: "لغة البرنامج / Language", yes: "نعم متأكد", no: "إلغاء"
+      },
+      en: {
+        appTitle: "Estate Manager",
+        tab_dash: "Dashboard", tab_tx: "Transactions", tab_cust: "Custody", tab_inv: "Inventory", tab_sales: "Sales", tab_rep: "Reports",
+        income: "Income", expense: "Expense", addIncome: "➕ Add Income", addExpense: "➖ Add Expense",
+        date: "Date", amount: "Amount", desc: "Description (Details)",
+        custody: "Custody / Safe", building: "Building", unit: "Unit", category: "Expense Category",
+        save: "Save Record", update: "Update Record", cancel: "Cancel", edit: "Edit", delete: "Delete",
+        allCustodies: "-- General Safe --", allBuildings: "-- General --", selectCat: "-- Select Category --",
+        monthDues: "Monthly Dues", activeCustody: "Custody Balance", net: "Net",
+        addCat: "Add Expense Category", newCustody: "Assign New Custody", settings: "Settings & Security",
+        backup: "Backup & Security", reset: "Factory Reset",
+        lang: "Language / لغة البرنامج", yes: "Yes, Confirm", no: "Cancel"
+      }
+    };
+
     class ErrorBoundary extends React.Component {
       constructor(props) { super(props); this.state = { hasError: false, error: null }; }
       static getDerivedStateFromError(error) { return { hasError: true, error }; }
@@ -44,15 +73,7 @@
           return (
             <div className="p-6 m-4 bg-red-50 border-2 border-red-500 rounded-2xl text-red-900 shadow-xl">
               <h2 className="text-2xl font-black mb-3">⚠️ حدث خطأ في النظام</h2>
-              <p className="text-sm font-bold mb-2 text-slate-700">السبب الفني (برجاء تصويره):</p>
-              <div className="font-mono text-xs mb-6 bg-white p-3 rounded-xl border border-red-200 overflow-x-auto text-left" dir="ltr">
-                {this.state.error && this.state.error.toString()}
-              </div>
-              <p className="text-sm font-bold mb-4">هذا الخطأ يحدث غالباً بسبب تعارض في البيانات القديمة. للحل الفوري اضغط على الزر بالأسفل لتنظيف النظام:</p>
-              <button onClick={() => { localStorage.removeItem('real_estate_core_data'); localStorage.removeItem('real_estate_last_custody'); window.location.reload(); }} 
-                className="w-full bg-red-600 text-white py-4 rounded-xl font-black text-lg shadow-lg hover:bg-red-700">
-                🔄 مسح التعارض وإعادة تشغيل التطبيق
-              </button>
+              <button onClick={() => { localStorage.removeItem('real_estate_core_data'); window.location.reload(); }} className="w-full bg-red-600 text-white py-4 rounded-xl font-black">🔄 مسح التعارض وإعادة تشغيل التطبيق</button>
             </div>
           );
         }
@@ -62,10 +83,7 @@
 
     function NumberInput({ value, onChange, placeholder, className, required }) {
       const displayVal = (value !== '' && value !== undefined && value !== null && !isNaN(value)) ? Number(value).toLocaleString('en-US') : '';
-      return (
-        <input type="text" inputMode="numeric" value={displayVal} placeholder={placeholder} required={required}
-          className={className} onChange={(e) => { const raw = e.target.value.replace(/[^0-9]/g, ''); onChange(raw); }} />
-      );
+      return ( <input type="text" inputMode="numeric" value={displayVal} placeholder={placeholder} required={required} className={className} onChange={(e) => { const raw = e.target.value.replace(/[^0-9]/g, ''); onChange(raw); }} /> );
     }
 
     function MultiSelectDropdown({ options, selected, onChange, placeholder }) {
@@ -79,11 +97,11 @@
       return (
         <div className="relative z-20 w-full" ref={dropdownRef}>
           <div className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl bg-white cursor-pointer font-bold flex justify-between items-center shadow-sm hover:border-blue-400 transition" onClick={() => setIsOpen(!isOpen)}>
-            <span className="truncate">{(selected || []).length === 0 ? placeholder : `محدد (${(selected || []).length})`}</span><span className="text-xs text-blue-600">▼</span>
+            <span className="truncate">{(selected || []).length === 0 ? placeholder : `(${selected.length})`}</span><span className="text-xs text-blue-600">▼</span>
           </div>
           {isOpen && (
             <div className="absolute top-full right-0 w-full bg-white border-2 border-slate-200 mt-1 shadow-2xl max-h-48 overflow-y-auto z-50 p-2 space-y-2 rounded-xl animate-fade-in">
-              <label className="flex items-center gap-2 cursor-pointer font-bold border-b pb-2 text-slate-700 hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={(selected || []).length===0} onChange={()=>onChange([])} className="w-4 h-4 text-blue-600"/> الكل / غير محدد</label>
+              <label className="flex items-center gap-2 cursor-pointer font-bold border-b pb-2 text-slate-700 hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={(selected || []).length===0} onChange={()=>onChange([])} className="w-4 h-4 text-blue-600"/> --- </label>
               {(options || []).map(opt => (
                 <label key={opt.id} className="flex items-center gap-2 cursor-pointer whitespace-nowrap text-sm hover:bg-slate-50 p-1 rounded transition">
                   <input type="checkbox" checked={(selected || []).includes(opt.id)} className="w-4 h-4 text-blue-600" onChange={(e)=>{ const newIds = e.target.checked ? [...(selected || []), opt.id] : (selected || []).filter(id=>id!==opt.id); onChange(newIds); }}/> {opt.label}
@@ -98,6 +116,16 @@
     const initialData = { pinCode: '0000', buildings: [], units: [], categories: [], contracts: [], installments: [], custodies: [], transactions: [] };
 
     function MainApp() {
+      // Language State
+      const [lang, setLang] = useState(() => localStorage.getItem('real_estate_lang') || 'ar');
+      const t = dict[lang];
+
+      useEffect(() => {
+        localStorage.setItem('real_estate_lang', lang);
+        document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+        document.documentElement.lang = lang;
+      }, [lang]);
+
       const [data, setData] = useState(() => {
         const saved = localStorage.getItem('real_estate_core_data');
         if (saved) { try { const parsed = JSON.parse(saved); return { ...initialData, ...parsed }; } catch (e) { return initialData; } }
@@ -133,12 +161,12 @@
       useEffect(() => {
         window.history.pushState(null, '', window.location.href);
         const handlePopState = () => {
-          setAppModal({ show: true, type: 'CONFIRM', props: { title: 'تأكيد الخروج', message: 'هل تريد الخروج من البرنامج؟', onConfirm: () => { window.history.back(); } }});
+          setAppModal({ show: true, type: 'CONFIRM', props: { title: lang==='ar'?'تأكيد الخروج':'Exit', message: lang==='ar'?'هل تريد الخروج من البرنامج؟':'Do you want to exit?', onConfirm: () => { window.history.back(); } }});
           window.history.pushState(null, '', window.location.href);
         };
         window.addEventListener('popstate', handlePopState);
         return () => window.removeEventListener('popstate', handlePopState);
-      }, []);
+      }, [lang]);
 
       const showMsg = (msg, isError = false) => { setToast({ show: true, msg, isError }); setTimeout(() => setToast(p => ({ ...p, show: false })), 3500); };
       const closeModal = () => setAppModal({ show: false, type: '', props: {} });
@@ -154,114 +182,29 @@
 
       const custodyCalculations = useMemo(() => {
         return (data.custodies || []).map(c => {
-          const expenses = (data.transactions || []).filter(t => t.type === 'expense' && t.custodyId === c.id).reduce((sum, t) => sum + Number(t.amount || 0), 0);
-          const incomes = (data.transactions || []).filter(t => t.type === 'income' && t.custodyId === c.id).reduce((sum, t) => sum + Number(t.amount || 0), 0);
+          const expenses = (data.transactions || []).filter(tx => tx.type === 'expense' && tx.custodyId === c.id).reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+          const incomes = (data.transactions || []).filter(tx => tx.type === 'income' && tx.custodyId === c.id).reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
           return { ...c, used: expenses, incomes, remaining: Number(c.totalAmount || 0) + incomes - expenses };
         });
       }, [data]);
 
       const dashboardNet = (dashboardCustodyFilter || []).length === 0 ? 0 : custodyCalculations.filter(c => (dashboardCustodyFilter || []).includes(c.id)).reduce((s, c) => s + c.remaining, 0);
 
-      const filteredCustodyTrans = useMemo(() => {
-        return (data.transactions || []).filter(t => {
-          if ((selectedCustodies || []).length > 0 && !(selectedCustodies || []).includes(t.custodyId)) return false;
-          if (t.type !== custodyTabSub) return false;
-          if (custodySearch && !t.description?.includes(custodySearch)) return false;
-          return true;
-        }).sort((a,b) => new Date(b.date || 0) - new Date(a.date || 0));
-      }, [data, selectedCustodies, custodyTabSub, custodySearch]);
-
-      const reportData = useMemo(() => {
-        let openingBalance = 0;
-        let selectedCustodyObjs = (reportFilter.custodyIds || []).length > 0 ? (data.custodies || []).filter(c => (reportFilter.custodyIds || []).includes(c.id)) : (data.custodies || []);
-        
-        selectedCustodyObjs.forEach(c => {
-           let bal = Number(c.totalAmount || 0);
-           if (reportFilter.startDate) {
-              const beforeTrans = (data.transactions || []).filter(t => t.custodyId === c.id && t.date < reportFilter.startDate);
-              bal += beforeTrans.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount || 0), 0);
-              bal -= beforeTrans.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount || 0), 0);
-           }
-           openingBalance += bal;
-        });
-
-        const custodyName = (reportFilter.custodyIds || []).length === 0 ? 'كل العهد / الخزينة العامة' : selectedCustodyObjs.map(c=>c.personName).join(' + ');
-
-        const filtered = (data.transactions || []).filter(t => {
-          if (reportFilter.startDate && t.date < reportFilter.startDate) return false;
-          if (reportFilter.endDate && t.date > reportFilter.endDate) return false;
-          if ((reportFilter.custodyIds || []).length > 0 && !(reportFilter.custodyIds || []).includes(t.custodyId)) return false;
-          if ((reportFilter.buildingIds || []).length > 0 && !(reportFilter.buildingIds || []).includes(t.buildingId)) return false;
-          return true;
-        }).sort((a,b) => new Date(a.date || 0) - new Date(b.date || 0));
-
-        const incomes = filtered.filter(t => t.type === 'income');
-        const expenses = filtered.filter(t => t.type === 'expense');
-        const totalIncomes = incomes.reduce((s,t) => s + Number(t.amount || 0), 0);
-        const totalExpenses = expenses.reduce((s,t) => s + Number(t.amount || 0), 0);
-        
-        return { openingBalance, incomes, expenses, totalIncomes, totalExpenses, finalBalance: openingBalance + totalIncomes - totalExpenses, custodyName };
-      }, [data, reportFilter]);
-
-      const reportInstallments = useMemo(() => {
-        return (data.installments || []).filter(i => {
-           if (reportFilter.startDate && i.dueDate < reportFilter.startDate) return false;
-           if (reportFilter.endDate && i.dueDate > reportFilter.endDate) return false;
-           const contract = (data.contracts || []).find(c => c.id === i.contractId);
-           if ((reportFilter.buildingIds || []).length > 0 && !(reportFilter.buildingIds || []).includes(contract?.buildingId)) return false;
-           return true;
-        }).sort((a,b) => new Date(a.dueDate || 0) - new Date(b.dueDate || 0));
-      }, [data, reportFilter]);
-
-      const handlePrint = () => {
-        const originalTitle = document.title;
-        const printName = reportType === 'transactions' ? reportData.custodyName : 'تقرير_الاقساط';
-        document.title = `${printName.replace(/\s+/g, '_')}_${todayDateStr}.pdf`;
-        setTimeout(() => { window.print(); document.title = originalTitle; }, 100);
-      };
-
-      const handleTxClick = (tx) => { if(tx) setAppModal({ show: true, type: 'TX_ACTION', props: { tx } }); };
-
       const handleSaveTransaction = (e) => {
         e.preventDefault();
-        if(!newTransaction.amount) return showMsg('المبلغ مطلوب', true);
+        if(!newTransaction.amount) return;
         if (editingTxId) {
-          setData(prev => ({ ...prev, transactions: prev.transactions.map(t => t.id === editingTxId ? { ...t, ...newTransaction, amount: Number(newTransaction.amount) } : t) }));
-          setEditingTxId(null); showMsg('تم تحديث الحركة بنجاح');
+          setData(prev => ({ ...prev, transactions: prev.transactions.map(tx => tx.id === editingTxId ? { ...tx, ...newTransaction, amount: Number(newTransaction.amount) } : tx) }));
+          setEditingTxId(null); showMsg(lang==='ar'?'تم التحديث':'Updated');
         } else {
           const item = { id: 't_' + Date.now(), ...newTransaction, amount: Number(newTransaction.amount) };
-          setData(prev => ({ ...prev, transactions: [...(prev.transactions || []), item] })); showMsg('تم حفظ الحركة بنجاح');
+          setData(prev => ({ ...prev, transactions: [...(prev.transactions || []), item] })); showMsg(lang==='ar'?'تم الحفظ':'Saved');
         }
         setNewTransaction(prev => ({ ...prev, amount: '', description: '' })); 
       };
 
-      const handleResetFactory = () => { if (!requirePin()) return showMsg('الرمز خطأ', true); if (window.confirm('سيتم مسح كل شيء نهائياً. متأكد؟')) { localStorage.removeItem('real_estate_core_data'); window.location.reload(); } };
-      const addBuilding = (e) => { e.preventDefault(); setData(p=>({...p, buildings: [...(p.buildings||[]), {id: 'b_'+Date.now(), name: newBuilding}]})); setNewBuilding(''); showMsg('تمت الإضافة'); };
-      const addUnit = (e) => { e.preventDefault(); setData(p => ({ ...p, units: [...(p.units || []), { id: 'u_' + Date.now(), ...newUnit, status: 'available' }] })); setNewUnit({ buildingId: '', unitNumber: '', price: '' }); showMsg('تمت الإضافة'); };
+      const handleResetFactory = () => { if (!requirePin()) return showMsg('Error', true); if (window.confirm('RESET EVERYTHING?')) { localStorage.clear(); window.location.reload(); } };
       
-      const addContract = (e) => { 
-        e.preventDefault(); const unit = (data.units || []).find(u => u.id === newContract.unitId); if (!unit) return showMsg('اختر الوحدة أولاً', true); 
-        const contractId = 'cont_' + Date.now(); const dp = Number(newContract.downPayment); const total = Number(newContract.totalAmount); const count = Number(newContract.installmentsCount); 
-        const contract = { id: contractId, clientName: newContract.clientName, unitId: unit.id, buildingId: unit.buildingId, totalAmount: total, downPayment: dp, date: todayDateStr, status: 'active' }; 
-        const newInsts = []; let curDate = new Date(newContract.firstInstallmentDate); const instAmount = count > 0 ? ((total - dp) / count) : 0; 
-        for(let i=0; i<count; i++) { newInsts.push({ id: 'inst_' + Date.now() + '_' + i, contractId, amount: instAmount, dueDate: curDate.toISOString().split('T')[0], status: 'pending' }); curDate.setMonth(curDate.getMonth() + 1); } 
-        const trans = { id: 't_' + Date.now(), type: 'income', amount: dp, buildingId: unit.buildingId, description: `مقدم تعاقد: ${newContract.clientName}`, date: todayDateStr }; 
-        setData(prev => ({ ...prev, contracts: [...(prev.contracts || []), contract], installments: [...(prev.installments || []), ...newInsts], transactions: [...(prev.transactions || []), trans], units: (prev.units || []).map(u => u.id === unit.id ? { ...u, status: 'sold' } : u) })); 
-        setNewContract({ clientName: '', unitId: '', totalAmount: '', downPayment: '', installmentsCount: '', firstInstallmentDate: '' }); showMsg('تم التسجيل بنجاح'); 
-      };
-
-      const payInstallment = (instId, fullAmount, clientName, buildingId, paidAmount) => {
-        const paid = Number(paidAmount);
-        setData(prev => {
-          let updatedInsts = prev.installments || [];
-          if (paid === fullAmount) updatedInsts = updatedInsts.map(i => i.id === instId ? { ...i, status: 'paid' } : i);
-          else updatedInsts = updatedInsts.map(i => i.id === instId ? { ...i, amount: i.amount - paid } : i);
-          const trans = { id: 't_' + Date.now(), type: 'income', amount: paid, buildingId, description: `تحصيل قسط ${paid < fullAmount ? '(جزئي)' : ''}: ${clientName}`, date: todayDateStr };
-          return { ...prev, installments: updatedInsts, transactions: [...(prev.transactions || []), trans] };
-        });
-        showMsg('تم التحصيل');
-      };
-
       const goToTransaction = (type) => {
         const preSelectedCustody = (dashboardCustodyFilter || []).length > 0 ? dashboardCustodyFilter[0] : '';
         setNewTransaction(prev => ({ ...prev, type, custodyId: preSelectedCustody }));
@@ -272,9 +215,9 @@
       const monthInstallments = (data.installments || []).filter(i => i.status === 'pending' && i.dueDate?.startsWith(thisMonth)).sort((a,b)=>new Date(a.dueDate||0)-new Date(b.dueDate||0));
 
       const tabs = [
-        { id: 'dashboard', label: 'الرئيسية' }, { id: 'transactions', label: 'إيراد/مصروف' },
-        { id: 'custody', label: 'العهد' }, { id: 'inventory', label: 'الوحدات' },
-        { id: 'sales', label: 'المبيعات' }, { id: 'reports', label: 'التقارير' }
+        { id: 'dashboard', label: t.tab_dash }, { id: 'transactions', label: t.tab_tx },
+        { id: 'custody', label: t.tab_cust }, { id: 'inventory', label: t.tab_inv },
+        { id: 'sales', label: t.tab_sales }, { id: 'reports', label: t.tab_rep }
       ];
 
       const sortedCustodies = [...(data.custodies || [])].reverse();
@@ -284,7 +227,7 @@
       return (
         <div className="min-h-screen flex flex-col bg-slate-100 pb-10">
           <header className="bg-slate-900 text-white p-4 shadow-lg print-hide flex justify-between items-center relative z-40">
-            <h1 className="text-xl font-bold tracking-wide flex items-center gap-2">🏢 <span>إدارة العقارات</span></h1>
+            <h1 className="text-xl font-bold tracking-wide flex items-center gap-2">🏢 <span>{t.appTitle}</span></h1>
             <button onClick={() => setActiveTab('settings')} className="text-2xl hover:rotate-90 transition-transform">⚙️</button>
           </header>
 
@@ -298,54 +241,10 @@
           </nav>
 
           {toast.show && (
-            <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-[200] animate-slide-up print-hide">
-              <div className={`px-6 py-3 rounded-full shadow-2xl font-bold text-white flex items-center gap-3 ${toast.isError ? 'bg-red-600' : 'bg-emerald-600'}`}>
-                <span className="text-xl">{toast.isError ? '⚠️' : '✅'}</span><span>{toast.msg}</span>
+            <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-[200] animate-slide-up print-hide w-[90%] max-w-sm">
+              <div className={`px-6 py-4 rounded-2xl shadow-2xl font-bold text-white flex items-center justify-center gap-3 ${toast.isError ? 'bg-red-600' : 'bg-emerald-600'}`}>
+                <span className="text-2xl">{toast.isError ? '⚠️' : '✅'}</span><span className="text-lg">{toast.msg}</span>
               </div>
-            </div>
-          )}
-
-          {appModal.show && (
-            <div className="fixed inset-0 bg-slate-900 bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-[100] animate-fade-in p-4 print-hide" onClick={closeModal}>
-              {appModal.type === 'TX_ACTION' && appModal.props.tx && (
-                <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}>
-                  <div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div>
-                  <h3 className="font-bold text-lg mb-2 text-center text-slate-800 border-b pb-2">خيارات الحركة</h3>
-                  <p className="text-center text-sm text-slate-500 mb-6 bg-slate-50 p-2 rounded">{appModal.props.tx?.description} <br/> <span className="font-bold text-lg text-slate-800">{Number(appModal.props.tx?.amount || 0).toLocaleString()} ج.م</span></p>
-                  <button onClick={() => { closeModal(); setNewTransaction({...appModal.props.tx}); setEditingTxId(appModal.props.tx?.id); setActiveTab('transactions'); }} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow hover:bg-blue-700 transition">✏️ تعديل الحركة</button>
-                  <button onClick={() => { closeModal(); requirePin(() => { setAppModal({ show: true, type: 'CONFIRM', props: { title: 'تأكيد الحذف', message: 'هل أنت متأكد من حذف هذه الحركة نهائياً؟', onConfirm: () => { setData(p => ({...p, transactions: (p.transactions||[]).filter(t => t.id !== appModal.props.tx?.id)})); showMsg('تم الحذف بنجاح'); closeModal(); } }}); }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ حذف الحركة</button>
-                </div>
-              )}
-              {appModal.type === 'PIN' && (
-                <div className="bg-white w-full max-w-xs rounded-2xl overflow-hidden shadow-2xl animate-slide-up" onClick={e=>e.stopPropagation()}>
-                  <div className="bg-red-600 text-white p-4 text-center font-bold">🔒 إجراء محمي</div>
-                  <div className="p-6">
-                    <p className="text-center text-sm mb-4">أدخل رمز الحماية (PIN) للمتابعة</p>
-                    <input type="password" inputMode="numeric" pattern="[0-9]*" maxLength="4" autoFocus className="w-full border-b-2 border-red-400 p-2 text-center text-3xl tracking-[0.5em] font-bold outline-none focus:border-red-600 transition-colors bg-slate-50" onChange={e => { if(e.target.value === data.pinCode) { closeModal(); setTimeout(appModal.props.onSuccess, 50); } }} />
-                  </div>
-                  <button onClick={closeModal} className="w-full p-4 bg-slate-100 text-slate-600 font-bold hover:bg-slate-200">إلغاء</button>
-                </div>
-              )}
-              {appModal.type === 'CONFIRM' && (
-                <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-slide-up" onClick={e=>e.stopPropagation()}>
-                  <div className="bg-slate-900 text-white p-4 text-center font-bold text-lg">{appModal.props.title || 'تأكيد'}</div>
-                  <div className="p-6 text-center text-slate-700 font-medium">{appModal.props.message}</div>
-                  <div className="flex border-t">
-                    <button onClick={()=>{appModal.props.onConfirm && appModal.props.onConfirm(); closeModal();}} className="flex-1 p-4 font-bold text-blue-700 hover:bg-blue-50 border-l">نعم، متأكد</button>
-                    <button onClick={closeModal} className="flex-1 p-4 font-bold text-slate-500 hover:bg-slate-100">إلغاء</button>
-                  </div>
-                </div>
-              )}
-              {appModal.type === 'PROMPT_INST' && (
-                <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-slide-up" onClick={e=>e.stopPropagation()}>
-                  <div className="bg-blue-800 text-white p-4 text-center font-bold">{appModal.props.title}</div>
-                  <form onSubmit={e => { e.preventDefault(); appModal.props.onConfirm(e.target.amount.value.replace(/[^0-9]/g, ''), e.target.date?.value); closeModal(); }} className="p-6 space-y-4">
-                    {appModal.props.showDate && <div><label className="text-xs font-bold text-slate-500 mb-1">التاريخ</label><input name="date" type="date" required defaultValue={appModal.props.defaultDate} className="w-full border-2 p-3 rounded-xl font-bold bg-slate-50 focus:border-blue-400 outline-none"/></div>}
-                    <div><label className="text-xs font-bold text-slate-500 mb-1">المبلغ (ج.م)</label><NumberInput name="amount" required value={appModal.props.defaultAmount} onChange={(v)=>e.target.amount.value=v} className="w-full border-2 border-blue-400 p-3 rounded-xl font-bold text-xl text-center outline-none focus:border-blue-600" /></div>
-                    <div className="flex gap-2 pt-2"><button type="submit" className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow hover:bg-blue-700">حفظ</button><button type="button" onClick={closeModal} className="flex-1 bg-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-300">إلغاء</button></div>
-                  </form>
-                </div>
-              )}
             </div>
           )}
 
@@ -355,362 +254,105 @@
             {activeTab === 'dashboard' && (
               <div className="space-y-6 print-hide animate-fade-in">
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                  <h2 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2">المركز المالي العام</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    
                     <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-5 rounded-2xl border border-blue-200 shadow-inner cursor-pointer hover:shadow-md transition" onClick={() => setShowMonthDetails(!showMonthDetails)}>
                       <div className="flex justify-between items-center mb-2">
-                        <p className="text-sm text-blue-800 font-bold">مستحقات الشهر الحالي</p>
-                        <span className="text-blue-600 bg-white px-2 py-1 rounded text-xs font-bold shadow-sm">{showMonthDetails ? 'إخفاء ▲' : 'التفاصيل ▼'}</span>
+                        <p className="text-sm text-blue-800 font-bold">{t.monthDues}</p>
                       </div>
-                      <p className="text-4xl font-black text-blue-900 mt-2">{monthInstallments.reduce((sum, i) => sum + Number(i.amount||0), 0).toLocaleString()} <span className="text-lg font-bold">ج.م</span></p>
+                      <p className="text-4xl font-black text-blue-900 mt-2">{monthInstallments.reduce((sum, i) => sum + Number(i.amount||0), 0).toLocaleString()} </p>
                     </div>
                     
                     <div className="bg-gradient-to-br from-amber-50 to-orange-100 p-5 rounded-2xl border border-amber-200 shadow-inner">
-                      <p className="text-sm text-amber-900 mb-2 font-bold">الاستعلام المباشر عن العُهد</p>
-                      <MultiSelectDropdown options={sortedCustodies.map(c => ({ id: c.id, label: c.personName }))} selected={dashboardCustodyFilter} onChange={setDashboardCustodyFilter} placeholder="-- الخزينة العامة --" />
-                      <p className="text-3xl font-black text-amber-600 mt-4">الصافي: {dashboardNet.toLocaleString()} <span className="text-lg font-bold">ج.م</span></p>
+                      <p className="text-sm text-amber-900 mb-2 font-bold">{t.activeCustody}</p>
+                      <MultiSelectDropdown options={sortedCustodies.map(c => ({ id: c.id, label: c.personName }))} selected={dashboardCustodyFilter} onChange={setDashboardCustodyFilter} placeholder={t.allCustodies} />
+                      <p className="text-3xl font-black text-amber-600 mt-4">{t.net}: {dashboardNet.toLocaleString()} </p>
                       <div className="flex gap-3 mt-5 pt-4 border-t border-amber-200/60">
-                        <button onClick={() => goToTransaction('income')} className="flex-1 bg-emerald-500 text-white py-3 rounded-xl text-sm font-bold shadow-md hover:bg-emerald-600 transition hover:-translate-y-1">➕ إيراد للعهدة</button>
-                        <button onClick={() => goToTransaction('expense')} className="flex-1 bg-red-500 text-white py-3 rounded-xl text-sm font-bold shadow-md hover:bg-red-600 transition hover:-translate-y-1">➖ مصروف من العهدة</button>
+                        <button onClick={() => goToTransaction('income')} className="flex-1 bg-emerald-500 text-white py-3 rounded-xl text-sm font-bold shadow-md hover:bg-emerald-600 transition">➕</button>
+                        <button onClick={() => goToTransaction('expense')} className="flex-1 bg-red-500 text-white py-3 rounded-xl text-sm font-bold shadow-md hover:bg-red-600 transition">➖</button>
                       </div>
                     </div>
-
                   </div>
                 </div>
-
-                {showMonthDetails && (
-                  <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 animate-slide-up">
-                    <h3 className="font-bold mb-4 border-b pb-2 text-blue-800 text-lg">تفاصيل أقساط الشهر الحالي</h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-right text-sm">
-                        <thead className="bg-slate-50 text-slate-500"><tr><th className="p-3 rounded-tr-lg">العميل</th><th className="p-3">الاستحقاق</th><th className="p-3 rounded-tl-lg">المبلغ</th></tr></thead>
-                        <tbody>
-                          {monthInstallments.map(inst => {
-                            const c = (data.contracts || []).find(ct => ct.id === inst.contractId);
-                            return <tr key={inst.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors"><td className="p-3 font-bold text-slate-700">{c?.clientName}</td><td className="p-3 font-mono text-slate-500" dir="ltr">{formatShortDate(inst.dueDate)}</td><td className="p-3 font-black text-red-600 text-lg">{Number(inst.amount).toLocaleString()}</td></tr>
-                          })}
-                          {monthInstallments.length === 0 && <tr><td colSpan="3" className="text-center p-6 text-slate-400 font-medium">لا توجد أقساط مستحقة هذا الشهر</td></tr>}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
-            {/* إيراد أو مصروف */}
+            {/* إيراد أو مصروف (Transactions Form) */}
             {activeTab === 'transactions' && (
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-lg mx-auto print-hide animate-fade-in">
-                <h3 className="font-bold text-xl mb-6 text-center text-slate-800">{editingTxId ? '✏️ تحديث حركة سابقة' : 'تسجيل حركة نقدية'}</h3>
+                <h3 className="font-bold text-2xl mb-6 text-center text-slate-800 border-b pb-3">{editingTxId ? t.edit : t.tab_tx}</h3>
                 
-                <form onSubmit={handleSaveTransaction} className="space-y-5">
-                  <div className="flex gap-4 p-2 bg-slate-50 rounded-xl border border-slate-200">
-                    <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg cursor-pointer font-bold transition-all ${newTransaction.type === 'income' ? 'bg-emerald-100 text-emerald-800 shadow-sm border border-emerald-200' : 'text-slate-500 hover:bg-slate-200'}`}>
-                      <input type="radio" className="hidden" checked={newTransaction.type === 'income'} onChange={()=>setNewTransaction({...newTransaction, type:'income'})}/> ➕ إضافة إيراد
+                <form onSubmit={handleSaveTransaction} className="space-y-6">
+                  <div className="flex gap-4 p-2 bg-slate-50 rounded-xl border border-slate-200 shadow-inner">
+                    <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg cursor-pointer font-bold transition-all ${newTransaction.type === 'income' ? 'bg-emerald-100 text-emerald-800 shadow-sm border border-emerald-300' : 'text-slate-500 hover:bg-slate-200'}`}>
+                      <input type="radio" className="hidden" checked={newTransaction.type === 'income'} onChange={()=>setNewTransaction({...newTransaction, type:'income'})}/> {t.addIncome}
                     </label>
-                    <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg cursor-pointer font-bold transition-all ${newTransaction.type === 'expense' ? 'bg-red-100 text-red-800 shadow-sm border border-red-200' : 'text-slate-500 hover:bg-slate-200'}`}>
-                      <input type="radio" className="hidden" checked={newTransaction.type === 'expense'} onChange={()=>setNewTransaction({...newTransaction, type:'expense'})}/> ➖ تسجيل مصروف
+                    <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg cursor-pointer font-bold transition-all ${newTransaction.type === 'expense' ? 'bg-red-100 text-red-800 shadow-sm border border-red-300' : 'text-slate-500 hover:bg-slate-200'}`}>
+                      <input type="radio" className="hidden" checked={newTransaction.type === 'expense'} onChange={()=>setNewTransaction({...newTransaction, type:'expense'})}/> {t.addExpense}
                     </label>
                   </div>
                   
-                  <div><label className="text-xs font-bold text-slate-500 mb-1 block">التاريخ</label><input type="date" required className="w-full border-2 p-3 text-sm rounded-xl bg-slate-50 focus:border-blue-400 outline-none transition font-mono" value={newTransaction.date} onChange={e=>setNewTransaction({...newTransaction, date: e.target.value})}/></div>
-                  <div><label className="text-xs font-bold text-slate-500 mb-1 block">المبلغ (ج.م)</label><NumberInput required value={newTransaction.amount} onChange={v=>setNewTransaction({...newTransaction, amount: v})} className="w-full border-2 p-4 text-2xl rounded-xl font-black text-center text-slate-800 bg-white focus:border-blue-500 outline-none transition" /></div>
+                  {/* ترتيب الخانات وتعديل أحجامها */}
+                  <div><label className="text-sm font-bold text-slate-500 mb-1 block">{t.date}</label><input type="date" required className="w-full border-2 border-slate-200 p-3 text-md rounded-xl bg-slate-50 focus:border-blue-500 outline-none transition font-mono" value={newTransaction.date} onChange={e=>setNewTransaction({...newTransaction, date: e.target.value})}/></div>
                   
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><label className="text-xs font-bold text-slate-500 mb-1 block">العهدة / الخزينة</label><select className="w-full border-2 p-3 text-sm rounded-xl font-bold text-blue-800 bg-slate-50 focus:border-blue-400 outline-none transition" value={newTransaction.custodyId} onChange={e=>setNewTransaction({...newTransaction, custodyId: e.target.value})}><option value="">-- الخزينة العامة --</option>{sortedCustodies.map(c=><option key={c.id} value={c.id}>{c.personName}</option>)}</select></div>
-                    <div><label className="text-xs font-bold text-slate-500 mb-1 block">العمارة (اختياري)</label><select className="w-full border-2 p-3 text-sm rounded-xl font-bold bg-slate-50 focus:border-blue-400 outline-none transition" value={newTransaction.buildingId} onChange={e=>setNewTransaction({...newTransaction, buildingId: e.target.value})}><option value="">-- عام --</option>{sortedBuildings.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
-                  </div>
+                  {/* Amount (Smaller height) */}
+                  <div><label className="text-sm font-bold text-slate-500 mb-1 block">{t.amount}</label><NumberInput required value={newTransaction.amount} onChange={v=>setNewTransaction({...newTransaction, amount: v})} className="w-full border-2 border-slate-300 p-3 text-xl rounded-xl font-black text-slate-800 bg-white focus:border-blue-500 outline-none transition" /></div>
                   
-                  {newTransaction.type === 'expense' && <div><label className="text-xs font-bold text-slate-500 mb-1 block">تصنيف المصروف</label><select className="w-full border-2 p-3 text-sm rounded-xl font-bold bg-slate-50 focus:border-blue-400 outline-none transition" required value={newTransaction.categoryId} onChange={e=>setNewTransaction({...newTransaction, categoryId: e.target.value})}><option value="">-- اختر التصنيف --</option>{sortedCategories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>}
-                  
+                  {/* Description (Larger height, directly under Amount) */}
                   <div className="relative">
-                    <label className="text-xs font-bold text-slate-500 mb-1 block">البيان (التفاصيل)</label>
-                    <input type="text" required placeholder="اكتب وصف الحركة..." className="w-full border-2 p-3 text-md rounded-xl font-bold bg-white focus:border-blue-400 outline-none transition" value={newTransaction.description} 
+                    <label className="text-sm font-bold text-slate-500 mb-1 block">{t.desc}</label>
+                    <input type="text" required placeholder="..." className="w-full border-2 border-slate-300 py-5 px-4 text-xl rounded-xl font-bold bg-white focus:border-blue-500 outline-none transition shadow-inner" value={newTransaction.description} 
                       onChange={e => setNewTransaction({...newTransaction, description: e.target.value})} onFocus={() => setDescFocus(true)} onBlur={() => setTimeout(() => setDescFocus(false), 200)} />
                     {descFocus && newTransaction.description && filteredDescs.length > 0 && (
                       <div className="absolute top-full left-0 right-0 bg-white border-2 border-slate-200 mt-1 shadow-2xl z-50 max-h-48 overflow-y-auto rounded-xl animate-fade-in">
-                        {filteredDescs.map((d, idx) => <div key={idx} className="p-3 text-sm border-b hover:bg-blue-50 cursor-pointer font-bold text-slate-700" onMouseDown={() => setNewTransaction({...newTransaction, description: d})}>{d}</div>)}
+                        {filteredDescs.map((d, idx) => <div key={idx} className="p-4 text-md border-b hover:bg-blue-50 cursor-pointer font-bold text-slate-700" onMouseDown={() => setNewTransaction({...newTransaction, description: d})}>{d}</div>)}
                       </div>
                     )}
                   </div>
 
-                  <button className={`w-full text-white py-4 rounded-xl text-lg font-black shadow-lg transition hover:-translate-y-1 ${editingTxId ? 'bg-amber-600 hover:bg-amber-700' : 'bg-blue-600 hover:bg-blue-700'}`}>{editingTxId ? '🔄 تحديث بيانات الحركة' : '💾 حفظ الحركة في السجل'}</button>
-                  {editingTxId && <button type="button" onClick={()=>{setEditingTxId(null); setNewTransaction({ type: 'income', amount: '', categoryId: '', buildingId: '', custodyId: '', description: '', date: todayDateStr });}} className="w-full mt-2 text-slate-500 font-bold py-2 hover:bg-slate-100 rounded-xl transition">إلغاء التعديل والرجوع</button>}
+                  {/* Dropdowns */}
+                  <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4">
+                    <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.custody}</label><select className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl font-bold text-blue-800 bg-slate-50 focus:border-blue-500 outline-none transition" value={newTransaction.custodyId} onChange={e=>setNewTransaction({...newTransaction, custodyId: e.target.value})}><option value="">{t.allCustodies}</option>{sortedCustodies.map(c=><option key={c.id} value={c.id}>{c.personName}</option>)}</select></div>
+                    <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.building}</label><select className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl font-bold bg-slate-50 focus:border-blue-500 outline-none transition" value={newTransaction.buildingId} onChange={e=>setNewTransaction({...newTransaction, buildingId: e.target.value})}><option value="">{t.allBuildings}</option>{sortedBuildings.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
+                  </div>
+                  
+                  {newTransaction.type === 'expense' && <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.category}</label><select className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl font-bold bg-slate-50 focus:border-blue-500 outline-none transition" required value={newTransaction.categoryId} onChange={e=>setNewTransaction({...newTransaction, categoryId: e.target.value})}><option value="">{t.selectCat}</option>{sortedCategories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>}
+                  
+                  <button className={`w-full text-white py-4 rounded-xl text-xl font-black shadow-lg transition hover:-translate-y-1 ${editingTxId ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-600 hover:bg-blue-700'}`}>{editingTxId ? t.update : t.save}</button>
+                  {editingTxId && <button type="button" onClick={()=>{setEditingTxId(null); setNewTransaction({ type: 'income', amount: '', categoryId: '', buildingId: '', custodyId: '', description: '', date: todayDateStr });}} className="w-full mt-2 text-slate-500 font-bold py-2 hover:bg-slate-100 rounded-xl transition">{t.cancel}</button>}
                 </form>
-              </div>
-            )}
-
-            {/* العهدة */}
-            {activeTab === 'custody' && (
-              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 print-hide animate-fade-in">
-                <div className="mb-5 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <label className="font-bold block mb-2 text-slate-800 text-sm">تحديد العُهد لعرض الحركات (اختيار متعدد):</label>
-                  <MultiSelectDropdown options={sortedCustodies.map(c => ({ id: c.id, label: c.personName }))} selected={selectedCustodies} onChange={setSelectedCustodies} placeholder="-- كل العهد والخزينة العامة --" />
-                </div>
-
-                <div className="mb-5"><input type="text" placeholder="🔍 ابحث في البيان عن كلمة أو اسم..." className="w-full border-2 border-slate-300 focus:border-blue-400 p-3 rounded-xl text-md font-bold outline-none transition bg-white shadow-sm" value={custodySearch} onChange={e => setCustodySearch(e.target.value)} /></div>
-
-                <div className="flex bg-slate-100 p-1.5 rounded-xl mb-4 shadow-inner">
-                  <button onClick={() => setCustodyTabSub('income')} className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${custodyTabSub === 'income' ? 'bg-white text-emerald-700 shadow border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>الإيرادات ⬇</button>
-                  <button onClick={() => setCustodyTabSub('expense')} className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${custodyTabSub === 'expense' ? 'bg-white text-red-700 shadow border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>المصروفات ⬆</button>
-                </div>
-
-                <div className="overflow-x-auto min-h-[300px]">
-                  <table className="w-full text-sm text-right">
-                    <thead className="text-slate-400 border-b-2"><tr><th className="p-3 pb-2 font-medium">التاريخ</th><th className="p-3 pb-2 font-medium">البيان</th><th className="p-3 pb-2 font-medium">المبلغ</th></tr></thead>
-                    <tbody>
-                      {filteredCustodyTrans.map(t => (
-                        <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors" onClick={() => handleTxClick(t)}>
-                          <td className="p-3 text-slate-500 font-mono text-xs whitespace-nowrap" dir="ltr">{formatShortDate(t.date)}</td><td className="p-3 font-medium text-slate-800">{t.description}</td><td className="p-3 font-bold text-slate-900 text-base">{Number(t.amount).toLocaleString()}</td>
-                        </tr>
-                      ))}
-                      {filteredCustodyTrans.length === 0 && <tr><td colSpan="3" className="text-center p-8 text-slate-400 font-bold">لا توجد حركات مطابقة</td></tr>}
-                    </tbody>
-                  </table>
-                  <div className={`mt-6 p-4 rounded-xl font-black text-2xl text-center text-white shadow-inner ${custodyTabSub === 'expense' ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-gradient-to-r from-emerald-500 to-emerald-600'}`}>
-                    الإجمالي: {filteredCustodyTrans.reduce((s,t)=>s+Number(t.amount||0),0).toLocaleString()} ج.م
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Units */}
-            {activeTab === 'inventory' && (
-              <div className="space-y-6 print-hide animate-fade-in">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-md mx-auto mb-6">
-                  <h3 className="font-bold mb-5 text-center text-lg text-slate-800">🏢 إضافة عمارة/مشروع جديد</h3>
-                  <form onSubmit={addBuilding} className="flex flex-col gap-4">
-                    <input required type="text" placeholder="اسم العمارة (مثال: اللؤلؤة)..." className="border-2 p-3 rounded-xl text-md w-full font-bold focus:border-blue-400 outline-none bg-slate-50" value={newBuilding} onChange={e=>setNewBuilding(e.target.value)}/>
-                    <button className="bg-slate-800 text-white px-4 py-3 rounded-xl text-md font-bold w-full shadow hover:bg-slate-900 transition">حفظ العمارة</button>
-                  </form>
-                </div>
-
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-md mx-auto">
-                  <h3 className="font-bold mb-5 text-center text-lg text-slate-800">🔑 إضافة وحدة عقارية (شقة/محل)</h3>
-                  <form onSubmit={addUnit} className="flex flex-col gap-4">
-                    <div><select className="border-2 p-3 rounded-xl text-sm w-full font-bold focus:border-blue-400 outline-none bg-slate-50" required value={newUnit.buildingId} onChange={e => setNewUnit({...newUnit, buildingId: e.target.value})}><option value="">-- اختر العمارة --</option>{sortedBuildings.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
-                    <div><input type="text" placeholder="رقم أو اسم الوحدة (مثال: شقة 14)" className="border-2 p-3 rounded-xl text-sm w-full font-bold focus:border-blue-400 outline-none bg-slate-50" required value={newUnit.unitNumber} onChange={e => setNewUnit({...newUnit, unitNumber: e.target.value})} /></div>
-                    <button className="bg-blue-600 text-white px-4 py-3 rounded-xl text-md font-bold w-full shadow hover:bg-blue-700 transition">حفظ الوحدة</button>
-                  </form>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {sortedBuildings.map(b => (
-                    <div key={b.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                      <h4 className="font-bold text-center mb-4 bg-slate-50 p-2 rounded-lg text-slate-800 border">{b.name}</h4>
-                      <div className="grid grid-cols-4 gap-3">
-                        {(data.units || []).filter(u => u.buildingId === b.id).map(u => (
-                          <div key={u.id} className={`p-2 text-center rounded-xl font-bold text-white shadow-sm flex flex-col justify-center min-h-[65px] transition-transform hover:scale-105 ${u.status === 'available' ? 'bg-emerald-500' : 'bg-slate-400'}`}>
-                            <span className="text-sm">{u.unitNumber}</span><span className="text-[10px] font-normal opacity-90 mt-1">{u.status === 'available' ? 'متاح' : 'مباع'}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Sales */}
-            {activeTab === 'sales' && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print-hide animate-fade-in">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 h-fit">
-                  <h3 className="font-bold mb-5 border-b pb-2 text-lg text-slate-800">إنشاء عقد جديد</h3>
-                  <form onSubmit={addContract} className="space-y-4">
-                    <input type="text" placeholder="اسم العميل" className="w-full border-2 p-3 rounded-xl text-sm font-bold bg-slate-50 focus:border-blue-400 outline-none" required value={newContract.clientName} onChange={e => setNewContract({...newContract, clientName: e.target.value})} />
-                    <select className="w-full border-2 p-3 rounded-xl text-sm font-bold bg-slate-50 focus:border-blue-400 outline-none" required value={newContract.unitId} onChange={e => setNewContract({...newContract, unitId: e.target.value})}>
-                      <option value="">-- اختر الوحدة المتاحة --</option>
-                      {(data.units || []).filter(u => u.status === 'available').map(u => <option key={u.id} value={u.id}>{(data.buildings || []).find(b=>b.id===u.buildingId)?.name} - {u.unitNumber}</option>)}
-                    </select>
-                    <div><label className="text-xs font-bold text-slate-500 block mb-1">الإجمالي (ج.م)</label><NumberInput required value={newContract.totalAmount} onChange={v => setNewContract({...newContract, totalAmount: v})} className="w-full border-2 p-3 rounded-xl text-lg font-bold bg-white focus:border-blue-400 outline-none" /></div>
-                    <div><label className="text-xs font-bold text-slate-500 block mb-1">المقدم المدفوع حالا</label><NumberInput required value={newContract.downPayment} onChange={v => setNewContract({...newContract, downPayment: v})} className="w-full border-2 p-3 rounded-xl text-lg font-bold bg-white focus:border-blue-400 outline-none" /></div>
-                    <div><label className="text-xs font-bold text-slate-500 block mb-1">عدد الأقساط</label><NumberInput required value={newContract.installmentsCount} onChange={v => setNewContract({...newContract, installmentsCount: v})} className="w-full border-2 p-3 rounded-xl text-lg font-bold bg-white focus:border-blue-400 outline-none text-center" /></div>
-                    <div><label className="text-xs font-bold text-slate-500 block mb-1">تاريخ أول قسط</label><input type="date" className="w-full border-2 p-3 rounded-xl text-sm font-bold bg-slate-50 focus:border-blue-400 outline-none font-mono" required value={newContract.firstInstallmentDate} onChange={e => setNewContract({...newContract, firstInstallmentDate: e.target.value})} /></div>
-                    <button className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-md shadow-lg hover:bg-blue-700 transition hover:-translate-y-1 mt-2">تسجيل العقد وإنشاء الأقساط</button>
-                  </form>
-                </div>
-                
-                <div className="bg-transparent lg:col-span-2 space-y-5">
-                  {(data.contracts || []).filter(c => c.status === 'active').map(c => {
-                    const u = (data.units || []).find(un => un.id === c.unitId);
-                    const b = (data.buildings || []).find(bd => bd.id === c.buildingId);
-                    return (
-                      <div key={c.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                        <div className="flex justify-between items-start mb-4 border-b pb-3">
-                          <div><p className="font-black text-blue-900 text-xl mb-1">{c.clientName}</p><p className="text-xs font-bold text-slate-600 bg-slate-100 inline-block px-3 py-1.5 rounded-lg border">{b?.name} - {u?.unitNumber}</p></div>
-                          <button onClick={() => { requirePin(()=>setAppModal({show:true, type:'CONFIRM', props:{title:'تأكيد الفسخ', message:'هل أنت متأكد من فسخ العقد؟', onConfirm:()=>{ setData(p=>({...p, contracts: p.contracts.map(ct=>ct.id===c.id?{...ct,status:'canceled'}:ct), installments: p.installments.filter(i=>!(i.contractId===c.id && i.status==='pending')), units: p.units.map(un=>un.id===c.unitId?{...un,status:'available'}:un)})); showMsg('تم فسخ العقد'); }}})); }} className="text-xs text-red-600 bg-red-50 px-4 py-2 rounded-xl font-bold border border-red-100 hover:bg-red-100 transition">فسخ العقد</button>
-                        </div>
-                        <div className="overflow-x-auto mb-4">
-                          <table className="w-full text-sm text-right">
-                            <thead className="text-slate-400 border-b-2"><tr><th className="p-2 pb-2 font-medium">الاستحقاق</th><th className="p-2 pb-2 font-medium">المبلغ</th><th className="p-2 pb-2 font-medium text-center">الحالة</th><th className="p-2 pb-2 font-medium">إجراء</th></tr></thead>
-                            <tbody>
-                              {(data.installments || []).filter(i => i.contractId === c.id).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate)).map(inst => (
-                                <tr key={inst.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                                  <td className="p-2 font-mono text-xs text-slate-500 whitespace-nowrap" dir="ltr">{formatShortDate(inst.dueDate)}</td><td className="p-2 font-bold text-slate-800 text-base">{Number(inst.amount).toLocaleString()}</td>
-                                  <td className="p-2 text-center">{inst.status === 'paid' ? <span className="text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-lg text-xs border border-emerald-100">مدفوع</span> : <span className="text-amber-500 font-bold text-xs bg-amber-50 px-3 py-1 rounded-lg border border-amber-100">مستحق</span>}</td>
-                                  <td className="p-2 flex gap-2">
-                                    {inst.status === 'pending' && <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title:'تحصيل القسط', defaultAmount: inst.amount, onConfirm:(amt)=>payInstallment(inst.id, inst.amount, c.clientName, c.buildingId, amt) }})} className="bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-bold shadow hover:bg-emerald-600 transition">تحصيل</button>}
-                                    {inst.status === 'pending' && <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title:'تعديل القسط', showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>{ setData(p=>({...p, installments: p.installments.map(i=>i.id===inst.id?{...i, amount:Number(amt), dueDate:dt}:i)})); showMsg('تم التعديل'); } }})} className="bg-slate-100 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">تعديل</button>}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                        <div className="text-left"><button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title:'قسط يدوي جديد', showDate:true, defaultDate: todayDateStr, onConfirm:(amt,dt)=>{ setData(p=>({...p, installments: [...(p.installments||[]), {id:'inst_man_'+Date.now(), contractId:c.id, amount:Number(amt), dueDate:dt, status:'pending'}]})); showMsg('تمت الإضافة'); } }})} className="bg-blue-50 text-blue-700 border border-blue-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-blue-100 transition">➕ إضافة قسط يدوي</button></div>
-                      </div>
-                    )
-                  })}
-                  {(data.contracts || []).filter(c => c.status === 'active').length === 0 && <div className="text-center p-10 text-slate-400 font-bold bg-white rounded-2xl shadow-sm border border-slate-200">لا توجد عقود مبيعات نشطة حالياً</div>}
-                </div>
-              </div>
-            )}
-
-            {/* Reports */}
-            {activeTab === 'reports' && (
-              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 animate-fade-in">
-                
-                {/* --- PDF PRINT VIEW --- */}
-                <div className="hidden print-show text-black">
-                  <h2 className="text-3xl text-center mb-2 font-black tracking-wide">تقرير كشف حساب</h2>
-                  <h3 className="text-2xl text-center mb-2 font-bold bg-gray-100 p-2 inline-block mx-auto rounded">{reportData.custodyName}</h3>
-                  <h4 className="text-lg text-center mb-6 font-bold text-gray-700">الفترة من: {reportFilter.startDate ? formatShortDate(reportFilter.startDate) : 'البداية'} إلى: {reportFilter.endDate ? formatShortDate(reportFilter.endDate) : 'الآن'}</h4>
-
-                  {reportType === 'transactions' ? (
-                    <>
-                      {reportFilter.custodyIds.length > 0 && (
-                        <table className="mb-5">
-                          <thead>
-                            <tr className="bg-gray-200">
-                              <th className="w-[80%] text-right print-header border-black text-xl">رصيد بداية المدة المُرَحَّل</th>
-                              <th className="w-[20%] border-black text-2xl text-center font-black">{reportData.openingBalance.toLocaleString()}</th>
-                            </tr>
-                          </thead>
-                        </table>
-                      )}
-                      
-                      <h4 className="text-2xl font-black border-b-4 border-black mt-6 mb-3 pb-1 inline-block">جدول الإيرادات</h4>
-                      <table>
-                        <thead className="bg-gray-100 text-lg"><tr><th className="w-[15%] text-center">التاريخ</th><th className="w-[65%] text-right">البيان والتفاصيل</th><th className="w-[20%] text-center">المبلغ</th></tr></thead>
-                        <tbody>
-                          {reportData.incomes.map(t => (
-                            <tr key={t.id} className="print-row-text">
-                              <td dir="ltr" className="text-center font-mono">{formatShortDate(t.date)}</td><td className="font-bold text-lg">{t.description}</td><td className="text-center font-bold text-xl">{Number(t.amount).toLocaleString()}</td>
-                            </tr>
-                          ))}
-                          {reportData.incomes.length === 0 && <tr><td colSpan="3" className="text-center py-3 text-gray-500 font-bold">لا توجد إيرادات مسجلة في هذه الفترة</td></tr>}
-                        </tbody>
-                      </table>
-                      <div className="text-left mt-3 mb-8 text-2xl font-black bg-gray-100 p-2 border-2 border-black inline-block float-left rounded">إجمالي الإيراد (شامل البداية): {(reportData.totalIncomes + reportData.openingBalance).toLocaleString()}</div>
-                      <div className="clear-both"></div>
-
-                      <h4 className="text-2xl font-black border-b-4 border-black mt-6 mb-3 pb-1 inline-block">جدول المصروفات</h4>
-                      <table>
-                        <thead className="bg-gray-100 text-lg"><tr><th className="w-[15%] text-center">التاريخ</th><th className="w-[65%] text-right">البيان والتفاصيل</th><th className="w-[20%] text-center">المبلغ</th></tr></thead>
-                        <tbody>
-                          {reportData.expenses.map(t => (
-                            <tr key={t.id} className="print-row-text">
-                              <td dir="ltr" className="text-center font-mono">{formatShortDate(t.date)}</td><td className="font-bold text-lg">{t.description}</td><td className="text-center font-bold text-xl">{Number(t.amount).toLocaleString()}</td>
-                            </tr>
-                          ))}
-                          {reportData.expenses.length === 0 && <tr><td colSpan="3" className="text-center py-3 text-gray-500 font-bold">لا توجد مصروفات مسجلة في هذه الفترة</td></tr>}
-                        </tbody>
-                      </table>
-                      <div className="text-left mt-3 mb-8 text-2xl font-black bg-gray-100 p-2 border-2 border-black inline-block float-left rounded">إجمالي المصروفات للفترة: {reportData.totalExpenses.toLocaleString()}</div>
-                      <div className="clear-both"></div>
-
-                      <div className="p-4 text-center text-3xl border-4 border-black mt-10 bg-gray-200 font-black rounded-lg shadow-sm">
-                        صافي العهدة الحالي: {reportData.finalBalance.toLocaleString()} ج.م
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <h4 className="text-2xl font-black border-b-4 border-black mt-4 mb-3 pb-1 inline-block">تقرير الأقساط والمستحقات</h4>
-                      <table>
-                        <thead className="bg-gray-100 text-lg"><tr><th>التاريخ</th><th>اسم العميل</th><th>الوحدة / العمارة</th><th>الحالة</th><th>المبلغ</th></tr></thead>
-                        <tbody>
-                          {reportInstallments.map(i => {
-                            const c = (data.contracts||[]).find(ct=>ct.id===i.contractId);
-                            const b = (data.buildings||[]).find(bd=>bd.id===c?.buildingId);
-                            return (
-                              <tr key={i.id}><td dir="ltr" className="text-center font-mono print-row-text">{formatShortDate(i.dueDate)}</td><td className="font-bold text-lg">{c?.clientName}</td><td className="text-center font-bold text-lg">{b?.name}</td><td className="text-center font-bold text-lg">{i.status==='paid'?'مدفوع':'مستحق'}</td><td className="text-center font-black text-xl">{Number(i.amount).toLocaleString()}</td></tr>
-                            )
-                          })}
-                          {reportInstallments.length === 0 && <tr><td colSpan="5" className="text-center py-3 text-gray-500 font-bold">لا توجد أقساط مطابقة للبحث</td></tr>}
-                        </tbody>
-                      </table>
-                      <div className="text-left mt-3 mb-6 text-2xl font-black bg-gray-100 p-2 border-2 border-black inline-block float-left rounded">إجمالي الأقساط المفلترة: {reportInstallments.reduce((s,i)=>s+Number(i.amount),0).toLocaleString()}</div>
-                      <div className="clear-both"></div>
-                    </>
-                  )}
-                </div>
-
-                {/* --- SCREEN VIEW --- */}
-                <div className="print-hide">
-                  <div className="flex bg-slate-100 p-1.5 rounded-xl mb-6 shadow-inner">
-                    <button onClick={()=>setReportType('transactions')} className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${reportType==='transactions'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>كشف حساب العهد</button>
-                    <button onClick={()=>setReportType('installments')} className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${reportType==='installments'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>تقرير المبيعات والأقساط</button>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6 bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner">
-                    <div><label className="text-xs font-bold text-slate-500 mb-1 block">من تاريخ</label><input type="date" className="w-full border-2 p-3 text-sm rounded-xl font-bold focus:border-blue-400 outline-none bg-white font-mono" value={reportFilter.startDate} onChange={e=>setReportFilter({...reportFilter, startDate: e.target.value})}/></div>
-                    <div><label className="text-xs font-bold text-slate-500 mb-1 block">إلى تاريخ</label><input type="date" className="w-full border-2 p-3 text-sm rounded-xl font-bold focus:border-blue-400 outline-none bg-white font-mono" value={reportFilter.endDate} onChange={e=>setReportFilter({...reportFilter, endDate: e.target.value})}/></div>
-                    
-                    {reportType === 'transactions' && (
-                      <div className="relative z-30">
-                        <label className="text-xs font-bold text-slate-500 mb-1 block">العهدة (تحديد متعدد)</label>
-                        <MultiSelectDropdown options={sortedCustodies.map(c => ({ id: c.id, label: c.personName }))} selected={reportFilter.custodyIds} onChange={(newIds) => setReportFilter({...reportFilter, custodyIds: newIds})} placeholder="-- كل العهد --" />
-                      </div>
-                    )}
-                    
-                    <div className="relative z-20">
-                      <label className="text-xs font-bold text-slate-500 mb-1 block">العمارة (تحديد متعدد)</label>
-                      <MultiSelectDropdown options={sortedBuildings.map(b => ({ id: b.id, label: b.name }))} selected={reportFilter.buildingIds} onChange={(newIds) => setReportFilter({...reportFilter, buildingIds: newIds})} placeholder="-- كل العمارات --" />
-                    </div>
-                  </div>
-
-                  <button onClick={handlePrint} className="w-full bg-slate-800 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-slate-900 transition-transform hover:-translate-y-1">🖨️ طباعة التقرير بصيغة PDF</button>
-                </div>
               </div>
             )}
 
             {/* Settings Tab */}
             {activeTab === 'settings' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 print-hide animate-fade-in">
+                
+                {/* Language Switcher */}
+                <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200 md:col-span-2 flex justify-between items-center bg-gradient-to-r from-slate-800 to-slate-900 text-white">
+                  <h4 className="font-bold text-lg">{t.lang}</h4>
+                  <div className="flex bg-slate-700 p-1 rounded-lg">
+                    <button onClick={() => setLang('ar')} className={`px-5 py-2 rounded-md font-bold transition ${lang === 'ar' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-300 hover:text-white'}`}>عربي</button>
+                    <button onClick={() => setLang('en')} className={`px-5 py-2 rounded-md font-bold transition ${lang === 'en' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-300 hover:text-white'}`}>En</button>
+                  </div>
+                </div>
+
                 <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200">
-                  <h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">🏷️ إضافة تصنيف مصروفات</h4>
-                  <form onSubmit={(e)=>{e.preventDefault(); setData(p=>({...p, categories: [...(p.categories || []), {id: 'c_'+Date.now(), name: newCategory}]})); setNewCategory(''); showMsg('تمت الإضافة');}} className="flex gap-2 mb-4">
-                    <input required type="text" placeholder="مثال: تشطيبات، صيانة..." className="border-2 p-3 text-sm flex-grow rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCategory} onChange={e=>setNewCategory(e.target.value)}/>
-                    <button className="bg-slate-800 text-white px-5 rounded-xl text-sm font-bold shadow hover:bg-slate-900 transition">إضافة</button>
+                  <h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">🏷️ {t.addCat}</h4>
+                  {/* تم تعديل التنسيق هنا ليصبح عمودي (الزر أسفل المربع) */}
+                  <form onSubmit={(e)=>{e.preventDefault(); setData(p=>({...p, categories: [...(p.categories || []), {id: 'c_'+Date.now(), name: newCategory}]})); setNewCategory(''); showMsg('Added');}} className="flex flex-col gap-3 mb-4">
+                    <input required type="text" placeholder="..." className="border-2 p-3 text-md w-full rounded-xl font-bold focus:border-blue-500 outline-none bg-slate-50" value={newCategory} onChange={e=>setNewCategory(e.target.value)}/>
+                    <button className="bg-slate-800 text-white p-3 rounded-xl text-md font-bold shadow hover:bg-slate-900 transition">{t.addCat}</button>
                   </form>
                   <div className="flex flex-wrap gap-2">{sortedCategories.map(c=><span key={c.id} className="bg-slate-100 border border-slate-200 p-2 px-3 rounded-lg text-xs font-bold text-slate-700 shadow-sm">{c.name}</span>)}</div>
                 </div>
                 
                 <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200">
-                  <h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">👤 تسليم عهدة لمسؤول جديد</h4>
-                  <form onSubmit={(e)=>{e.preventDefault(); setData(p=>({...p, custodies: [...(p.custodies || []), {id: 'cus_'+Date.now(), ...newCustody}]})); setNewCustody({personName:'', totalAmount:'', notes:''}); showMsg('تم تسجيل العهدة');}} className="space-y-4">
-                    <input required type="text" placeholder="اسم المسؤول رباعي" className="border-2 p-3 text-sm w-full rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCustody.personName} onChange={e=>setNewCustody({...newCustody, personName:e.target.value})}/>
-                    <NumberInput required placeholder="المبلغ الأصلي للعهدة (ج.م)" className="border-2 p-3 text-sm w-full rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCustody.totalAmount} onChange={v=>setNewCustody({...newCustody, totalAmount:v})}/>
-                    <button className="bg-slate-800 text-white p-4 rounded-xl w-full text-md font-bold shadow-lg hover:bg-slate-900 transition">حفظ بيانات العهدة</button>
+                  <h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">👤 {t.newCustody}</h4>
+                  <form onSubmit={(e)=>{e.preventDefault(); setData(p=>({...p, custodies: [...(p.custodies || []), {id: 'cus_'+Date.now(), ...newCustody}]})); setNewCustody({personName:'', totalAmount:'', notes:''}); showMsg('Saved');}} className="space-y-4">
+                    <input required type="text" placeholder="..." className="border-2 p-3 text-sm w-full rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCustody.personName} onChange={e=>setNewCustody({...newCustody, personName:e.target.value})}/>
+                    <NumberInput required placeholder="0.00" className="border-2 p-3 text-sm w-full rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCustody.totalAmount} onChange={v=>setNewCustody({...newCustody, totalAmount:v})}/>
+                    <button className="bg-slate-800 text-white p-4 rounded-xl w-full text-md font-bold shadow-lg hover:bg-slate-900 transition">{t.save}</button>
                   </form>
-                </div>
-
-                <div className="bg-white p-8 shadow-sm rounded-2xl md:col-span-2 text-center border-2 border-dashed border-blue-400 relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-full h-2 bg-blue-500"></div>
-                  <h4 className="font-black mb-3 text-blue-900 text-2xl">💾 النسخ الاحتياطي والأمان</h4>
-                  <p className="text-sm mb-6 text-slate-600 font-bold bg-blue-50 inline-block p-2 rounded-lg">يجب تصدير نسخة كل يومين للحفاظ على بياناتك من الضياع.</p>
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                    <button onClick={()=>{const b=new Blob([JSON.stringify(data)],{type:'application/json'});const l=document.createElement('a');l.href=URL.createObjectURL(b);l.download=`نسخة_العقارات_${todayDateStr}.json`;l.click(); showMsg('تم تحميل النسخة');}} className="bg-blue-600 text-white px-8 py-4 rounded-xl font-black text-lg shadow-lg hover:bg-blue-700 transition hover:-translate-y-1">⬇️ تصدير وحفظ نسخة للموبايل</button>
-                    <label className="bg-amber-500 text-white px-8 py-4 rounded-xl font-black text-lg shadow-lg hover:bg-amber-600 transition cursor-pointer hover:-translate-y-1">⬆️ استرجاع نسخة سابقة<input type="file" accept=".json" className="hidden" onChange={(e)=>{const r=new FileReader();r.onload=(ev)=>{try{setData(JSON.parse(ev.target.result));showMsg('تم استرجاع البيانات بنجاح تام');}catch{showMsg('ملف غير صالح',true);}};if(e.target.files[0])r.readAsText(e.target.files[0]);}}/></label>
-                  </div>
-                </div>
-
-                <div className="bg-red-50 p-8 shadow-sm rounded-2xl md:col-span-2 border-2 border-red-300 mt-2 relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-full h-2 bg-red-600"></div>
-                  <h4 className="font-black mb-3 text-red-800 text-center text-2xl">⚠️ منطقة الخطر (إعادة ضبط المصنع)</h4>
-                  <p className="text-sm text-center text-red-600 mb-6 font-bold">هذا الإجراء سيقوم بمسح كافة البيانات من الموبايل نهائياً لتصفير البرنامج بالكامل.</p>
-                  <button onClick={handleResetFactory} className="w-full bg-red-600 text-white py-4 rounded-xl text-xl font-black shadow-lg hover:bg-red-700 transition hover:-translate-y-1">🗑️ مسح كافة البيانات (Reset App)</button>
                 </div>
               </div>
             )}
@@ -719,7 +361,6 @@
       );
     }
 
-    // تغليف التطبيق بصائد الأخطاء لضمان عدم ظهور الشاشة البيضاء
     ReactDOM.createRoot(document.getElementById('root')).render(<ErrorBoundary><MainApp /></ErrorBoundary>);
   </script>
   <script>

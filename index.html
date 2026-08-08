@@ -95,8 +95,7 @@
       const [reportType, setReportType] = useState('transactions'); 
       const [reportFilter, setReportFilter] = useState({ startDate: '', endDate: '', custodyIds: [], buildingIds: [] });
       const [dashboardCustodyFilter, setDashboardCustodyFilter] = useState(() => { try { const s=localStorage.getItem('real_estate_last_custody'); return s?JSON.parse(s):[]; }catch(e){return [];} });
-      const [quickAdd, setQuickAdd] = useState({ show: false, type: 'income', amount: '', description: '', categoryId: '', date: todayDateStr });
-
+      
       const [selectedCustodies, setSelectedCustodies] = useState([]);
       const [custodyTabSub, setCustodyTabSub] = useState('income');
       const [custodySearch, setCustodySearch] = useState('');
@@ -244,14 +243,6 @@
         setActiveTab('transactions');
       };
 
-      const handleQuickAddSubmit = (e) => { 
-        e.preventDefault(); 
-        const item = { id: 't_quick_' + Date.now(), type: quickAdd.type, amount: Number(quickAdd.amount), categoryId: quickAdd.categoryId || '', buildingId: '', custodyId: dashboardCustodyFilter.length > 0 ? dashboardCustodyFilter[0] : '', description: quickAdd.description, date: quickAdd.date || todayDateStr }; 
-        setData(prev => ({ ...prev, transactions: [...(prev.transactions || []), item] })); 
-        setQuickAdd({ show: false, type: 'income', amount: '', description: '', categoryId: '', date: todayDateStr }); 
-        showMsg('تم التسجيل'); 
-      };
-
       const thisMonth = new Date().toISOString().substring(0, 7);
       const monthInstallments = (data.installments || []).filter(i => i.status === 'pending' && i.dueDate.startsWith(thisMonth)).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate));
 
@@ -272,7 +263,6 @@
             <button onClick={() => setActiveTab('settings')} className="text-2xl hover:rotate-90 transition-transform">⚙️</button>
           </header>
 
-          {/* التابات بنظام الـ Grid الجديد لمنع السحب الجانبي (3 فوق و 3 تحت) */}
           <nav className="bg-slate-800 text-slate-200 grid grid-cols-3 border-b border-slate-700 print-hide shadow-md">
             {tabs.map(tab => (
               <button key={tab.id} onClick={() => {setActiveTab(tab.id); setEditingTxId(null);}} 
@@ -447,14 +437,14 @@
                     <tbody>
                       {filteredCustodyTrans.map(t => (
                         <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors" onClick={() => handleTxClick(t)}>
-                          <td className="p-3 text-slate-500 font-mono text-xs whitespace-nowrap" dir="ltr">{formatShortDate(t.date)}</td><td className="p-3 font-bold text-slate-800">{t.description}</td><td className="p-3 font-black text-slate-900 text-lg">{Number(t.amount).toLocaleString()}</td>
+                          <td className="p-3 text-slate-500 font-mono text-xs whitespace-nowrap" dir="ltr">{formatShortDate(t.date)}</td><td className="p-3 font-medium text-slate-800">{t.description}</td><td className="p-3 font-bold text-slate-900 text-base">{Number(t.amount).toLocaleString()}</td>
                         </tr>
                       ))}
                       {filteredCustodyTrans.length === 0 && <tr><td colSpan="3" className="text-center p-8 text-slate-400 font-bold">لا توجد حركات مطابقة</td></tr>}
                     </tbody>
                   </table>
-                  <div className={`mt-6 p-4 rounded-xl font-black text-2xl text-center text-white shadow-inner ${custodyTabSub === 'expense' ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-gradient-to-r from-emerald-500 to-emerald-600'}`}>
-                    الإجمالي: {filteredCustodyTrans.reduce((s,t)=>s+Number(t.amount),0).toLocaleString()} ج.م
+                  <div className={`mt-6 p-4 rounded-xl font-bold text-xl text-center text-white shadow-inner ${custodyTabSub === 'expense' ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-gradient-to-r from-emerald-500 to-emerald-600'}`}>
+                    الإجمالي للمحدد: {filteredCustodyTrans.reduce((s,t)=>s+Number(t.amount),0).toLocaleString()} ج.م
                   </div>
                 </div>
               </div>
@@ -631,83 +621,4 @@
                   )}
                 </div>
 
-                {/* --- SCREEN VIEW --- */}
-                <div className="print-hide">
-                  <div className="flex bg-slate-100 p-1.5 rounded-xl mb-6 shadow-inner">
-                    <button onClick={()=>setReportType('transactions')} className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${reportType==='transactions'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>كشف حساب العهد</button>
-                    <button onClick={()=>setReportType('installments')} className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${reportType==='installments'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>تقرير المبيعات والأقساط</button>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6 bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner">
-                    <div><label className="text-xs font-bold text-slate-500 mb-1 block">من تاريخ</label><input type="date" className="w-full border-2 p-3 text-sm rounded-xl font-bold focus:border-blue-400 outline-none bg-white font-mono" value={reportFilter.startDate} onChange={e=>setReportFilter({...reportFilter, startDate: e.target.value})}/></div>
-                    <div><label className="text-xs font-bold text-slate-500 mb-1 block">إلى تاريخ</label><input type="date" className="w-full border-2 p-3 text-sm rounded-xl font-bold focus:border-blue-400 outline-none bg-white font-mono" value={reportFilter.endDate} onChange={e=>setReportFilter({...reportFilter, endDate: e.target.value})}/></div>
-                    
-                    {reportType === 'transactions' && (
-                      <div className="relative z-30">
-                        <label className="text-xs font-bold text-slate-500 mb-1 block">العهدة (تحديد متعدد)</label>
-                        <MultiSelectDropdown options={sortedCustodies.map(c => ({ id: c.id, label: c.personName }))} selected={reportFilter.custodyIds} onChange={(newIds) => setReportFilter({...reportFilter, custodyIds: newIds})} placeholder="-- كل العهد --" />
-                      </div>
-                    )}
-                    
-                    <div className="relative z-20">
-                      <label className="text-xs font-bold text-slate-500 mb-1 block">العمارة (تحديد متعدد)</label>
-                      <MultiSelectDropdown options={sortedBuildings.map(b => ({ id: b.id, label: b.name }))} selected={reportFilter.buildingIds} onChange={(newIds) => setReportFilter({...reportFilter, buildingIds: newIds})} placeholder="-- كل العمارات --" />
-                    </div>
-                  </div>
-
-                  <button onClick={handlePrint} className="w-full bg-slate-800 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-slate-900 transition-transform hover:-translate-y-1">🖨️ طباعة التقرير بصيغة PDF</button>
-                </div>
-              </div>
-            )}
-
-            {/* Settings Tab */}
-            {activeTab === 'settings' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 print-hide animate-fade-in">
-                <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200">
-                  <h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">🏷️ إضافة تصنيف مصروفات</h4>
-                  <form onSubmit={(e)=>{e.preventDefault(); setData(p=>({...p, categories: [...(p.categories || []), {id: 'c_'+Date.now(), name: newCategory}]})); setNewCategory(''); showMsg('تمت الإضافة');}} className="flex gap-2 mb-4">
-                    <input required type="text" placeholder="مثال: تشطيبات، صيانة..." className="border-2 p-3 text-sm flex-grow rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCategory} onChange={e=>setNewCategory(e.target.value)}/>
-                    <button className="bg-slate-800 text-white px-5 rounded-xl text-sm font-bold shadow hover:bg-slate-900 transition">إضافة</button>
-                  </form>
-                  <div className="flex flex-wrap gap-2">{sortedCategories.map(c=><span key={c.id} className="bg-slate-100 border border-slate-200 p-2 px-3 rounded-lg text-xs font-bold text-slate-700 shadow-sm">{c.name}</span>)}</div>
-                </div>
-                
-                <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200">
-                  <h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">👤 تسليم عهدة لمسؤول جديد</h4>
-                  <form onSubmit={(e)=>{e.preventDefault(); setData(p=>({...p, custodies: [...(p.custodies || []), {id: 'cus_'+Date.now(), ...newCustody}]})); setNewCustody({personName:'', totalAmount:'', notes:''}); showMsg('تم تسجيل العهدة');}} className="space-y-4">
-                    <input required type="text" placeholder="اسم المسؤول رباعي" className="border-2 p-3 text-sm w-full rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCustody.personName} onChange={e=>setNewCustody({...newCustody, personName:e.target.value})}/>
-                    <NumberInput required placeholder="المبلغ الأصلي للعهدة (ج.م)" className="border-2 p-3 text-sm w-full rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCustody.totalAmount} onChange={v=>setNewCustody({...newCustody, totalAmount:v})}/>
-                    <button className="bg-slate-800 text-white p-4 rounded-xl w-full text-md font-bold shadow-lg hover:bg-slate-900 transition">حفظ بيانات العهدة</button>
-                  </form>
-                </div>
-
-                <div className="bg-white p-8 shadow-sm rounded-2xl md:col-span-2 text-center border-2 border-dashed border-blue-400 relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-full h-2 bg-blue-500"></div>
-                  <h4 className="font-black mb-3 text-blue-900 text-2xl">💾 النسخ الاحتياطي والأمان</h4>
-                  <p className="text-sm mb-6 text-slate-600 font-bold bg-blue-50 inline-block p-2 rounded-lg">يجب تصدير نسخة كل يومين للحفاظ على بياناتك من الضياع.</p>
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                    <button onClick={()=>{const b=new Blob([JSON.stringify(data)],{type:'application/json'});const l=document.createElement('a');l.href=URL.createObjectURL(b);l.download=`نسخة_العقارات_${todayDateStr}.json`;l.click(); showMsg('تم تحميل النسخة');}} className="bg-blue-600 text-white px-8 py-4 rounded-xl font-black text-lg shadow-lg hover:bg-blue-700 transition hover:-translate-y-1">⬇️ تصدير وحفظ نسخة للموبايل</button>
-                    <label className="bg-amber-500 text-white px-8 py-4 rounded-xl font-black text-lg shadow-lg hover:bg-amber-600 transition cursor-pointer hover:-translate-y-1">⬆️ استرجاع نسخة سابقة<input type="file" accept=".json" className="hidden" onChange={(e)=>{const r=new FileReader();r.onload=(ev)=>{try{setData(JSON.parse(ev.target.result));showMsg('تم استرجاع البيانات بنجاح تام');}catch{showMsg('ملف غير صالح',true);}};if(e.target.files[0])r.readAsText(e.target.files[0]);}}/></label>
-                  </div>
-                </div>
-
-                <div className="bg-red-50 p-8 shadow-sm rounded-2xl md:col-span-2 border-2 border-red-300 mt-2 relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-full h-2 bg-red-600"></div>
-                  <h4 className="font-black mb-3 text-red-800 text-center text-2xl">⚠️ منطقة الخطر (إعادة ضبط المصنع)</h4>
-                  <p className="text-sm text-center text-red-600 mb-6 font-bold">هذا الإجراء سيقوم بمسح كافة البيانات من الموبايل نهائياً لتصفير البرنامج بالكامل.</p>
-                  <button onClick={handleResetFactory} className="w-full bg-red-600 text-white py-4 rounded-xl text-xl font-black shadow-lg hover:bg-red-700 transition hover:-translate-y-1">🗑️ مسح كافة البيانات (Reset App)</button>
-                </div>
-              </div>
-            )}
-          </main>
-        </div>
-      );
-    }
-
-    ReactDOM.createRoot(document.getElementById('root')).render(<MainApp />);
-  </script>
-  <script>
-    if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js'); }); }
-  </script>
-</body>
-</html>
+                {/* --- SCREEN VIEW

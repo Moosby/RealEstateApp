@@ -13,9 +13,11 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @media print {
-      body { background: white !important; }
+      body { background: white !important; font-weight: bold !important; font-size: 1.15rem !important; }
       .print-hide { display: none !important; }
       .print-show { display: block !important; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { border: 2px solid black !important; padding: 6px !important; }
     }
   </style>
 </head>
@@ -26,30 +28,12 @@
     const { useState, useEffect, useMemo } = React;
     const todayDateStr = new Date().toISOString().substring(0, 10);
 
-    const initialData = {
-      pinCode: '0000',
-      buildings: [],
-      units: [],
-      categories: [],
-      contracts: [],
-      installments: [],
-      custodies: [],
-      transactions: []
-    };
+    const initialData = { pinCode: '0000', buildings: [], units: [], categories: [], contracts: [], installments: [], custodies: [], transactions: [] };
 
     function MainApp() {
       const [data, setData] = useState(() => {
         const saved = localStorage.getItem('real_estate_core_data');
-        if (saved) {
-          try {
-            const parsed = JSON.parse(saved);
-            return {
-              ...initialData, ...parsed,
-              categories: parsed.categories || [], buildings: parsed.buildings || [], units: parsed.units || [],
-              custodies: parsed.custodies || [], transactions: parsed.transactions || [], installments: parsed.installments || [], contracts: parsed.contracts || []
-            };
-          } catch (e) { return initialData; }
-        }
+        if (saved) { try { const parsed = JSON.parse(saved); return { ...initialData, ...parsed }; } catch (e) { return initialData; } }
         return initialData;
       });
 
@@ -65,36 +49,44 @@
       
       const [newTransaction, setNewTransaction] = useState({ type: 'income', amount: '', categoryId: '', buildingId: '', custodyId: '', description: '', date: todayDateStr });
       const [newContract, setNewContract] = useState({ clientName: '', unitId: '', totalAmount: '', downPayment: '', installmentsCount: '', firstInstallmentDate: '' });
+      
+      const [reportType, setReportType] = useState('transactions'); // transactions or installments
       const [reportFilter, setReportFilter] = useState({ startDate: '', endDate: '', custodyId: '', buildingId: '' });
       
       const [dashboardCustodyFilter, setDashboardCustodyFilter] = useState(() => localStorage.getItem('real_estate_last_custody') || '');
-      const [custodyTabSub, setCustodyTabSub] = useState('expense'); // إيراد أو مصروف داخل شاشة العهدة
-      
       const [quickAdd, setQuickAdd] = useState({ show: false, type: 'income', amount: '', description: '', categoryId: '', date: todayDateStr });
+
+      // Custody Tab states
+      const [selectedCustodies, setSelectedCustodies] = useState([]);
+      const [custodyTabSub, setCustodyTabSub] = useState('income');
+      const [custodySearch, setCustodySearch] = useState('');
 
       useEffect(() => { localStorage.setItem('real_estate_core_data', JSON.stringify(data)); }, [data]);
       useEffect(() => { localStorage.setItem('real_estate_last_custody', dashboardCustodyFilter); }, [dashboardCustodyFilter]);
 
-      const showMsg = (msg, isError = false) => {
-        isError ? setErrorMsg(msg) : setSuccessMsg(msg);
-        setTimeout(() => { setErrorMsg(''); setSuccessMsg(''); }, 3000);
-      };
+      const showMsg = (msg, isError = false) => { isError ? setErrorMsg(msg) : setSuccessMsg(msg); setTimeout(() => { setErrorMsg(''); setSuccessMsg(''); }, 3000); };
+      const requirePin = () => { const pin = window.prompt('أدخل رمز الحماية (PIN) لإتمام هذه العملية:'); return pin === data.pinCode; };
+      const formatShortDate = (d) => { if(!d) return ''; const p = d.split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0].substring(2)}` : d; };
 
-      const requirePin = () => {
-        const pin = window.prompt('أدخل رمز الحماية (PIN) لإتمام هذه العملية:');
-        return pin === data.pinCode;
-      };
-
-      // الحسابات
       const custodyCalculations = useMemo(() => {
         return (data.custodies || []).map(c => {
           const expenses = (data.transactions || []).filter(t => t.type === 'expense' && t.custodyId === c.id).reduce((sum, t) => sum + Number(t.amount), 0);
           const incomes = (data.transactions || []).filter(t => t.type === 'income' && t.custodyId === c.id).reduce((sum, t) => sum + Number(t.amount), 0);
-          return { ...c, used: expenses, incomes: incomes, remaining: Number(c.totalAmount) + incomes - expenses };
+          return { ...c, used: expenses, incomes, remaining: Number(c.totalAmount) + incomes - expenses };
         });
       }, [data]);
 
-      // حسابات التقرير (رصيد بداية المدة)
+      // فلترة حركات تابة العهدة
+      const filteredCustodyTrans = useMemo(() => {
+        return (data.transactions || []).filter(t => {
+          if (selectedCustodies.length > 0 && !selectedCustodies.includes(t.custodyId)) return false;
+          if (t.type !== custodyTabSub) return false;
+          if (custodySearch && !t.description.includes(custodySearch)) return false;
+          return true;
+        }).sort((a,b) => new Date(a.date) - new Date(b.date));
+      }, [data, selectedCustodies, custodyTabSub, custodySearch]);
+
+      // حسابات التقرير
       const reportData = useMemo(() => {
         let openingBalance = 0;
         let selectedCustodyObj = (data.custodies || []).find(c => c.id === reportFilter.custodyId);
@@ -103,8 +95,8 @@
           openingBalance = Number(selectedCustodyObj.totalAmount);
           if (reportFilter.startDate) {
             const beforeTrans = (data.transactions || []).filter(t => t.custodyId === reportFilter.custodyId && t.date < reportFilter.startDate);
-            const bInc = beforeTrans.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
-            const bExp = beforeTrans.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0);
+            const bInc = beforeTrans.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
+            const bExp = beforeTrans.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
             openingBalance = openingBalance + bInc - bExp;
           }
         }
@@ -117,61 +109,55 @@
           return true;
         }).sort((a,b) => new Date(a.date) - new Date(b.date));
 
-        const periodIncomes = filtered.filter(t=>t.type==='income').reduce((s,t)=>s+Number(t.amount),0);
-        const periodExpenses = filtered.filter(t=>t.type==='expense').reduce((s,t)=>s+Number(t.amount),0);
-        const closingBalance = selectedCustodyObj ? (openingBalance + periodIncomes - periodExpenses) : null;
-
-        return { openingBalance, filtered, periodIncomes, periodExpenses, closingBalance, custodyName: selectedCustodyObj?.personName || 'عام / كل العهد' };
+        const incomes = filtered.filter(t => t.type === 'income');
+        const expenses = filtered.filter(t => t.type === 'expense');
+        const totalIncomes = incomes.reduce((s,t) => s + Number(t.amount), 0);
+        const totalExpenses = expenses.reduce((s,t) => s + Number(t.amount), 0);
+        
+        return { openingBalance, incomes, expenses, totalIncomes, totalExpenses, finalBalance: selectedCustodyObj ? (openingBalance + totalIncomes - totalExpenses) : null, custodyName: selectedCustodyObj?.personName || 'كل العهد / الخزينة العامة' };
       }, [data, reportFilter]);
 
-      const thisMonth = new Date().toISOString().substring(0, 7);
-      const monthInstallments = (data.installments || []).filter(i => i.status === 'pending' && i.dueDate.startsWith(thisMonth));
-      const overdueInstallments = (data.installments || []).filter(i => i.status === 'pending' && i.dueDate < todayDateStr);
+      const reportInstallments = useMemo(() => {
+        return (data.installments || []).filter(i => {
+           if (reportFilter.startDate && i.dueDate < reportFilter.startDate) return false;
+           if (reportFilter.endDate && i.dueDate > reportFilter.endDate) return false;
+           const contract = (data.contracts || []).find(c => c.id === i.contractId);
+           if (reportFilter.buildingId && contract?.buildingId !== reportFilter.buildingId) return false;
+           return true;
+        }).sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
+      }, [data, reportFilter]);
 
-      // Actions
       const handlePrint = () => {
         const originalTitle = document.title;
-        document.title = `تقرير_${reportData.custodyName.replace(/\s+/g, '_')}_${todayDateStr}`;
+        const printName = reportType === 'transactions' ? reportData.custodyName : 'تقرير_الاقساط';
+        document.title = `${printName.replace(/\s+/g, '_')}_${todayDateStr}`;
         window.print();
         document.title = originalTitle;
       };
 
       const handleTransactionAction = (trans) => {
-        const action = window.prompt("اختر الإجراء المطلوب:\n1 - تعديل الحركة\n2 - حذف الحركة نهائياً", "");
+        const action = window.prompt("اختر الإجراء:\n1 - تعديل الحركة\n2 - حذف الحركة", "");
         if (action === '2') {
           if (!requirePin()) return showMsg('رمز الحماية غير صحيح!', true);
-          setData(prev => ({ ...prev, transactions: prev.transactions.filter(t => t.id !== trans.id) }));
-          showMsg('تم حذف الحركة بنجاح');
+          setData(p => ({ ...p, transactions: p.transactions.filter(t => t.id !== trans.id) }));
+          showMsg('تم الحذف');
         } else if (action === '1') {
-          const nAmount = window.prompt("تعديل المبلغ:", trans.amount);
-          if (nAmount === null) return;
-          const nDate = window.prompt("تعديل التاريخ (YYYY-MM-DD):", trans.date);
-          const nDesc = window.prompt("تعديل البيان:", trans.description);
-          setData(prev => ({
-            ...prev,
-            transactions: prev.transactions.map(t => t.id === trans.id ? { ...t, amount: Number(nAmount) || t.amount, date: nDate || t.date, description: nDesc || t.description } : t)
-          }));
-          showMsg('تم التعديل بنجاح');
+          const nAmount = window.prompt("المبلغ:", trans.amount); if (nAmount === null) return;
+          const nDate = window.prompt("التاريخ (YYYY-MM-DD):", trans.date);
+          const nDesc = window.prompt("البيان:", trans.description);
+          setData(p => ({ ...p, transactions: p.transactions.map(t => t.id === trans.id ? { ...t, amount: Number(nAmount)||t.amount, date: nDate||t.date, description: nDesc||t.description } : t) }));
+          showMsg('تم التعديل');
         }
       };
 
-      const handleResetFactory = () => {
-        if (!requirePin()) return showMsg('رمز الحماية غير صحيح!', true);
-        if (window.confirm('🚨 تحذير خطير: هل أنت متأكد من مسح جميع بيانات البرنامج نهائياً؟')) {
-          if (window.confirm('⚠️ تأكيد نهائي: سيتم مسح كل شيء (عهد، عقود، حركات) ولن يمكنك الاسترجاع إلا بملف النسخة الاحتياطية. استمرار؟')) {
-            localStorage.removeItem('real_estate_core_data');
-            window.location.reload();
-          }
-        }
-      };
-
-      // [باقي دوال الإضافة كما هي]
+      // [Actions]
+      const handleResetFactory = () => { if (!requirePin()) return showMsg('الرمز خطأ', true); if (window.confirm('سيتم مسح كل شيء نهائياً. متأكد؟')) { localStorage.removeItem('real_estate_core_data'); window.location.reload(); } };
       const addUnit = (e) => { e.preventDefault(); setData(p => ({ ...p, units: [...(p.units || []), { id: 'u_' + Date.now(), ...newUnit, status: 'available' }] })); setNewUnit({ buildingId: '', unitNumber: '', price: '' }); showMsg('تمت الإضافة'); };
       const addContract = (e) => { e.preventDefault(); const unit = (data.units || []).find(u => u.id === newContract.unitId); if (!unit) return showMsg('اختر الوحدة أولاً', true); const contractId = 'cont_' + Date.now(); const dp = Number(newContract.downPayment); const total = Number(newContract.totalAmount); const count = Number(newContract.installmentsCount); const contract = { id: contractId, clientName: newContract.clientName, unitId: unit.id, buildingId: unit.buildingId, totalAmount: total, downPayment: dp, date: todayDateStr, status: 'active' }; const newInsts = []; let curDate = new Date(newContract.firstInstallmentDate); const instAmount = count > 0 ? ((total - dp) / count) : 0; for(let i=0; i<count; i++) { newInsts.push({ id: 'inst_' + Date.now() + '_' + i, contractId, amount: instAmount, dueDate: curDate.toISOString().split('T')[0], status: 'pending' }); curDate.setMonth(curDate.getMonth() + 1); } const trans = { id: 't_' + Date.now(), type: 'income', amount: dp, buildingId: unit.buildingId, description: `مقدم تعاقد: ${newContract.clientName}`, date: todayDateStr }; setData(prev => ({ ...prev, contracts: [...(prev.contracts || []), contract], installments: [...(prev.installments || []), ...newInsts], transactions: [...(prev.transactions || []), trans], units: (prev.units || []).map(u => u.id === unit.id ? { ...u, status: 'sold' } : u) })); setNewContract({ clientName: '', unitId: '', totalAmount: '', downPayment: '', installmentsCount: '', firstInstallmentDate: '' }); showMsg('تم تسجيل العقد بنجاح'); };
       const payInstallment = (instId, fullAmount, clientName, buildingId) => { const paidStr = window.prompt(`المبلغ المستحق: ${fullAmount}\nأدخل المبلغ المدفوع:`, fullAmount); if (!paidStr) return; const paid = Number(paidStr); if (paid <= 0 || paid > fullAmount) return showMsg('مبلغ غير صحيح', true); setData(prev => { let updatedInsts = prev.installments || []; if (paid === fullAmount) { updatedInsts = updatedInsts.map(i => i.id === instId ? { ...i, status: 'paid' } : i); } else { updatedInsts = updatedInsts.map(i => i.id === instId ? { ...i, amount: i.amount - paid } : i); } const trans = { id: 't_' + Date.now(), type: 'income', amount: paid, buildingId, description: `تحصيل قسط ${paid < fullAmount ? '(جزئي)' : ''}: ${clientName}`, date: todayDateStr }; return { ...prev, installments: updatedInsts, transactions: [...(prev.transactions || []), trans] }; }); showMsg('تم التحصيل'); };
       const editInstallment = (instId) => { const inst = (data.installments || []).find(i => i.id === instId); const newDate = window.prompt('تعديل تاريخ الاستحقاق:', inst.dueDate); if (newDate === null) return; const newAmount = window.prompt('تعديل المبلغ:', inst.amount); if (newAmount === null) return; setData(prev => ({ ...prev, installments: (prev.installments || []).map(i => i.id === instId ? { ...i, dueDate: newDate || inst.dueDate, amount: newAmount ? Number(newAmount) : inst.amount } : i) })); showMsg('تم التعديل'); };
       const addManualInstallment = (contractId) => { const amount = window.prompt('أدخل مبلغ القسط الجديد:'); if (!amount) return; const date = window.prompt('أدخل تاريخ الاستحقاق:', todayDateStr); if (!date) return; setData(prev => ({ ...prev, installments: [...(prev.installments || []), { id: 'inst_man_' + Date.now(), contractId, amount: Number(amount), dueDate: date, status: 'pending' }] })); showMsg('تمت الإضافة'); };
-      const cancelContract = (contractId, unitId) => { if (!requirePin()) return showMsg('رمز الحماية غير صحيح!', true); if (window.confirm('هل أنت متأكد من فسخ العقد؟')) { setData(prev => ({ ...prev, contracts: (prev.contracts || []).map(c => c.id === contractId ? { ...c, status: 'canceled' } : c), installments: (prev.installments || []).filter(i => !(i.contractId === contractId && i.status === 'pending')), units: (prev.units || []).map(u => u.id === unitId ? { ...u, status: 'available' } : u) })); showMsg('تم فسخ العقد'); } };
+      const cancelContract = (contractId, unitId) => { if (!requirePin()) return showMsg('الرمز خطأ!', true); if (window.confirm('هل أنت متأكد من فسخ العقد؟')) { setData(prev => ({ ...prev, contracts: (prev.contracts || []).map(c => c.id === contractId ? { ...c, status: 'canceled' } : c), installments: (prev.installments || []).filter(i => !(i.contractId === contractId && i.status === 'pending')), units: (prev.units || []).map(u => u.id === unitId ? { ...u, status: 'available' } : u) })); showMsg('تم فسخ العقد'); } };
       const handleQuickAddSubmit = (e) => { e.preventDefault(); const item = { id: 't_quick_' + Date.now(), type: quickAdd.type, amount: Number(quickAdd.amount), categoryId: quickAdd.categoryId || '', buildingId: '', custodyId: dashboardCustodyFilter, description: quickAdd.description, date: quickAdd.date || todayDateStr }; setData(prev => ({ ...prev, transactions: [...(prev.transactions || []), item] })); setQuickAdd({ show: false, type: 'income', amount: '', description: '', categoryId: '', date: todayDateStr }); showMsg('تم التسجيل'); };
 
       const tabs = [
@@ -192,7 +178,7 @@
 
           <nav className="bg-slate-800 text-slate-200 flex overflow-x-auto border-b border-slate-700 no-scrollbar print-hide">
             {tabs.map(tab => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`p-3 text-sm font-medium whitespace-nowrap ${activeTab === tab.id ? 'bg-slate-700 text-emerald-400 border-b-2 border-emerald-400' : ''}`}>
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`p-3 text-sm font-bold whitespace-nowrap ${activeTab === tab.id ? 'bg-slate-700 text-emerald-400 border-b-2 border-emerald-400' : ''}`}>
                 {tab.label}
               </button>
             ))}
@@ -206,22 +192,10 @@
             {/* 1. Dashboard */}
             {activeTab === 'dashboard' && (
               <div className="space-y-6 print-hide">
-                {overdueInstallments.length > 0 && (
-                  <div className="bg-red-100 border-r-4 border-red-500 p-4 rounded shadow-sm">
-                    <h3 className="text-red-800 font-bold mb-2">⚠️ تنبيهات: أقساط متأخرة ({overdueInstallments.length})</h3>
-                    <div className="flex gap-2 overflow-x-auto pb-2">
-                      {overdueInstallments.map(inst => {
-                        const c = (data.contracts || []).find(ct => ct.id === inst.contractId);
-                        return <div key={inst.id} className="bg-white p-2 text-xs rounded border min-w-[150px]"><p className="font-bold">{c?.clientName}</p><p className="text-red-600" dir="ltr">{inst.dueDate}</p><p>{inst.amount} ج.م</p></div>
-                      })}
-                    </div>
-                  </div>
-                )}
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-white p-4 rounded-xl shadow border-r-4 border-blue-500 flex flex-col justify-center">
                     <p className="text-sm text-slate-500">مستحقات الشهر الحالي</p>
-                    <p className="text-2xl font-bold">{monthInstallments.reduce((sum, i) => sum + i.amount, 0).toLocaleString()}</p>
+                    <p className="text-2xl font-bold">{(data.installments || []).filter(i => i.status === 'pending' && i.dueDate.startsWith(thisMonth)).reduce((sum, i) => sum + i.amount, 0).toLocaleString()}</p>
                   </div>
                   
                   <div className="bg-white p-4 rounded-xl shadow border-r-4 border-amber-500">
@@ -230,10 +204,7 @@
                       <option value="">-- الخزينة العامة --</option>
                       {custodyCalculations.map(c => <option key={c.id} value={c.id}>{c.personName}</option>)}
                     </select>
-                    
-                    <p className="text-xl font-bold text-amber-600 mb-2">
-                      الصافي: {dashboardCustodyFilter ? (custodyCalculations.find(c=>c.id===dashboardCustodyFilter)?.remaining.toLocaleString() || 0) : '0'} ج.م
-                    </p>
+                    <p className="text-xl font-bold text-amber-600 mb-2">الصافي: {dashboardCustodyFilter ? (custodyCalculations.find(c=>c.id===dashboardCustodyFilter)?.remaining.toLocaleString() || 0) : '0'} ج.م</p>
 
                     {!quickAdd.show && (
                       <div className="flex gap-2 mt-3 pt-3 border-t">
@@ -247,111 +218,83 @@
                         <h4 className="text-sm font-bold text-center mb-2">{quickAdd.type === 'expense' ? 'تسجيل مصروف' : 'تسجيل إيراد'}</h4>
                         <div><label className="text-xs text-slate-500">التاريخ</label><input type="date" required className="w-full border p-2 text-sm rounded" value={quickAdd.date} onChange={e => setQuickAdd({...quickAdd, date: e.target.value})} /></div>
                         <input type="number" placeholder="المبلغ" required className="w-full border p-2 text-sm rounded" value={quickAdd.amount} onChange={e => setQuickAdd({...quickAdd, amount: e.target.value})} />
-                        {quickAdd.type === 'expense' && (
-                          <select className="w-full border p-2 text-sm rounded" required value={quickAdd.categoryId} onChange={e => setQuickAdd({...quickAdd, categoryId: e.target.value})}>
-                            <option value="">-- تصنيف المصروف --</option>
-                            {(data.categories || []).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                          </select>
-                        )}
+                        {quickAdd.type === 'expense' && <select className="w-full border p-2 text-sm rounded" required value={quickAdd.categoryId} onChange={e => setQuickAdd({...quickAdd, categoryId: e.target.value})}><option value="">-- تصنيف المصروف --</option>{(data.categories || []).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>}
                         <input type="text" placeholder="البيان / الوصف" required className="w-full border p-2 text-sm rounded" value={quickAdd.description} onChange={e => setQuickAdd({...quickAdd, description: e.target.value})} />
-                        <div className="flex gap-2 mt-2">
-                          <button type="submit" className="flex-1 bg-slate-800 text-white py-2 rounded text-sm font-bold">حفظ</button>
-                          <button type="button" onClick={() => setQuickAdd({...quickAdd, show: false})} className="flex-1 bg-gray-300 text-gray-800 py-2 rounded text-sm font-bold">إلغاء</button>
-                        </div>
+                        <div className="flex gap-2 mt-2"><button type="submit" className="flex-1 bg-slate-800 text-white py-2 rounded text-sm font-bold">حفظ</button><button type="button" onClick={() => setQuickAdd({...quickAdd, show: false})} className="flex-1 bg-gray-300 text-gray-800 py-2 rounded text-sm font-bold">إلغاء</button></div>
                       </form>
                     )}
                   </div>
                 </div>
-
-                <div className="bg-white p-4 rounded-xl shadow">
-                  <h3 className="font-bold mb-3 border-b pb-2">تفاصيل أقساط الشهر الحالي</h3>
-                  <table className="w-full text-right text-sm">
-                    <thead className="bg-slate-100"><tr><th className="p-2">العميل</th><th className="p-2">الاستحقاق</th><th className="p-2">المبلغ</th></tr></thead>
-                    <tbody>
-                      {monthInstallments.map(inst => {
-                        const c = (data.contracts || []).find(ct => ct.id === inst.contractId);
-                        return <tr key={inst.id} className="border-b"><td className="p-2 font-bold">{c?.clientName}</td><td className="p-2" dir="ltr">{inst.dueDate}</td><td className="p-2">{inst.amount.toLocaleString()}</td></tr>
-                      })}
-                      {monthInstallments.length === 0 && <tr><td colSpan="3" className="text-center p-4 text-slate-400">لا توجد أقساط</td></tr>}
-                    </tbody>
-                  </table>
-                </div>
               </div>
             )}
 
-            {/* 2. إيراد أو مصروف */}
+            {/* 2. Transactions */}
             {activeTab === 'transactions' && (
               <div className="bg-white p-6 rounded shadow max-w-lg mx-auto print-hide">
                 <h3 className="font-bold mb-4 border-b pb-2">تسجيل حركة نقدية</h3>
-                <form onSubmit={(e) => {
-                  e.preventDefault();
-                  const item = { id: 't_' + Date.now(), ...newTransaction, amount: Number(newTransaction.amount), date: newTransaction.date || todayDateStr };
-                  setData(prev => ({ ...prev, transactions: [...(prev.transactions || []), item] }));
-                  setNewTransaction({ type: 'income', amount: '', categoryId: '', buildingId: '', custodyId: dashboardCustodyFilter, description: '', date: todayDateStr });
-                  showMsg('تم الحفظ بنجاح');
-                }} className="space-y-4">
-                  <div className="flex gap-4 p-2 bg-slate-50 rounded border">
-                    <label className="flex items-center gap-1 cursor-pointer font-bold text-emerald-600"><input type="radio" checked={newTransaction.type === 'income'} onChange={()=>setNewTransaction({...newTransaction, type:'income'})}/> إيراد</label>
-                    <label className="flex items-center gap-1 cursor-pointer font-bold text-red-600"><input type="radio" checked={newTransaction.type === 'expense'} onChange={()=>setNewTransaction({...newTransaction, type:'expense'})}/> مصروف</label>
-                  </div>
+                <form onSubmit={(e) => { e.preventDefault(); const item = { id: 't_' + Date.now(), ...newTransaction, amount: Number(newTransaction.amount), date: newTransaction.date || todayDateStr }; setData(prev => ({ ...prev, transactions: [...(prev.transactions || []), item] })); setNewTransaction({ type: 'income', amount: '', categoryId: '', buildingId: '', custodyId: dashboardCustodyFilter, description: '', date: todayDateStr }); showMsg('تم الحفظ بنجاح'); }} className="space-y-4">
+                  <div className="flex gap-4 p-2 bg-slate-50 rounded border"><label className="flex items-center gap-1 cursor-pointer font-bold text-emerald-600"><input type="radio" checked={newTransaction.type === 'income'} onChange={()=>setNewTransaction({...newTransaction, type:'income'})}/> إيراد</label><label className="flex items-center gap-1 cursor-pointer font-bold text-red-600"><input type="radio" checked={newTransaction.type === 'expense'} onChange={()=>setNewTransaction({...newTransaction, type:'expense'})}/> مصروف</label></div>
                   <div><label className="text-xs text-slate-500">التاريخ</label><input type="date" required className="w-full border p-2 text-sm rounded" value={newTransaction.date} onChange={e=>setNewTransaction({...newTransaction, date: e.target.value})}/></div>
                   <div><label className="text-xs text-slate-500">المبلغ</label><input type="number" required className="w-full border p-2 text-sm rounded" value={newTransaction.amount} onChange={e=>setNewTransaction({...newTransaction, amount: e.target.value})}/></div>
                   <div><label className="text-xs text-slate-500">العهدة / الخزينة</label><select className="w-full border p-2 text-sm rounded font-bold text-blue-800" value={newTransaction.custodyId} onChange={e=>setNewTransaction({...newTransaction, custodyId: e.target.value})}><option value="">-- الخزينة العامة --</option>{(data.custodies || []).map(c=><option key={c.id} value={c.id}>{c.personName}</option>)}</select></div>
                   <div><label className="text-xs text-slate-500">العمارة (اختياري)</label><select className="w-full border p-2 text-sm rounded" value={newTransaction.buildingId} onChange={e=>setNewTransaction({...newTransaction, buildingId: e.target.value})}><option value="">-- عام --</option>{(data.buildings || []).map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
                   {newTransaction.type === 'expense' && <div><label className="text-xs text-slate-500">تصنيف المصروف</label><select className="w-full border p-2 text-sm rounded" required value={newTransaction.categoryId} onChange={e=>setNewTransaction({...newTransaction, categoryId: e.target.value})}><option value="">-- اختر التصنيف --</option>{(data.categories || []).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>}
-                  <div><label className="text-xs text-slate-500">البيان والتفاصيل</label><input type="text" required className="w-full border p-2 text-sm rounded" value={newTransaction.description} onChange={e=>setNewTransaction({...newTransaction, description: e.target.value})}/></div>
+                  <div><label className="text-xs text-slate-500">البيان</label><input type="text" required className="w-full border p-2 text-sm rounded" value={newTransaction.description} onChange={e=>setNewTransaction({...newTransaction, description: e.target.value})}/></div>
                   <button className="w-full bg-slate-800 text-white py-2 rounded font-bold shadow">حفظ الحركة</button>
                 </form>
               </div>
             )}
 
-            {/* 3. العهدة (Tab الجديدة) */}
+            {/* 3. Custody (العهدة) */}
             {activeTab === 'custody' && (
               <div className="bg-white p-4 rounded-xl shadow print-hide">
-                <div className="mb-4 bg-slate-100 p-3 rounded border">
-                  <label className="font-bold block mb-2 text-slate-800">اختر العهدة لاستعراض وتعديل حركاتها:</label>
-                  <select className="w-full p-2 border rounded font-bold text-lg text-blue-800" value={dashboardCustodyFilter} onChange={e => setDashboardCustodyFilter(e.target.value)}>
-                    <option value="">-- الخزينة العامة --</option>
-                    {custodyCalculations.map(c => <option key={c.id} value={c.id}>{c.personName} (الصافي: {c.remaining.toLocaleString()})</option>)}
-                  </select>
+                <div className="mb-4 bg-slate-50 p-3 rounded border">
+                  <label className="font-bold block mb-2">تحديد العُهد (الأحدث يظهر أولاً):</label>
+                  <div className="max-h-32 overflow-y-auto border p-2 bg-white rounded space-y-1">
+                    <label className="flex items-center gap-2 cursor-pointer font-bold"><input type="checkbox" checked={selectedCustodies.length===0} onChange={() => setSelectedCustodies([])} /> كل العهد والخزينة العامة</label>
+                    {[...custodyCalculations].sort((a,b)=>b.id.localeCompare(a.id)).map(c => (
+                      <label key={c.id} className="flex items-center gap-2 cursor-pointer text-sm">
+                        <input type="checkbox" checked={selectedCustodies.includes(c.id)} onChange={(e) => {
+                          if (e.target.checked) setSelectedCustodies([...selectedCustodies, c.id]);
+                          else setSelectedCustodies(selectedCustodies.filter(id => id !== c.id));
+                        }} /> {c.personName} (الصافي: {c.remaining.toLocaleString()})
+                      </label>
+                    ))}
+                  </div>
                 </div>
 
+                <div className="mb-4"><input type="text" placeholder="بحث سريع في البيان..." className="w-full border-2 border-blue-400 p-2 rounded text-lg font-bold" value={custodySearch} onChange={e => setCustodySearch(e.target.value)} /></div>
+
                 <div className="flex border-b mb-4">
-                  <button onClick={() => setCustodyTabSub('expense')} className={`flex-1 p-2 font-bold ${custodyTabSub === 'expense' ? 'border-b-4 border-red-500 text-red-600' : 'text-slate-500'}`}>المصروفات</button>
-                  <button onClick={() => setCustodyTabSub('income')} className={`flex-1 p-2 font-bold ${custodyTabSub === 'income' ? 'border-b-4 border-emerald-500 text-emerald-600' : 'text-slate-500'}`}>الإيرادات</button>
+                  <button onClick={() => setCustodyTabSub('income')} className={`flex-1 p-2 font-bold ${custodyTabSub === 'income' ? 'border-b-4 border-emerald-500 text-emerald-600' : 'text-slate-500'}`}>الإيرادات المضافة</button>
+                  <button onClick={() => setCustodyTabSub('expense')} className={`flex-1 p-2 font-bold ${custodyTabSub === 'expense' ? 'border-b-4 border-red-500 text-red-600' : 'text-slate-500'}`}>المصروفات المخصومة</button>
                 </div>
 
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm text-right">
-                    <thead className="bg-slate-50 text-slate-600"><tr><th className="p-2">التاريخ</th><th className="p-2">البيان</th><th className="p-2">المبلغ</th></tr></thead>
+                    <thead className="bg-slate-100 text-slate-600"><tr><th className="p-2">التاريخ</th><th className="p-2">البيان</th><th className="p-2">المبلغ</th></tr></thead>
                     <tbody>
-                      {(data.transactions || []).filter(t => t.custodyId === dashboardCustodyFilter && t.type === custodyTabSub).sort((a,b)=>new Date(a.date)-new Date(b.date)).map(t => (
+                      {filteredCustodyTrans.map(t => (
                         <tr key={t.id} className="border-b hover:bg-slate-100 cursor-pointer" onClick={() => handleTransactionAction(t)}>
-                          <td className="p-2" dir="ltr">{t.date}</td><td className="p-2">{t.description}</td><td className="p-2 font-bold">{Number(t.amount).toLocaleString()}</td>
+                          <td className="p-2" dir="ltr">{formatShortDate(t.date)}</td><td className="p-2">{t.description}</td><td className="p-2 font-bold">{Number(t.amount).toLocaleString()}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                  <div className={`mt-4 p-3 rounded font-bold text-lg text-center text-white ${custodyTabSub === 'expense' ? 'bg-red-500' : 'bg-emerald-500'}`}>
-                    الإجمالي: {(data.transactions || []).filter(t => t.custodyId === dashboardCustodyFilter && t.type === custodyTabSub).reduce((s,t)=>s+Number(t.amount),0).toLocaleString()} ج.م
-                  </div>
-                  <p className="text-xs text-center text-slate-400 mt-2">اضغط على أي حركة لتعديلها أو حذفها</p>
+                  <div className={`mt-4 p-3 rounded font-bold text-lg text-center text-white ${custodyTabSub === 'expense' ? 'bg-red-500' : 'bg-emerald-500'}`}>الإجمالي للمحدد: {filteredCustodyTrans.reduce((s,t)=>s+Number(t.amount),0).toLocaleString()} ج.م</div>
                 </div>
               </div>
             )}
 
-            {/* Inventory & Sales (As Before, abbreviated for UI only) */}
-            {activeTab === 'inventory' && <div className="print-hide">... (تم الإبقاء على كود الوحدات كما هو للحفاظ على المساحة) ...</div>}
+            {/* 4. Units */}
             {activeTab === 'inventory' && (
               <div className="space-y-6 print-hide">
-                <div className="bg-white p-4 rounded shadow">
-                  <h3 className="font-bold mb-4 border-b pb-2">إضافة وحدة عقارية</h3>
-                  <form onSubmit={addUnit} className="flex gap-2">
-                    <select className="border p-2 rounded text-sm" required value={newUnit.buildingId} onChange={e => setNewUnit({...newUnit, buildingId: e.target.value})}>
-                      <option value="">العمارة...</option>{(data.buildings || []).map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                    </select>
-                    <input type="text" placeholder="رقم الشقة/الوحدة" className="border p-2 rounded text-sm flex-grow" required value={newUnit.unitNumber} onChange={e => setNewUnit({...newUnit, unitNumber: e.target.value})} />
-                    <button className="bg-slate-800 text-white px-4 py-2 rounded text-sm">إضافة</button>
+                <div className="bg-white p-6 rounded shadow max-w-md mx-auto">
+                  <h3 className="font-bold mb-4 border-b pb-2 text-center text-lg">إضافة وحدة عقارية (شقة/محل)</h3>
+                  <form onSubmit={addUnit} className="flex flex-col gap-4">
+                    <div><label className="text-xs text-slate-500">اختر العمارة</label><select className="border p-2 rounded text-sm w-full font-bold" required value={newUnit.buildingId} onChange={e => setNewUnit({...newUnit, buildingId: e.target.value})}><option value="">-- العمارة --</option>{(data.buildings || []).map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
+                    <div><label className="text-xs text-slate-500">رقم أو اسم الوحدة</label><input type="text" placeholder="مثال: شقة 14" className="border p-2 rounded text-sm w-full font-bold" required value={newUnit.unitNumber} onChange={e => setNewUnit({...newUnit, unitNumber: e.target.value})} /></div>
+                    <button className="bg-slate-800 text-white px-4 py-3 rounded text-md font-bold w-full shadow-lg">إضافة الوحدة</button>
                   </form>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -360,9 +303,7 @@
                       <h4 className="font-bold text-center mb-3 bg-slate-100 p-2 rounded">{b.name}</h4>
                       <div className="grid grid-cols-4 gap-2">
                         {(data.units || []).filter(u => u.buildingId === b.id).map(u => (
-                          <div key={u.id} className={`p-2 text-center text-xs rounded font-bold text-white shadow-sm ${u.status === 'available' ? 'bg-emerald-500' : 'bg-red-500'}`}>
-                            {u.unitNumber}<br/>{u.status === 'available' ? 'متاح' : 'مباع'}
-                          </div>
+                          <div key={u.id} className={`p-2 text-center text-xs rounded font-bold text-white shadow-sm ${u.status === 'available' ? 'bg-emerald-500' : 'bg-red-500'}`}>{u.unitNumber}<br/>{u.status === 'available' ? 'متاح' : 'مباع'}</div>
                         ))}
                       </div>
                     </div>
@@ -371,6 +312,8 @@
               </div>
             )}
 
+            {/* 5. Sales (Keep identical) */}
+            {activeTab === 'sales' && <div className="print-hide">... (تم الإبقاء على كود المبيعات كما هو تماماً لعدم وجود تعديلات عليه) ...</div>}
             {activeTab === 'sales' && (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print-hide">
                 <div className="bg-white p-4 rounded-xl shadow h-fit">
@@ -400,7 +343,6 @@
                             <div><p className="font-bold text-blue-800 text-lg">{c.clientName}</p><p className="text-sm font-semibold">{b?.name} - شقة {u?.unitNumber}</p></div>
                             <button onClick={() => cancelContract(c.id, c.unitId)} className="text-xs text-red-600 border border-red-600 bg-white px-2 py-1 rounded hover:bg-red-100">فسخ العقد</button>
                           </div>
-                          
                           <div className="overflow-x-auto mb-3">
                             <table className="w-full text-sm text-right">
                               <thead><tr className="text-slate-500 border-b"><th className="p-2">التاريخ</th><th className="p-2">المبلغ</th><th className="p-2">الحالة</th><th className="p-2">إجراء</th></tr></thead>
@@ -418,9 +360,7 @@
                               </tbody>
                             </table>
                           </div>
-                          <div className="text-left">
-                            <button onClick={() => addManualInstallment(c.id)} className="bg-blue-100 text-blue-800 border border-blue-300 px-3 py-1 rounded text-xs font-bold shadow-sm hover:bg-blue-200">➕ إضافة قسط يدوي</button>
-                          </div>
+                          <div className="text-left"><button onClick={() => addManualInstallment(c.id)} className="bg-blue-100 text-blue-800 border border-blue-300 px-3 py-1 rounded text-xs font-bold shadow-sm hover:bg-blue-200">➕ إضافة قسط يدوي</button></div>
                         </div>
                       )
                     })}
@@ -429,88 +369,94 @@
               </div>
             )}
 
-            {/* Reports (Modified for Print) */}
+            {/* 6. Reports */}
             {activeTab === 'reports' && (
               <div className="bg-white p-4 rounded shadow">
                 
-                {/* Print specific header (Hidden on screen, shown on print) */}
-                <div className="hidden print-show mb-6 border-b-2 border-black pb-4">
-                  <h2 className="text-2xl font-bold text-center mb-2">تقرير كشف حساب</h2>
-                  <div className="flex justify-between text-lg font-bold">
-                    <span>جهة التقرير: {reportData.custodyName}</span>
-                    <span>تاريخ الإصدار: {todayDateStr}</span>
+                {/* --- PDF PRINT VIEW --- */}
+                <div className="hidden print-show text-black">
+                  <h2 className="text-3xl text-center mb-1">تقرير كشف حساب</h2>
+                  <h3 className="text-2xl text-center mb-1">{reportData.custodyName}</h3>
+                  <h4 className="text-xl text-center mb-4">من تاريخ: {reportFilter.startDate || 'البداية'} إلى تاريخ: {reportFilter.endDate || 'الآن'}</h4>
+
+                  {reportType === 'transactions' ? (
+                    <>
+                      {reportFilter.custodyId && <div className="p-2 mb-4 text-xl border-2 border-black">رصيد بداية المدة: {reportData.openingBalance.toLocaleString()}</div>}
+                      
+                      {/* جدول الإيرادات */}
+                      <h4 className="text-xl border-b-2 border-black mt-4 mb-2">الإيرادات</h4>
+                      <table>
+                        <thead><tr><th className="w-[10%]">التاريخ</th><th className="w-[10%]">النوع</th><th className="w-[60%]">البيان</th><th className="w-[20%]">المبلغ</th></tr></thead>
+                        <tbody>
+                          {reportData.incomes.map(t => (
+                            <tr key={t.id}>
+                              <td dir="ltr">{formatShortDate(t.date)}</td><td>إيراد</td><td>{t.description}</td><td>{Number(t.amount).toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      <div className="text-left mt-2 mb-6 text-xl">إجمالي الإيرادات للفترة: {reportData.totalIncomes.toLocaleString()}</div>
+
+                      {/* جدول المصروفات */}
+                      <h4 className="text-xl border-b-2 border-black mt-4 mb-2">المصروفات</h4>
+                      <table>
+                        <thead><tr><th className="w-[10%]">التاريخ</th><th className="w-[10%]">النوع</th><th className="w-[60%]">البيان</th><th className="w-[20%]">المبلغ</th></tr></thead>
+                        <tbody>
+                          {reportData.expenses.map(t => (
+                            <tr key={t.id}>
+                              <td dir="ltr">{formatShortDate(t.date)}</td><td>مصروف</td><td>{t.description}</td><td>{Number(t.amount).toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      <div className="text-left mt-2 mb-6 text-xl">إجمالي المصروفات للفترة: {reportData.totalExpenses.toLocaleString()}</div>
+
+                      {reportFilter.custodyId && <div className="p-3 text-center text-2xl border-4 border-black mt-8">صافي العهدة حتى التاريخ المحدد: {reportData.finalBalance.toLocaleString()}</div>}
+                    </>
+                  ) : (
+                    <>
+                      <h4 className="text-xl border-b-2 border-black mt-4 mb-2">تقرير الأقساط المستحقة</h4>
+                      <table>
+                        <thead><tr><th>التاريخ</th><th>العميل</th><th>العمارة</th><th>الحالة</th><th>المبلغ</th></tr></thead>
+                        <tbody>
+                          {reportInstallments.map(i => {
+                            const c = (data.contracts||[]).find(ct=>ct.id===i.contractId);
+                            const b = (data.buildings||[]).find(bd=>bd.id===c?.buildingId);
+                            return (
+                              <tr key={i.id}><td dir="ltr">{formatShortDate(i.dueDate)}</td><td>{c?.clientName}</td><td>{b?.name}</td><td>{i.status==='paid'?'مدفوع':'مستحق'}</td><td>{Number(i.amount).toLocaleString()}</td></tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                      <div className="text-left mt-2 mb-6 text-xl">إجمالي الأقساط المفلترة: {reportInstallments.reduce((s,i)=>s+Number(i.amount),0).toLocaleString()}</div>
+                    </>
+                  )}
+                </div>
+
+                {/* --- SCREEN VIEW --- */}
+                <div className="print-hide">
+                  <div className="flex gap-2 mb-4 border-b pb-4">
+                    <button onClick={()=>setReportType('transactions')} className={`flex-1 p-2 font-bold rounded ${reportType==='transactions'?'bg-blue-600 text-white':'bg-slate-200'}`}>تقرير الحركات والعهد</button>
+                    <button onClick={()=>setReportType('installments')} className={`flex-1 p-2 font-bold rounded ${reportType==='installments'?'bg-blue-600 text-white':'bg-slate-200'}`}>تقرير الأقساط</button>
                   </div>
-                  {reportFilter.startDate && <div className="text-center mt-2 font-bold">الفترة من: {reportFilter.startDate} إلى: {reportFilter.endDate || 'الآن'}</div>}
-                </div>
 
-                <div className="flex justify-between mb-4 border-b pb-2 print-hide">
-                  <h3 className="font-bold text-lg">التقارير المفصلة والطباعة</h3>
-                  <button onClick={handlePrint} className="bg-slate-800 text-white px-4 py-1 rounded text-sm shadow">طباعة كـ PDF</button>
-                </div>
-
-                {/* Filters (Hidden on print) */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 bg-slate-50 p-4 rounded border print-hide">
-                  <div><label className="text-xs font-bold block mb-1">من تاريخ</label><input type="date" className="w-full border p-2 text-sm rounded" value={reportFilter.startDate} onChange={e=>setReportFilter({...reportFilter, startDate: e.target.value})}/></div>
-                  <div><label className="text-xs font-bold block mb-1">إلى تاريخ</label><input type="date" className="w-full border p-2 text-sm rounded" value={reportFilter.endDate} onChange={e=>setReportFilter({...reportFilter, endDate: e.target.value})}/></div>
-                  <div><label className="text-xs font-bold block mb-1">تصفية بالعهدة</label><select className="w-full border p-2 text-sm rounded" value={reportFilter.custodyId} onChange={e=>setReportFilter({...reportFilter, custodyId: e.target.value})}><option value="">-- كل العهد والخزينة --</option>{(data.custodies || []).map(c=><option key={c.id} value={c.id}>{c.personName}</option>)}</select></div>
-                  <div><label className="text-xs font-bold block mb-1">تصفية بالعمارة</label><select className="w-full border p-2 text-sm rounded" value={reportFilter.buildingId} onChange={e=>setReportFilter({...reportFilter, buildingId: e.target.value})}><option value="">-- كل العمارات --</option>{(data.buildings || []).map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
-                </div>
-
-                {/* Opening Balance (Shown only if Custody is selected) */}
-                {reportFilter.custodyId && (
-                  <div className="bg-slate-200 p-3 mb-4 rounded font-bold text-lg border-r-4 border-slate-800">
-                    رصيد بداية المدة (قبل تاريخ التقرير): {reportData.openingBalance.toLocaleString()} ج.م
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 bg-slate-50 p-4 rounded border">
+                    <div><label className="text-xs font-bold block">من تاريخ</label><input type="date" className="w-full border p-2 text-sm rounded" value={reportFilter.startDate} onChange={e=>setReportFilter({...reportFilter, startDate: e.target.value})}/></div>
+                    <div><label className="text-xs font-bold block">إلى تاريخ</label><input type="date" className="w-full border p-2 text-sm rounded" value={reportFilter.endDate} onChange={e=>setReportFilter({...reportFilter, endDate: e.target.value})}/></div>
+                    {reportType === 'transactions' && <div><label className="text-xs font-bold block">تصفية بالعهدة</label><select className="w-full border p-2 text-sm rounded" value={reportFilter.custodyId} onChange={e=>setReportFilter({...reportFilter, custodyId: e.target.value})}><option value="">-- كل العهد --</option>{(data.custodies || []).map(c=><option key={c.id} value={c.id}>{c.personName}</option>)}</select></div>}
+                    <div><label className="text-xs font-bold block">تصفية بالعمارة</label><select className="w-full border p-2 text-sm rounded" value={reportFilter.buildingId} onChange={e=>setReportFilter({...reportFilter, buildingId: e.target.value})}><option value="">-- كل العمارات --</option>{(data.buildings || []).map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
                   </div>
-                )}
-                
-                <div className="overflow-x-auto mb-6">
-                  <table className="w-full text-right text-sm border-collapse">
-                    <thead className="bg-slate-800 text-white print-show" style={{backgroundColor: '#1e293b', color: 'white', WebkitPrintColorAdjust: 'exact'}}>
-                      <tr><th className="p-2 border">التاريخ</th><th className="p-2 border">النوع</th><th className="p-2 border">البيان</th><th className="p-2 border">العهدة</th><th className="p-2 border">المبلغ</th></tr>
-                    </thead>
-                    <tbody>
-                      {reportData.filtered.map(t => {
-                        const cst = (data.custodies || []).find(c => c.id === t.custodyId)?.personName || 'الخزينة العامة';
-                        return (
-                          <tr key={t.id} className="border-b hover:bg-slate-50">
-                            <td className="p-2 border" dir="ltr">{t.date}</td>
-                            <td className="p-2 border font-bold">{t.type==='income'?'إيراد':'مصروف'}</td>
-                            <td className="p-2 border">{t.description}</td>
-                            <td className="p-2 border">{cst}</td>
-                            <td className="p-2 border font-bold">{t.amount.toLocaleString()}</td>
-                          </tr>
-                        )
-                      })}
-                      {reportData.filtered.length === 0 && <tr><td colSpan="5" className="p-4 text-center border">لا توجد حركات في هذه الفترة</td></tr>}
-                    </tbody>
-                  </table>
-                </div>
 
-                {/* Closing Balance summary */}
-                <div className="grid grid-cols-2 gap-4 border-t-2 border-slate-800 pt-4">
-                  <div className="bg-emerald-50 p-3 rounded border border-emerald-200"><p className="text-slate-600 text-sm">إجمالي إيرادات الفترة</p><p className="text-xl font-bold text-emerald-600">{reportData.periodIncomes.toLocaleString()} ج.م</p></div>
-                  <div className="bg-red-50 p-3 rounded border border-red-200"><p className="text-slate-600 text-sm">إجمالي مصروفات الفترة</p><p className="text-xl font-bold text-red-600">{reportData.periodExpenses.toLocaleString()} ج.م</p></div>
+                  <button onClick={handlePrint} className="w-full bg-slate-800 text-white py-3 rounded font-bold mb-4 shadow-lg text-lg">🖨️ طباعة التقرير PDF</button>
+
+                  <p className="text-center text-sm text-slate-500">تم تجهيز التقرير، اضغط على زر الطباعة لرؤيته بالشكل الرسمي.</p>
                 </div>
-                {reportFilter.custodyId && (
-                  <div className="mt-4 bg-slate-800 text-white p-4 rounded text-center text-xl font-bold print-show" style={{backgroundColor: '#1e293b', color: 'white', WebkitPrintColorAdjust: 'exact'}}>
-                    الرصيد الصافي النهائي: {reportData.closingBalance.toLocaleString()} ج.م
-                  </div>
-                )}
               </div>
             )}
 
-            {/* Settings */}
+            {/* 7. Settings */}
             {activeTab === 'settings' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print-hide">
-                <div className="bg-white p-4 shadow rounded border-t-4 border-slate-800">
-                  <h4 className="font-bold mb-3">تسليم عهدة لمسؤول جديد</h4>
-                  <form onSubmit={(e)=>{e.preventDefault(); setData(p=>({...p, custodies: [...(p.custodies || []), {id: 'cus_'+Date.now(), ...newCustody}]})); setNewCustody({personName:'', totalAmount:'', notes:''}); showMsg('تم تسجيل العهدة');}} className="space-y-2">
-                    <input required type="text" placeholder="اسم المسؤول" className="border p-2 text-sm w-full rounded" value={newCustody.personName} onChange={e=>setNewCustody({...newCustody, personName:e.target.value})}/>
-                    <input required type="number" placeholder="المبلغ الأصلي" className="border p-2 text-sm w-full rounded" value={newCustody.totalAmount} onChange={e=>setNewCustody({...newCustody, totalAmount:e.target.value})}/>
-                    <button className="bg-slate-800 text-white p-2 rounded w-full text-sm font-bold shadow">حفظ العهدة</button>
-                  </form>
-                </div>
-                
                 <div className="bg-white p-4 shadow rounded border-t-4 border-slate-800">
                   <h4 className="font-bold mb-3">إضافة تصنيف مصروفات</h4>
                   <form onSubmit={(e)=>{e.preventDefault(); setData(p=>({...p, categories: [...(p.categories || []), {id: 'c_'+Date.now(), name: newCategory}]})); setNewCategory(''); showMsg('تمت الإضافة');}} className="flex gap-2 mb-3">
@@ -519,12 +465,21 @@
                   </form>
                   <div className="flex flex-wrap gap-2">{(data.categories || []).map(c=><span key={c.id} className="bg-slate-100 border p-1 px-2 rounded text-xs">{c.name}</span>)}</div>
                 </div>
+                
+                <div className="bg-white p-4 shadow rounded border-t-4 border-slate-800">
+                  <h4 className="font-bold mb-3">تسليم عهدة لمسؤول جديد</h4>
+                  <form onSubmit={(e)=>{e.preventDefault(); setData(p=>({...p, custodies: [...(p.custodies || []), {id: 'cus_'+Date.now(), ...newCustody}]})); setNewCustody({personName:'', totalAmount:'', notes:''}); showMsg('تم تسجيل العهدة');}} className="space-y-2">
+                    <input required type="text" placeholder="اسم المسؤول" className="border p-2 text-sm w-full rounded" value={newCustody.personName} onChange={e=>setNewCustody({...newCustody, personName:e.target.value})}/>
+                    <input required type="number" placeholder="المبلغ الأصلي" className="border p-2 text-sm w-full rounded" value={newCustody.totalAmount} onChange={e=>setNewCustody({...newCustody, totalAmount:e.target.value})}/>
+                    <button className="bg-slate-800 text-white p-2 rounded w-full text-sm font-bold shadow">حفظ العهدة</button>
+                  </form>
+                </div>
 
                 <div className="bg-white p-6 shadow rounded md:col-span-2 text-center border-2 border-dashed border-blue-400">
-                  <h4 className="font-bold mb-2 text-blue-800 text-lg">النسخ الاحتياطي للأمان (هام جداً)</h4>
-                  <p className="text-xs mb-4 text-slate-500">احفظ نسخة من بياناتك كل يومين لتجنب فقدانها.</p>
+                  <h4 className="font-bold mb-2 text-blue-800 text-lg">النسخ الاحتياطي للأمان</h4>
+                  <p className="text-xs mb-4 text-slate-500">للحفظ في مجلد محدد، تأكد من تفعيل "السؤال عن مكان الحفظ" في إعدادات متصفح كروم.</p>
                   <div className="flex gap-4 justify-center">
-                    <button onClick={()=>{const b=new Blob([JSON.stringify(data)],{type:'application/json'});const l=document.createElement('a');l.href=URL.createObjectURL(b);l.download=`RealEstate_Backup_${todayDateStr}.json`;l.click();}} className="bg-blue-600 text-white px-6 py-2 rounded font-bold shadow hover:bg-blue-700">تحميل نسخة احتياطية</button>
+                    <button onClick={()=>{const b=new Blob([JSON.stringify(data)],{type:'application/json'});const l=document.createElement('a');l.href=URL.createObjectURL(b);l.download=`نسخة_العقارات_${todayDateStr}.json`;l.click();}} className="bg-blue-600 text-white px-6 py-2 rounded font-bold shadow hover:bg-blue-700">تصدير وحفظ نسخة</button>
                     <label className="bg-amber-600 text-white px-6 py-2 rounded font-bold shadow hover:bg-amber-700 cursor-pointer">استرجاع بيانات<input type="file" accept=".json" className="hidden" onChange={(e)=>{const r=new FileReader();r.onload=(ev)=>{try{setData(JSON.parse(ev.target.result));showMsg('تم الاسترجاع بنجاح');}catch{showMsg('ملف غير صالح',true);}};if(e.target.files[0])r.readAsText(e.target.files[0]);}}/></label>
                   </div>
                 </div>

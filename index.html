@@ -47,7 +47,8 @@
         monthDues: "مستحق هذا الشهر", activeCustody: "الاستعلام السريع عن العهد", net: "الصافي",
         addCat: "إضافة تصنيف مصروفات", newCustody: "تسليم عهدة لمسؤول جديد", settings: "الإعدادات والأمان",
         backup: "النسخ الاحتياطي للأمان", reset: "إعادة ضبط المصنع",
-        lang: "لغة البرنامج / Language", yes: "نعم متأكد", no: "إلغاء", txTitle: "تسجيل حركة نقدية"
+        lang: "لغة البرنامج / Language", yes: "نعم متأكد", no: "إلغاء", txTitle: "تسجيل حركة نقدية",
+        showDetails: "التفاصيل ▼", hideDetails: "إخفاء ▲"
       },
       en: {
         appTitle: "Estate Manager",
@@ -60,7 +61,8 @@
         monthDues: "Monthly Dues", activeCustody: "Custody Balance", net: "Net",
         addCat: "Add Expense Category", newCustody: "Assign New Custody", settings: "Settings & Security",
         backup: "Backup & Security", reset: "Factory Reset",
-        lang: "Language / لغة البرنامج", yes: "Yes, Confirm", no: "Cancel", txTitle: "Record Transaction"
+        lang: "Language / لغة البرنامج", yes: "Yes, Confirm", no: "Cancel", txTitle: "Record Transaction",
+        showDetails: "Details ▼", hideDetails: "Hide ▲"
       }
     };
 
@@ -156,10 +158,19 @@
       useEffect(() => { localStorage.setItem('real_estate_core_data', JSON.stringify(data)); }, [data]);
       useEffect(() => { localStorage.setItem('real_estate_last_custody', JSON.stringify(dashboardCustodyFilter)); }, [dashboardCustodyFilter]);
 
+      const isExiting = useRef(false);
       useEffect(() => {
         window.history.pushState(null, '', window.location.href);
         const handlePopState = () => {
-          setAppModal({ show: true, type: 'CONFIRM', props: { title: lang==='ar'?'تأكيد الخروج':'Exit', message: lang==='ar'?'هل تريد الخروج من البرنامج؟':'Do you want to exit?', onConfirm: () => { window.history.back(); } }});
+          if (isExiting.current) return;
+          setAppModal({ show: true, type: 'CONFIRM', props: { 
+            title: lang==='ar'?'تأكيد الخروج':'Exit', 
+            message: lang==='ar'?'هل تريد الخروج من البرنامج؟':'Do you want to exit?', 
+            onConfirm: () => { 
+              isExiting.current = true;
+              window.history.go(-2); 
+            } 
+          }});
           window.history.pushState(null, '', window.location.href);
         };
         window.addEventListener('popstate', handlePopState);
@@ -318,7 +329,7 @@
           <nav className="bg-slate-800 text-slate-200 grid grid-cols-3 border-b border-slate-700 print-hide shadow-md">
             {tabs.map(tab => (
               <button key={tab.id} onClick={() => {setActiveTab(tab.id); setEditingTxId(null);}} 
-                className={`p-3 text-sm font-bold text-center border-b border-slate-700 transition-colors ${activeTab === tab.id ? 'bg-slate-100 text-blue-800 border-b-4 border-b-blue-600 shadow-inner' : 'hover:bg-slate-700'}`}>
+                className={`p-3 text-sm font-bold text-center border-b border-l border-slate-700 transition-colors ${activeTab === tab.id ? 'bg-slate-100 text-blue-800 border-b-4 border-b-blue-600 shadow-inner' : 'hover:bg-slate-700'}`}>
                 {tab.label}
               </button>
             ))}
@@ -386,6 +397,7 @@
                     <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-5 rounded-2xl border border-blue-200 shadow-inner cursor-pointer hover:shadow-md transition" onClick={() => setShowMonthDetails(!showMonthDetails)}>
                       <div className="flex justify-between items-center mb-2">
                         <p className="text-sm text-blue-800 font-bold">{t.monthDues}</p>
+                        <span className="text-blue-600 bg-white px-3 py-1 rounded-lg text-xs font-bold shadow-sm">{showMonthDetails ? t.hideDetails : t.showDetails}</span>
                       </div>
                       <p className="text-4xl font-black text-blue-900 mt-2">{monthInstallments.reduce((sum, i) => sum + Number(i.amount||0), 0).toLocaleString()} </p>
                     </div>

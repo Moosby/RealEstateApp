@@ -48,7 +48,8 @@
         monthDues: "مستحق هذا الشهر", activeCustody: "الاستعلام السريع عن العهد", net: "الصافي",
         addCat: "إضافة تصنيف مصروفات", newCustody: "تسليم عهدة لمسؤول جديد", settings: "الإعدادات والأمان",
         backup: "النسخ الاحتياطي للأمان", reset: "إعادة ضبط المصنع",
-        lang: "لغة البرنامج / Language", yes: "نعم متأكد", no: "إلغاء"
+        lang: "لغة البرنامج / Language", yes: "نعم متأكد", no: "إلغاء",
+        txTitle: "تسجيل حركة نقدية"
       },
       en: {
         appTitle: "Estate Manager",
@@ -61,7 +62,8 @@
         monthDues: "Monthly Dues", activeCustody: "Custody Balance", net: "Net",
         addCat: "Add Expense Category", newCustody: "Assign New Custody", settings: "Settings & Security",
         backup: "Backup & Security", reset: "Factory Reset",
-        lang: "Language / لغة البرنامج", yes: "Yes, Confirm", no: "Cancel"
+        lang: "Language / لغة البرنامج", yes: "Yes, Confirm", no: "Cancel",
+        txTitle: "Record Transaction"
       }
     };
 
@@ -279,9 +281,9 @@
             {/* إيراد أو مصروف (Transactions Form) */}
             {activeTab === 'transactions' && (
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-lg mx-auto print-hide animate-fade-in">
-                <h3 className="font-bold text-2xl mb-6 text-center text-slate-800 border-b pb-3">{editingTxId ? t.edit : t.tab_tx}</h3>
+                <h3 className="font-bold text-2xl mb-6 text-center text-slate-800 border-b pb-3">{editingTxId ? t.edit : t.txTitle}</h3>
                 
-                <form onSubmit={handleSaveTransaction} className="space-y-6">
+                <form onSubmit={handleSaveTransaction} className="space-y-5">
                   <div className="flex gap-4 p-2 bg-slate-50 rounded-xl border border-slate-200 shadow-inner">
                     <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg cursor-pointer font-bold transition-all ${newTransaction.type === 'income' ? 'bg-emerald-100 text-emerald-800 shadow-sm border border-emerald-300' : 'text-slate-500 hover:bg-slate-200'}`}>
                       <input type="radio" className="hidden" checked={newTransaction.type === 'income'} onChange={()=>setNewTransaction({...newTransaction, type:'income'})}/> {t.addIncome}
@@ -300,8 +302,8 @@
                   {/* Description (Larger height, directly under Amount) */}
                   <div className="relative">
                     <label className="text-sm font-bold text-slate-500 mb-1 block">{t.desc}</label>
-                    <input type="text" required placeholder="..." className="w-full border-2 border-slate-300 py-5 px-4 text-xl rounded-xl font-bold bg-white focus:border-blue-500 outline-none transition shadow-inner" value={newTransaction.description} 
-                      onChange={e => setNewTransaction({...newTransaction, description: e.target.value})} onFocus={() => setDescFocus(true)} onBlur={() => setTimeout(() => setDescFocus(false), 200)} />
+                    <textarea rows="3" required placeholder="..." className="w-full border-2 border-slate-300 p-4 text-xl rounded-xl font-bold bg-white focus:border-blue-500 outline-none transition shadow-inner resize-none" value={newTransaction.description} 
+                      onChange={e => setNewTransaction({...newTransaction, description: e.target.value})} onFocus={() => setDescFocus(true)} onBlur={() => setTimeout(() => setDescFocus(false), 200)}></textarea>
                     {descFocus && newTransaction.description && filteredDescs.length > 0 && (
                       <div className="absolute top-full left-0 right-0 bg-white border-2 border-slate-200 mt-1 shadow-2xl z-50 max-h-48 overflow-y-auto rounded-xl animate-fade-in">
                         {filteredDescs.map((d, idx) => <div key={idx} className="p-4 text-md border-b hover:bg-blue-50 cursor-pointer font-bold text-slate-700" onMouseDown={() => setNewTransaction({...newTransaction, description: d})}>{d}</div>)}
@@ -328,17 +330,16 @@
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 print-hide animate-fade-in">
                 
                 {/* Language Switcher */}
-                <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200 md:col-span-2 flex justify-between items-center bg-gradient-to-r from-slate-800 to-slate-900 text-white">
+                <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200 md:col-span-2 flex flex-col md:flex-row justify-between items-center gap-4 bg-gradient-to-r from-slate-800 to-slate-900 text-white">
                   <h4 className="font-bold text-lg">{t.lang}</h4>
-                  <div className="flex bg-slate-700 p-1 rounded-lg">
-                    <button onClick={() => setLang('ar')} className={`px-5 py-2 rounded-md font-bold transition ${lang === 'ar' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-300 hover:text-white'}`}>عربي</button>
-                    <button onClick={() => setLang('en')} className={`px-5 py-2 rounded-md font-bold transition ${lang === 'en' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-300 hover:text-white'}`}>En</button>
+                  <div className="flex bg-slate-700 p-1 rounded-xl">
+                    <button onClick={() => setLang('ar')} className={`px-6 py-2 rounded-lg font-bold transition ${lang === 'ar' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-300 hover:text-white'}`}>عربي</button>
+                    <button onClick={() => setLang('en')} className={`px-6 py-2 rounded-lg font-bold transition ${lang === 'en' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-300 hover:text-white'}`}>English</button>
                   </div>
                 </div>
 
                 <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200">
                   <h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">🏷️ {t.addCat}</h4>
-                  {/* تم تعديل التنسيق هنا ليصبح عمودي (الزر أسفل المربع) */}
                   <form onSubmit={(e)=>{e.preventDefault(); setData(p=>({...p, categories: [...(p.categories || []), {id: 'c_'+Date.now(), name: newCategory}]})); setNewCategory(''); showMsg('Added');}} className="flex flex-col gap-3 mb-4">
                     <input required type="text" placeholder="..." className="border-2 p-3 text-md w-full rounded-xl font-bold focus:border-blue-500 outline-none bg-slate-50" value={newCategory} onChange={e=>setNewCategory(e.target.value)}/>
                     <button className="bg-slate-800 text-white p-3 rounded-xl text-md font-bold shadow hover:bg-slate-900 transition">{t.addCat}</button>

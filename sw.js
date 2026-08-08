@@ -1,4 +1,4 @@
-const CACHE_NAME = 'real-estate-offline-v18';
+const CACHE_NAME = 'real-estate-offline-v19';
 const urlsToCache = [
   'index.html',
   'manifest.json',
@@ -18,6 +18,9 @@ self.addEventListener('activate', event => {
   event.waitUntil(caches.keys().then(keys => Promise.all(keys.map(key => { if (key !== CACHE_NAME) return caches.delete(key); }))));
 });
 
+// Network First Strategy (لحفظ التحديثات فوراً)
 self.addEventListener('fetch', event => {
-  event.respondWith(caches.match(event.request).then(response => response || fetch(event.request)));
+  event.respondWith(
+    fetch(event.request).catch(() => caches.match(event.request))
+  );
 });

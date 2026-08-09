@@ -1,7 +1,7 @@
 {
-  "short_name": "العقارات",
-  "name": "إدارة العقارات والأملاك",
-  "description": "نظام محاسبي احترافي لإدارة العقارات والعهد",
+  "short_name": "RealStateApp",
+  "name": "RealStateApp - Estate Manager",
+  "description": "Professional Real Estate Management System",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/3135/3135673.png",

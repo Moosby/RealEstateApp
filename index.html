@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>نظام إدارة العقارات</title>
+  <title>RealStateApp</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0f172a">
   
@@ -38,7 +38,7 @@
 
     const dict = {
       ar: {
-        appTitle: "إدارة العقارات",
+        appTitle: "RealStateApp",
         tab_dash: "الرئيسية", tab_tx: "إيراد/مصروف", tab_cust: "العهد", tab_inv: "الوحدات", tab_sales: "المبيعات", tab_rep: "التقارير",
         income: "إيراد", expense: "مصروف", addIncome: "➕ إضافة إيراد", addExpense: "➖ تسجيل مصروف",
         date: "التاريخ", amount: "المبلغ (ج.م)", desc: "البيان (التفاصيل)",
@@ -52,17 +52,17 @@
         showDetails: "التفاصيل ▼", hideDetails: "إخفاء ▲", opBalance: "رصيد أول المدة"
       },
       en: {
-        appTitle: "Estate Manager",
-        tab_dash: "Dashboard", tab_tx: "Transactions", tab_cust: "Custody", tab_inv: "Inventory", tab_sales: "Sales", tab_rep: "Reports",
+        appTitle: "RealStateApp",
+        tab_dash: "Dashboard", tab_tx: "In/Out", tab_cust: "Safes", tab_inv: "Units", tab_sales: "Sales", tab_rep: "Reports",
         income: "Income", expense: "Expense", addIncome: "➕ Add Income", addExpense: "➖ Add Expense",
-        date: "Date", amount: "Amount", desc: "Description (Details)",
-        custody: "Custody / Safe", building: "Building", unit: "Unit", category: "Expense Category",
-        save: "Save Record", update: "Update Record", cancel: "Cancel", edit: "Edit", delete: "Delete",
-        allCustodies: "-- General Safe --", allBuildings: "-- General --", selectCat: "-- Select Category --",
-        monthDues: "Monthly Dues", activeCustody: "Custody Balance", net: "Net",
-        addCat: "Add Expense Category", newCustody: "Assign New Custody", settings: "Settings & Security",
-        backup: "Backup & Security", reset: "Factory Reset",
-        lang: "Language / لغة البرنامج", yes: "Yes, Confirm", no: "Cancel", txTitle: "Record Transaction",
+        date: "Date", amount: "Amount", desc: "Description",
+        custody: "Safe / Custody", building: "Building", unit: "Unit", category: "Category",
+        save: "Save", update: "Update", cancel: "Cancel", edit: "Edit", delete: "Delete",
+        allCustodies: "-- Main Safe --", allBuildings: "-- General --", selectCat: "-- Select Category --",
+        monthDues: "Due This Month", activeCustody: "Safes Balances", net: "Net",
+        addCat: "Add Expense Category", newCustody: "Add New Safe", settings: "Settings & Security",
+        backup: "Backup & Restore", reset: "Factory Reset",
+        lang: "Language / لغة البرنامج", yes: "Yes", no: "Cancel", txTitle: "Record Transaction",
         showDetails: "Details ▼", hideDetails: "Hide ▲", opBalance: "Opening Balance"
       }
     };
@@ -160,8 +160,8 @@
       const [descFocus, setDescFocus] = useState(false);
       const [showMonthDetails, setShowMonthDetails] = useState(false);
       const [expandedBuildings, setExpandedBuildings] = useState({});
-
       const [custodyNameFocus, setCustodyNameFocus] = useState(false);
+      const [showOverdue, setShowOverdue] = useState(false);
 
       useEffect(() => { localStorage.setItem('real_estate_core_data', JSON.stringify(data)); }, [data]);
       useEffect(() => { localStorage.setItem('real_estate_last_custody', JSON.stringify(dashboardCustodyFilter)); }, [dashboardCustodyFilter]);
@@ -312,7 +312,7 @@
         e.preventDefault(); const unit = (data.units || []).find(u => u.id === newContract.unitId); if (!unit) return showMsg('اختر الوحدة أولاً', true); 
         const contractId = 'cont_' + Date.now(); const dp = Number(newContract.downPayment); const total = Number(newContract.totalAmount); const count = Number(newContract.installmentsCount); 
         const contract = { id: contractId, clientName: newContract.clientName, unitId: unit.id, buildingId: unit.buildingId, totalAmount: total, downPayment: dp, date: todayDateStr, status: 'active' }; 
-        const newInsts = []; let curDate = new Date(newContract.firstInstallmentDate); const instAmount = count > 0 ? ((total - dp) / count) : 0; 
+        const newInsts = []; let curDate = new Date(newContract.firstInstallmentDate); const instAmount = count > 0 ? Math.round((total - dp) / count) : 0; 
         for(let i=0; i<count; i++) { 
           newInsts.push({ id: 'inst_' + Date.now() + '_' + i, contractId, amount: instAmount, dueDate: curDate.toISOString().split('T')[0], status: 'pending' }); 
           curDate.setMonth(curDate.getMonth() + Number(newContract.interval)); 
@@ -342,6 +342,7 @@
 
       const thisMonth = new Date().toISOString().substring(0, 7);
       const monthInstallments = (data.installments || []).filter(i => i.status === 'pending' && i.dueDate?.startsWith(thisMonth)).sort((a,b)=>new Date(a.dueDate||0)-new Date(b.dueDate||0));
+      const overdueInstallments = (data.installments || []).filter(i => i.status === 'pending' && i.dueDate < todayDateStr).sort((a,b)=>new Date(a.dueDate||0)-new Date(b.dueDate||0));
 
       const tabs = [
         { id: 'dashboard', label: t.tab_dash }, { id: 'transactions', label: t.tab_tx },
@@ -406,6 +407,15 @@
                   <input type="text" id="buildEditInput" defaultValue={appModal.props.b.name} className="w-full border-2 border-slate-300 p-3 rounded-xl mb-4 font-bold text-center focus:border-blue-500 outline-none" />
                   <button onClick={() => { const val = document.getElementById('buildEditInput').value; if(val) { setData(p => ({...p, buildings: p.buildings.map(b => b.id === appModal.props.b.id ? {...b, name: val} : b)})); closeModal(); showMsg(lang==='ar'?'تم التعديل':'Edited'); } }} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow hover:bg-blue-700 transition">✏️ {t.edit}</button>
                   <button onClick={() => { requirePin(() => { setAppModal({show: true, type: 'CONFIRM', props: { title: 'تأكيد الحذف', message: 'حذف العمارة سيبقي وحداتها معلقة. هل أنت متأكد؟', onConfirm: () => { setData(p => ({...p, buildings: p.buildings.filter(b => b.id !== appModal.props.b.id)})); closeModal(); showMsg(lang==='ar'?'تم الحذف':'Deleted'); } }}) }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button>
+                </div>
+              )}
+              {appModal.type === 'UNIT_ACTION' && appModal.props.u && (
+                <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}>
+                  <div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div>
+                  <h3 className="font-bold text-lg mb-4 text-center text-slate-800 border-b pb-2">خيارات الوحدة (الشقة)</h3>
+                  <input type="text" id="unitEditInput" defaultValue={appModal.props.u.unitNumber} className="w-full border-2 border-slate-300 p-3 rounded-xl mb-4 font-bold text-center focus:border-blue-500 outline-none" />
+                  <button onClick={() => { const val = document.getElementById('unitEditInput').value; if(val) { setData(p => ({...p, units: p.units.map(u => u.id === appModal.props.u.id ? {...u, unitNumber: val} : u)})); closeModal(); showMsg(lang==='ar'?'تم التعديل':'Edited'); } }} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow hover:bg-blue-700 transition">✏️ {t.edit}</button>
+                  <button onClick={() => { requirePin(() => { setAppModal({show: true, type: 'CONFIRM', props: { title: 'تأكيد الحذف', message: 'متأكد من حذف هذه الوحدة نهائياً؟', onConfirm: () => { setData(p => ({...p, units: p.units.filter(u => u.id !== appModal.props.u.id)})); closeModal(); showMsg(lang==='ar'?'تم الحذف':'Deleted'); } }}) }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button>
                 </div>
               )}
               {appModal.type === 'PIN' && (
@@ -614,10 +624,10 @@
                         <span className="text-blue-600 bg-white px-2 py-1 rounded text-xs font-bold shadow-sm">{expandedBuildings[b.id] ? t.hideDetails : t.showDetails}</span>
                       </div>
                       {expandedBuildings[b.id] && (
-                        <div className="grid grid-cols-4 gap-3 mt-4 animate-slide-up" onClick={e=>e.stopPropagation()}>
+                        <div className="grid grid-cols-3 gap-3 mt-4 animate-slide-up" onClick={e=>e.stopPropagation()}>
                           {(data.units || []).filter(u => u.buildingId === b.id).map(u => (
-                            <div key={u.id} className={`p-2 text-center rounded-xl font-bold text-white shadow-sm flex flex-col justify-center min-h-[65px] ${u.status === 'available' ? 'bg-emerald-500' : 'bg-slate-400'}`}>
-                              <span className="text-sm">{u.unitNumber}</span>
+                            <div key={u.id} onClick={() => setAppModal({show: true, type: 'UNIT_ACTION', props: {u}})} className={`p-2 text-center rounded-xl font-bold text-white shadow-sm flex flex-col justify-center min-h-[65px] transition-transform hover:scale-105 cursor-pointer ${u.status === 'available' ? 'bg-emerald-500' : 'bg-slate-400'}`}>
+                              <span className="text-sm break-words">{u.unitNumber}</span>
                             </div>
                           ))}
                         </div>
@@ -661,6 +671,38 @@
                 </div>
                 
                 <div className="bg-transparent lg:col-span-2 space-y-5">
+                  
+                  {/* قسم الأقساط المتأخرة والمستحقة */}
+                  {overdueInstallments.length > 0 && (
+                    <div className="bg-red-50 p-5 rounded-2xl shadow-sm border border-red-200 cursor-pointer hover:shadow-md transition" onClick={() => setShowOverdue(!showOverdue)}>
+                      <div className="flex justify-between items-center">
+                        <p className="text-lg text-red-800 font-bold">⚠️ أقساط متأخرة ومستحقة ({overdueInstallments.length})</p>
+                        <span className="text-red-600 bg-white px-3 py-1 rounded-lg text-xs font-bold shadow-sm">{showOverdue ? t.hideDetails : t.showDetails}</span>
+                      </div>
+                      {showOverdue && (
+                        <div className="overflow-x-auto mt-4 animate-slide-up" onClick={e=>e.stopPropagation()}>
+                          <table className="w-full text-sm text-right">
+                            <thead className="bg-red-100 text-red-800"><tr><th className="p-2 pb-2">العميل</th><th className="p-2 pb-2">الاستحقاق</th><th className="p-2 pb-2">المبلغ</th><th className="p-2 pb-2">إجراء</th></tr></thead>
+                            <tbody>
+                              {overdueInstallments.map(inst => {
+                                const c = (data.contracts || []).find(ct => ct.id === inst.contractId);
+                                return (
+                                  <tr key={inst.id} className="border-b border-red-100 hover:bg-white transition-colors">
+                                    <td className="p-2 font-bold text-slate-800">{c?.clientName}</td><td className="p-2 font-mono text-xs text-red-600" dir="ltr">{formatShortDate(inst.dueDate)}</td><td className="p-2 font-black text-slate-900 text-base">{Number(inst.amount).toLocaleString()}</td>
+                                    <td className="p-2 flex gap-2">
+                                      <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title:'تحصيل القسط', defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId)=>payInstallment(inst.id, inst.amount, c.clientName, c.buildingId, amt, dt, custId) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">تحصيل</button>
+                                      <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title:'تعديل القسط', showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>{ setData(p=>({...p, installments: p.installments.map(i=>i.id===inst.id?{...i, amount:Number(amt), dueDate:dt}:i)})); showMsg('تم التعديل'); } }})} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">تعديل</button>
+                                    </td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {(data.contracts || []).filter(c => c.status === 'active').map(c => {
                     const u = (data.units || []).find(un => un.id === c.unitId);
                     const b = (data.buildings || []).find(bd => bd.id === c.buildingId);
@@ -674,6 +716,7 @@
                             {isExpanded && <button onClick={(e) => { e.stopPropagation(); requirePin(()=>setAppModal({show:true, type:'CONFIRM', props:{title:'تأكيد الفسخ', message:'متأكد من الفسخ؟', onConfirm:()=>{ setData(p=>({...p, contracts: p.contracts.map(ct=>ct.id===c.id?{...ct,status:'canceled'}:ct), installments: p.installments.filter(i=>!(i.contractId===c.id && i.status==='pending')), units: p.units.map(un=>un.id===c.unitId?{...un,status:'available'}:un)})); showMsg('تم فسخ العقد'); }}})); }} className="text-xs text-red-600 bg-red-50 px-4 py-2 rounded-xl font-bold border border-red-100 hover:bg-red-100 transition">فسخ العقد</button>}
                           </div>
                         </div>
+                        
                         {isExpanded && (
                           <div className="mt-4 border-t pt-4 animate-slide-up" onClick={e=>e.stopPropagation()}>
                             <div className="overflow-x-auto mb-4">
@@ -699,6 +742,7 @@
                       </div>
                     )
                   })}
+                  {(data.contracts || []).filter(c => c.status === 'active').length === 0 && <div className="text-center p-10 text-slate-400 font-bold bg-white rounded-2xl shadow-sm border border-slate-200">لا توجد عقود مبيعات نشطة حالياً</div>}
                 </div>
               </div>
             )}
@@ -709,25 +753,23 @@
                 
                 {/* --- PDF PRINT VIEW --- */}
                 <div className="hidden print-show text-black">
-                  <h2 className="text-3xl text-center mb-2 font-black tracking-wide">تقرير كشف حساب</h2>
+                  <h2 className="text-3xl text-center mb-2 font-black tracking-wide">{reportType === 'transactions' ? 'تقرير كشف حساب' : 'بيان أقساط ومستحقات'}</h2>
                   <h3 className="text-2xl text-center mb-2 font-bold bg-gray-100 p-2 inline-block mx-auto rounded">{reportType === 'transactions' ? reportData.custodyName : reportData.buildingName}</h3>
                   <h4 className="text-lg text-center mb-6 font-bold text-gray-700">الفترة من: {reportFilter.startDate ? formatShortDate(reportFilter.startDate) : 'البداية'} إلى: {reportFilter.endDate ? formatShortDate(reportFilter.endDate) : 'الآن'}</h4>
 
                   {reportType === 'transactions' ? (
                     <>
-                      {reportFilter.custodyIds.length > 0 && (
-                        <table className="mb-5"><thead><tr className="bg-gray-200"><th className="w-[80%] text-right print-header border-black text-xl">رصيد بداية المدة المُرَحَّل</th><th className="w-[20%] border-black text-2xl text-center font-black">{reportData.openingBalance.toLocaleString()}</th></tr></thead></table>
-                      )}
                       <h4 className="text-2xl font-black border-b-4 border-black mt-6 mb-3 pb-1 inline-block">جدول الإيرادات</h4>
                       <table>
                         <thead className="bg-gray-100 text-lg"><tr><th className="w-[15%] text-center">التاريخ</th><th className="w-[65%] text-right">البيان والتفاصيل</th><th className="w-[20%] text-center">المبلغ</th></tr></thead>
                         <tbody>
+                          <tr className="print-row-text bg-gray-50"><td className="text-center font-mono">--</td><td className="font-bold text-lg text-slate-700">رصيد أول المدة المُرحل</td><td className="text-center font-bold text-xl">{reportData.openingBalance.toLocaleString()}</td></tr>
                           {reportData.incomes.map(t => (
                             <tr key={t.id} className="print-row-text"><td dir="ltr" className="text-center font-mono">{formatShortDate(t.date)}</td><td className="font-bold text-lg">{t.description}</td><td className="text-center font-bold text-xl">{Number(t.amount).toLocaleString()}</td></tr>
                           ))}
                         </tbody>
                       </table>
-                      <div className="text-left mt-3 mb-8 text-2xl font-black bg-gray-100 p-2 border-2 border-black inline-block float-left rounded">إجمالي الإيراد (شامل البداية): {(reportData.totalIncomes + reportData.openingBalance).toLocaleString()}</div>
+                      <div className="text-left mt-3 mb-8 text-2xl font-black bg-gray-100 p-2 border-2 border-black inline-block float-left rounded">إجمالي الإيرادات: {(reportData.totalIncomes + reportData.openingBalance).toLocaleString()}</div>
                       <div className="clear-both"></div>
 
                       <h4 className="text-2xl font-black border-b-4 border-black mt-6 mb-3 pb-1 inline-block">جدول المصروفات</h4>
@@ -737,9 +779,10 @@
                           {reportData.expenses.map(t => (
                             <tr key={t.id} className="print-row-text"><td dir="ltr" className="text-center font-mono">{formatShortDate(t.date)}</td><td className="font-bold text-lg">{t.description}</td><td className="text-center font-bold text-xl">{Number(t.amount).toLocaleString()}</td></tr>
                           ))}
+                          {reportData.expenses.length === 0 && <tr><td colSpan="3" className="text-center py-3 text-gray-500 font-bold">لا توجد مصروفات مسجلة في هذه الفترة</td></tr>}
                         </tbody>
                       </table>
-                      <div className="text-left mt-3 mb-8 text-2xl font-black bg-gray-100 p-2 border-2 border-black inline-block float-left rounded">إجمالي المصروفات للفترة: {reportData.totalExpenses.toLocaleString()}</div>
+                      <div className="text-left mt-3 mb-8 text-2xl font-black bg-gray-100 p-2 border-2 border-black inline-block float-left rounded">إجمالي المصروفات: {reportData.totalExpenses.toLocaleString()}</div>
                       <div className="clear-both"></div>
 
                       <div className="p-4 text-center text-3xl border-4 border-black mt-10 bg-gray-200 font-black rounded-lg shadow-sm">
@@ -748,7 +791,6 @@
                     </>
                   ) : (
                     <>
-                      <h4 className="text-2xl font-black border-b-4 border-black mt-4 mb-3 pb-1 inline-block">تقرير الأقساط والمستحقات</h4>
                       <table>
                         <thead className="bg-gray-100 text-lg"><tr><th>التاريخ</th><th>اسم العميل</th><th>الوحدة / العمارة</th><th>الحالة</th><th>المبلغ</th></tr></thead>
                         <tbody>
@@ -829,7 +871,6 @@
                     </div>
                     <div>
                       <NumberInput required placeholder="0.00" className="border-2 p-3 text-sm w-full rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCustody.totalAmount} onChange={v=>setNewCustody({...newCustody, totalAmount:v})}/>
-                      {lastCustodyNet > 0 && <span onClick={() => setNewCustody({...newCustody, totalAmount: lastCustodyNet.toString()})} className="block text-xs font-bold text-blue-600 mt-2 cursor-pointer hover:underline bg-blue-50 p-2 rounded-lg text-center border border-blue-100 shadow-sm transition hover:bg-blue-100">💡 مقترح: صافي آخر عهدة ({lastCustodyNet.toLocaleString()})</span>}
                     </div>
                     <button className="bg-slate-800 text-white p-4 rounded-xl w-full text-md font-bold shadow-lg hover:bg-slate-900 transition">{t.save}</button>
                   </form>

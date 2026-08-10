@@ -14,15 +14,20 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     @media print {
+      body * { visibility: hidden; }
+      .print-show, .print-show * { visibility: visible; }
+      .print-show { position: absolute; left: 0; top: 0; width: 100%; }
+      .receipt-print-area, .receipt-print-area * { visibility: visible; }
+      .receipt-print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; }
+      
       @page { size: landscape; margin: 10mm; }
+      .receipt-print-area @page { size: portrait; margin: 5mm; }
+      
       body { background: white !important; font-weight: bold !important; font-size: 1.1rem !important; }
       .print-hide { display: none !important; }
-      .print-show { display: block !important; }
       table { width: 100%; border-collapse: collapse; margin: 15px auto; }
       th, td { border: 2px solid black !important; padding: 6px 8px !important; text-align: center; }
       .print-row-text { font-size: 1rem !important; }
-      .print-header { font-size: 1.2rem !important; text-align: center; }
-      h2, h3, h4 { margin-bottom: 5px !important; text-align: center !important; }
     }
     @keyframes slideUp { from { transform: translateY(10%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     .animate-slide-up { animation: slideUp 0.2s ease-out; }
@@ -202,6 +207,7 @@
       const [toast, setToast] = useState({ show: false, msg: '', isError: false });
       const [appModal, setAppModal] = useState({ show: false, type: '', props: {} });
       const [editingTxId, setEditingTxId] = useState(null);
+      const [globalSearch, setGlobalSearch] = useState('');
 
       const [newBuilding, setNewBuilding] = useState('');
       const [newBuildingPartner, setNewBuildingPartner] = useState(false);
@@ -322,23 +328,7 @@
            if ((reportFilter.buildingIds || []).length > 0 && !(reportFilter.buildingIds || []).includes(contract?.buildingId)) return false;
            return true;
         });
-
-        insts.sort((a,b) => {
-          if (reportSort === 'client') {
-             const cA = (data.contracts||[]).find(c => c.id === a.contractId)?.clientName || '';
-             const cB = (data.contracts||[]).find(c => c.id === b.contractId)?.clientName || '';
-             return cA.localeCompare(cB);
-          }
-          if (reportSort === 'building') {
-             const cA = (data.contracts||[]).find(c => c.id === a.contractId)?.buildingId || '';
-             const cB = (data.contracts||[]).find(c => c.id === b.contractId)?.buildingId || '';
-             const bA = (data.buildings||[]).find(bd=>bd.id === cA)?.name || '';
-             const bB = (data.buildings||[]).find(bd=>bd.id === cB)?.name || '';
-             return bA.localeCompare(bB);
-          }
-          return new Date(a.dueDate || 0) - new Date(b.dueDate || 0);
-        });
-
+        insts.sort((a,b) => new Date(a.dueDate || 0) - new Date(b.dueDate || 0));
         return insts;
       }, [data, reportFilter, reportSort]);
 
@@ -442,31 +432,28 @@
         e.preventDefault(); 
         const pPercent = newBuildingPartner ? Number(newBuildingPartnerPercent) : 0;
         setData(p=>({...p, buildings: [...(p.buildings||[]), {id: 'b_'+Date.now(), name: newBuilding, hasPartner: newBuildingPartner, partnerPercent: pPercent}]})); 
-        setNewBuilding(''); setNewBuildingPartner(false); setNewBuildingPartnerPercent('');
-        showMsg(t.success); 
+        setNewBuilding(''); setNewBuildingPartner(false); setNewBuildingPartnerPercent(''); showMsg(t.success); 
       };
 
       const addUnit = (e) => { e.preventDefault(); setData(p => ({ ...p, units: [...(p.units || []), { id: 'u_' + Date.now(), ...newUnit, status: 'available' }] })); setNewUnit({ buildingId: '', unitNumber: '', price: '' }); showMsg(t.success); };
       
       const addContract = (e) => { 
-        e.preventDefault(); const unit = (data.units || []).find(u => u.id === newContract.unitId); if (!unit) return; 
-        const contractId = 'cont_' + Date.now(); const dp = Number(newContract.downPayment); const total = Number(newContract.totalAmount); const count = Number(newContract.installmentsCount); 
-        const contract = { id: contractId, clientName: newContract.clientName, unitId: unit.id, buildingId: unit.buildingId, totalAmount: total, downPayment: dp, date: todayDateStr, status: 'active' }; 
-        
-        const newInsts = []; 
-        let curDate = new Date(newContract.firstInstallmentDate); 
-        const baseInstAmount = count > 0 ? Math.floor((total - dp) / count) : 0; 
-        let remainder = (total - dp) - (baseInstAmount * count);
-
-        for(let i=0; i<count; i++) { 
-          let currentAmt = baseInstAmount;
-          if (i === count - 1) currentAmt += remainder; // وضع باقي الكسور في القسط الأخير
-          newInsts.push({ id: 'inst_' + Date.now() + '_' + i, contractId, amount: currentAmt, dueDate: curDate.toISOString().split('T')[0], status: 'pending', partnerPaid: false }); 
-          curDate.setMonth(curDate.getMonth() + Number(newContract.interval)); 
-        } 
-        const trans = { id: 't_' + Date.now(), type: 'income', amount: dp, buildingId: unit.buildingId, description: (lang==='ar'?`مقدم تعاقد: ${newContract.clientName}`:`Down Payment: ${newContract.clientName}`), date: todayDateStr }; 
-        setData(prev => ({ ...prev, contracts: [...(prev.contracts || []), contract], installments: [...(prev.installments || []), ...newInsts], transactions: [...(prev.transactions || []), trans], units: (prev.units || []).map(u => u.id === unit.id ? { ...u, status: 'sold' } : u) })); 
-        setNewContract({ clientName: '', unitId: '', totalAmount: '', downPayment: '', installmentsCount: '', firstInstallmentDate: '', interval: '1' }); showMsg(t.success); 
+         e.preventDefault(); const unit = (data.units || []).find(u => u.id === newContract.unitId); if (!unit) return; 
+         const contractId = 'cont_' + Date.now(); const dp = Number(newContract.downPayment); const total = Number(newContract.totalAmount); const count = Number(newContract.installmentsCount); 
+         const contract = { id: contractId, clientName: newContract.clientName, unitId: unit.id, buildingId: unit.buildingId, totalAmount: total, downPayment: dp, date: todayDateStr, status: 'active' }; 
+         const newInsts = []; 
+         let curDate = new Date(newContract.firstInstallmentDate); 
+         const baseInstAmount = count > 0 ? Math.floor((total - dp) / count) : 0; 
+         let remainder = (total - dp) - (baseInstAmount * count);
+         for(let i=0; i<count; i++) { 
+           let currentAmt = baseInstAmount;
+           if (i === count - 1) currentAmt += remainder; 
+           newInsts.push({ id: 'inst_' + Date.now() + '_' + i, contractId, amount: currentAmt, dueDate: curDate.toISOString().split('T')[0], status: 'pending', partnerPaid: false }); 
+           curDate.setMonth(curDate.getMonth() + Number(newContract.interval)); 
+         } 
+         const trans = { id: 't_' + Date.now(), type: 'income', amount: dp, buildingId: unit.buildingId, description: (lang==='ar'?`مقدم تعاقد: ${newContract.clientName}`:`Down Payment: ${newContract.clientName}`), date: todayDateStr }; 
+         setData(prev => ({ ...prev, contracts: [...(prev.contracts || []), contract], installments: [...(prev.installments || []), ...newInsts], transactions: [...(prev.transactions || []), trans], units: (prev.units || []).map(u => u.id === unit.id ? { ...u, status: 'sold' } : u) })); 
+         setNewContract({ clientName: '', unitId: '', totalAmount: '', downPayment: '', installmentsCount: '', firstInstallmentDate: '', interval: '1' }); showMsg(t.success); 
       };
 
       const payInstallment = (instId, clientName, buildingId, paidAmount, date, custodyId) => {
@@ -482,7 +469,6 @@
               } else {
                 const remaining = fullAmount - paid;
                 updatedInsts[instIndex] = { ...instToUpdate, status: 'paid', amount: paid };
-                // إنشاء القسط المتبقي بنفس التاريخ الأصلي
                 updatedInsts.push({ id: 'inst_rem_' + Date.now(), contractId: instToUpdate.contractId, amount: remaining, dueDate: instToUpdate.dueDate, status: 'pending', partnerPaid: false });
               }
               const trans = { id: 't_' + Date.now(), type: 'income', amount: paid, buildingId, custodyId: custodyId || '', description: (lang==='ar'?`تحصيل قسط ${paid < fullAmount ? '(جزئي)' : ''}: ${clientName}`:`Installment Collection ${paid < fullAmount ? '(Partial)' : ''}: ${clientName}`), date: date || todayDateStr };
@@ -526,19 +512,23 @@
       const sortedCustodies = [...(data.custodies || [])].reverse();
       const sortedBuildings = [...(data.buildings || [])].reverse();
       const sortedCategories = [...(data.categories || [])].reverse();
-
       const lastCustodyNet = sortedCustodies.length > 0 ? (custodyCalculations.find(c => c.id === sortedCustodies[0].id)?.remaining || 0) : 0;
+
+      const filteredContracts = (data.contracts || []).filter(c => c.status === 'active' && (!globalSearch || c.clientName.includes(globalSearch)));
 
       return (
         <div className="min-h-screen flex flex-col bg-slate-100 pb-10">
           <header className="bg-slate-900 text-white p-4 shadow-lg print-hide flex justify-between items-center relative z-40">
-            <h1 className="text-xl font-bold tracking-wide flex items-center gap-2">🏢 <span>{t.appTitle}</span></h1>
+            <h1 className="text-xl font-bold tracking-wide flex items-center gap-2">🏢 <span className="hidden sm:inline">{t.appTitle}</span></h1>
+            <div className="flex-grow mx-4 max-w-md relative">
+               <input type="text" placeholder="🔍 بحث عن عميل..." className="w-full bg-slate-800 text-white px-4 py-2 rounded-full border border-slate-700 outline-none focus:border-blue-500 text-sm placeholder-slate-400" onChange={(e)=>{setGlobalSearch(e.target.value); if(e.target.value) setActiveTab('sales');}} value={globalSearch}/>
+            </div>
             <button onClick={() => setActiveTab('settings')} className="text-2xl hover:rotate-90 transition-transform">⚙️</button>
           </header>
 
-          <nav className="bg-slate-800 text-slate-200 grid grid-cols-3 border-b border-slate-700 print-hide shadow-md">
+          <nav className="bg-slate-800 text-slate-200 grid grid-cols-3 md:grid-cols-6 border-b border-slate-700 print-hide shadow-md">
             {tabs.map(tab => (
-              <button key={tab.id} onClick={() => {setActiveTab(tab.id); setEditingTxId(null);}} 
+              <button key={tab.id} onClick={() => {setActiveTab(tab.id); setEditingTxId(null); setGlobalSearch('');}} 
                 className={`p-3 text-sm font-bold text-center border-b border-l border-slate-700 transition-colors ${activeTab === tab.id ? 'bg-slate-100 text-blue-800 border-b-4 border-b-blue-600 shadow-inner' : 'hover:bg-slate-700'}`}>
                 {tab.label}
               </button>
@@ -555,6 +545,7 @@
 
           {appModal.show && (
             <div className="fixed inset-0 bg-slate-900 bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-[100] animate-fade-in p-4 print-hide" onClick={closeModal}>
+              
               {appModal.type === 'TX_ACTION' && appModal.props.tx && (
                 <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}>
                   <div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div>
@@ -591,16 +582,60 @@
                   <button onClick={() => { requirePin(() => { setAppModal({show: true, type: 'CONFIRM', props: { title: t.delete, message: t.confirmDelUnit, onConfirm: () => { setData(p => ({...p, units: p.units.filter(u => u.id !== appModal.props.u.id)})); closeModal(); showMsg(t.success); } }}) }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button>
                 </div>
               )}
+
+              {appModal.type === 'EDIT_CONTRACT' && (
+                <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}>
+                  <h3 className="font-bold text-lg mb-4 text-center border-b pb-2 text-slate-800">تعديل بيانات العقد</h3>
+                  <form onSubmit={(e)=>{
+                      e.preventDefault();
+                      const cName = e.target.cName.value;
+                      const tAmt = e.target.tAmt.value;
+                      setData(p => ({...p, contracts: p.contracts.map(c => c.id === appModal.props.contract.id ? {...c, clientName: cName, totalAmount: Number(tAmt)} : c)}));
+                      closeModal(); showMsg(t.success);
+                  }}>
+                    <label className="text-xs mb-1 block font-bold text-slate-500">اسم العميل</label>
+                    <input name="cName" defaultValue={appModal.props.contract.clientName} required className="w-full border-2 border-slate-300 focus:border-blue-500 outline-none p-3 rounded-xl mb-4 font-bold bg-slate-50" />
+                    <label className="text-xs mb-1 block font-bold text-slate-500">إجمالي المبلغ التعاقدي</label>
+                    <input name="tAmt" type="number" defaultValue={appModal.props.contract.totalAmount} required className="w-full border-2 border-slate-300 focus:border-blue-500 outline-none p-3 rounded-xl mb-5 font-bold bg-slate-50" />
+                    <div className="flex gap-2">
+                      <button type="submit" className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow hover:bg-blue-700">تحديث الحفظ</button>
+                      <button type="button" onClick={closeModal} className="flex-1 bg-slate-200 text-slate-700 py-3 rounded-xl font-bold">إلغاء</button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
               {appModal.type === 'PIN' && (
                 <div className="bg-white w-full max-w-xs rounded-2xl overflow-hidden shadow-2xl animate-slide-up" onClick={e=>e.stopPropagation()}>
                   <div className="bg-red-600 text-white p-4 text-center font-bold">🔒</div>
                   <div className="p-6">
-                    <p className="text-center text-sm mb-4">PIN</p>
-                    <input type="password" inputMode="numeric" pattern="[0-9]*" maxLength="4" autoFocus className="w-full border-b-2 border-red-400 p-2 text-center text-3xl tracking-[0.5em] font-bold outline-none focus:border-red-600 transition-colors bg-slate-50" onChange={e => { if(e.target.value === data.pinCode) { closeModal(); setTimeout(appModal.props.onSuccess, 50); } }} />
+                    <p className="text-center text-sm mb-4">أدخل الرمز السري</p>
+                    <input type="password" inputMode="numeric" pattern="[0-9]*" maxLength="4" autoFocus className="w-full border-b-2 border-red-400 p-2 text-center text-3xl tracking-[0.5em] font-bold outline-none focus:border-red-600 transition-colors bg-slate-50" onChange={e => { if(e.target.value === (data.pinCode || '0000')) { closeModal(); setTimeout(appModal.props.onSuccess, 50); } }} />
                   </div>
                   <button onClick={closeModal} className="w-full p-4 bg-slate-100 text-slate-600 font-bold hover:bg-slate-200">{t.no}</button>
                 </div>
               )}
+              
+              {appModal.type === 'RECEIPT' && (
+                <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-slide-up" onClick={e=>e.stopPropagation()}>
+                  <div id="receipt-area" className="p-6 bg-white text-black text-center border-b-4 border-dashed receipt-print-area">
+                    <h2 className="text-2xl font-black mb-1">{t.appTitle}</h2>
+                    <p className="text-sm font-bold mb-6 text-gray-500">إيصال استلام نقدية</p>
+                    <div className="text-right space-y-3 mb-6 bg-gray-50 p-4 rounded-xl border" dir="rtl">
+                      <p className="border-b pb-2"><strong className="text-gray-600">التاريخ:</strong> <span className="font-mono ml-2 font-bold">{appModal.props.date}</span></p>
+                      <p className="border-b pb-2"><strong className="text-gray-600">العميل:</strong> <span className="font-bold ml-2">{appModal.props.clientName}</span></p>
+                      <p className="border-b pb-2"><strong className="text-gray-600">البيان:</strong> <span className="font-bold ml-2">قسط وحدة ({appModal.props.buildingName})</span></p>
+                      <p className="text-lg text-emerald-700 pt-1"><strong className="text-gray-600 text-sm">المبلغ المستلم:</strong> <span className="font-black ml-2">{Number(appModal.props.amount).toLocaleString()} ج.م</span></p>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-4">تم الاستلام. شكراً لثقتكم.</p>
+                  </div>
+                  <div className="p-4 flex gap-2 bg-slate-100">
+                     <button onClick={()=>{ window.print(); }} className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow hover:bg-blue-700">🖨️ طباعة الإيصال</button>
+                     <button onClick={closeModal} className="flex-1 bg-slate-300 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-400">إغلاق</button>
+                  </div>
+                </div>
+              )}
+              
               {appModal.type === 'CONFIRM' && (
                 <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-slide-up" onClick={e=>e.stopPropagation()}>
                   <div className="bg-slate-900 text-white p-4 text-center font-bold text-lg">{appModal.props.title || t.action}</div>
@@ -611,6 +646,7 @@
                   </div>
                 </div>
               )}
+              
               {appModal.type === 'PROMPT_INST' && (
                 <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-slide-up" onClick={e=>e.stopPropagation()}>
                   <div className="bg-blue-800 text-white p-4 text-center font-bold">{appModal.props.title}</div>
@@ -633,6 +669,7 @@
                   </form>
                 </div>
               )}
+
               {appModal.type === 'PAY_PARTNER' && (
                 <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}>
                   <div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div>
@@ -662,7 +699,6 @@
           )}
 
           <main className="flex-grow p-4 mx-auto w-full max-w-7xl relative z-10">
-            
             {/* Dashboard */}
             {activeTab === 'dashboard' && (
               <div className="space-y-6 print-hide animate-fade-in">
@@ -868,7 +904,6 @@
                     <div><label className="text-xs font-bold text-slate-500 block mb-1">{t.totalAmount}</label><NumberInput required value={newContract.totalAmount} onChange={v => setNewContract({...newContract, totalAmount: v})} className="w-full border-2 p-3 rounded-xl text-lg font-bold bg-white focus:border-blue-400 outline-none" /></div>
                     <div><label className="text-xs font-bold text-slate-500 block mb-1">{t.downPayment}</label><NumberInput required value={newContract.downPayment} onChange={v => setNewContract({...newContract, downPayment: v})} className="w-full border-2 p-3 rounded-xl text-lg font-bold bg-white focus:border-blue-400 outline-none" /></div>
                     <div><label className="text-xs font-bold text-slate-500 block mb-1">{t.instCount}</label><NumberInput required value={newContract.installmentsCount} onChange={v => setNewContract({...newContract, installmentsCount: v})} className="w-full border-2 p-3 rounded-xl text-lg font-bold bg-white focus:border-blue-400 outline-none text-center" /></div>
-                    
                     <div>
                       <label className="text-xs font-bold text-slate-500 block mb-1">{t.paySystem}</label>
                       <select required className="w-full border-2 p-3 rounded-xl text-sm font-bold bg-slate-50 focus:border-blue-400 outline-none" value={newContract.interval} onChange={e => setNewContract({...newContract, interval: e.target.value})}>
@@ -880,15 +915,12 @@
                         <option value="12">{t.sys12}</option>
                       </select>
                     </div>
-
                     <div><label className="text-xs font-bold text-slate-500 block mb-1">{t.firstInstDate}</label><input type="date" className="w-full border-2 p-3 rounded-xl text-sm font-bold bg-slate-50 focus:border-blue-400 outline-none font-mono" required value={newContract.firstInstallmentDate} onChange={e => setNewContract({...newContract, firstInstallmentDate: e.target.value})} /></div>
                     <button className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-md shadow-lg hover:bg-blue-700 transition mt-2">{t.saveContract}</button>
                   </form>
                 </div>
                 
                 <div className="bg-transparent lg:col-span-2 space-y-5">
-                  
-                  {/* قسم الأقساط المتأخرة والمستحقة */}
                   {overdueInstallments.length > 0 && (
                     <div className="bg-red-50 p-5 rounded-2xl shadow-sm border border-red-200 cursor-pointer hover:shadow-md transition" onClick={() => setShowOverdue(!showOverdue)}>
                       <div className="flex justify-between items-center">
@@ -929,7 +961,7 @@
                     </div>
                   )}
 
-                  {(data.contracts || []).filter(c => c.status === 'active').map(c => {
+                  {filteredContracts.map(c => {
                     const u = (data.units || []).find(un => un.id === c.unitId);
                     const b = (data.buildings || []).find(bd => bd.id === c.buildingId);
                     const isExpanded = expandedBuildings[c.id]; 
@@ -939,7 +971,12 @@
                           <div><p className="font-black text-blue-900 text-xl mb-1">{c.clientName}</p><p className="text-xs font-bold text-slate-600 bg-slate-100 inline-block px-3 py-1.5 rounded-lg border">{b?.name} - {u?.unitNumber}</p></div>
                           <div className="flex flex-col items-end gap-2">
                             <span className="text-blue-600 bg-blue-50 px-3 py-1 rounded-lg text-xs font-bold shadow-sm">{isExpanded ? t.hideDetails : t.showDetails}</span>
-                            {isExpanded && <button onClick={(e) => { e.stopPropagation(); requirePin(()=>setAppModal({show:true, type:'CONFIRM', props:{title: t.cancelContract, message: t.confirmCancel, onConfirm:()=>{ setData(p=>({...p, contracts: p.contracts.map(ct=>ct.id===c.id?{...ct,status:'canceled'}:ct), installments: p.installments.filter(i=>!(i.contractId===c.id && i.status==='pending')), units: p.units.map(un=>un.id===c.unitId?{...un,status:'available'}:un)})); showMsg(t.success); }}})); }} className="text-xs text-red-600 bg-red-50 px-4 py-2 rounded-xl font-bold border border-red-100 hover:bg-red-100 transition">{t.cancelContract}</button>}
+                            {isExpanded && (
+                              <div className="flex gap-2">
+                                <button onClick={(e)=>{e.stopPropagation(); requirePin(()=>setAppModal({show:true, type:'EDIT_CONTRACT', props: {contract: c}}));}} className="text-xs text-blue-700 bg-blue-50 px-4 py-2 rounded-xl font-bold border border-blue-200 hover:bg-blue-100 transition">تعديل بيانات العقد</button>
+                                <button onClick={(e) => { e.stopPropagation(); requirePin(()=>setAppModal({show:true, type:'CONFIRM', props:{title: t.cancelContract, message: t.confirmCancel, onConfirm:()=>{ setData(p=>({...p, contracts: p.contracts.map(ct=>ct.id===c.id?{...ct,status:'canceled'}:ct), installments: p.installments.filter(i=>!(i.contractId===c.id && i.status==='pending')), units: p.units.map(un=>un.id===c.unitId?{...un,status:'available'}:un)})); showMsg(t.success); }}})); }} className="text-xs text-red-600 bg-red-50 px-4 py-2 rounded-xl font-bold border border-red-100 hover:bg-red-100 transition">{t.cancelContract}</button>
+                              </div>
+                            )}
                           </div>
                         </div>
                         
@@ -963,10 +1000,14 @@
                                       </td>
                                       <td className="p-2">{inst.status === 'paid' ? <span className="text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-lg text-xs border border-emerald-100">{t.paid}</span> : <span className="text-amber-500 font-bold text-xs bg-amber-50 px-3 py-1 rounded-lg border border-amber-100">{t.pending}</span>}</td>
                                       <td className="p-2 flex flex-col gap-2">
-                                        {inst.status === 'pending' && <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptCollect, defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId)=>payInstallment(inst.id, c.clientName, c.buildingId, amt, dt, custId) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">{t.collect}</button>}
+                                        {inst.status === 'pending' && <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptCollect, defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId)=>payInstallment(inst.id, c.clientName, b?.id, amt, dt, custId) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">{t.collect}</button>}
                                         {inst.status === 'pending' && <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptEditInst, showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>{ setData(p=>({...p, installments: p.installments.map(i=>i.id===inst.id?{...i, amount:Number(amt), dueDate:dt}:i)})); showMsg(t.success); } }})} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">{t.edit}</button>}
                                         {inst.status === 'paid' && !inst.partnerPaid && b?.hasPartner && b.partnerPercent > 0 && (
                                           <button onClick={() => setAppModal({show:true, type:'PAY_PARTNER', props:{partnerAmt: Math.round(inst.amount * (b.partnerPercent/100)), onConfirm:(dt, custId)=>payPartnerShare(inst.id, Math.round(inst.amount * (b.partnerPercent/100)), c.clientName, b.name, custId, dt)}})} className="bg-purple-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-purple-600 transition">{t.payPartnerBtn}</button>
+                                        )}
+                                        {/* زر طباعة الإيصال */}
+                                        {inst.status === 'paid' && (
+                                          <button onClick={() => setAppModal({show: true, type:'RECEIPT', props:{ date: formatShortDate(inst.dueDate), clientName: c.clientName, buildingName: `${b?.name} - الوحدة ${u?.unitNumber}`, amount: inst.amount }})} className="bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-slate-900 transition flex justify-center items-center gap-1">🖨️ إيصال</button>
                                         )}
                                       </td>
                                     </tr>
@@ -980,7 +1021,7 @@
                       </div>
                     )
                   })}
-                  {(data.contracts || []).filter(c => c.status === 'active').length === 0 && <div className="text-center p-10 text-slate-400 font-bold bg-white rounded-2xl shadow-sm border border-slate-200">{t.noContracts}</div>}
+                  {filteredContracts.length === 0 && <div className="text-center p-10 text-slate-400 font-bold bg-white rounded-2xl shadow-sm border border-slate-200">لا توجد نتائج بحث مطابقة</div>}
                 </div>
               </div>
             )}
@@ -989,13 +1030,13 @@
             {activeTab === 'reports' && (
               <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 animate-fade-in">
                 
-                {/* --- PDF PRINT VIEW --- */}
+                {/* --- PDF PRINT VIEW UPDATED --- */}
                 <div className="hidden print-show text-black">
                   {reportType === 'transactions' ? (
                     <>
-                      <h2 className="text-3xl font-black">{t.repCustodyTitle}</h2>
-                      <h3 className="text-2xl font-bold">{reportData.custodyName}</h3>
-                      <h4 className="text-lg font-bold text-gray-700">{t.periodFrom}: {reportFilter.startDate ? formatShortDate(reportFilter.startDate) : t.start} {t.periodTo}: {reportFilter.endDate ? formatShortDate(reportFilter.endDate) : t.now}</h4>
+                      <h2 className="text-3xl font-black text-center mb-2">{t.repCustodyTitle}</h2>
+                      <h3 className="text-2xl font-bold text-center mb-6">{reportData.custodyName}</h3>
+                      <h4 className="text-lg font-bold text-gray-700 mb-4">{t.periodFrom}: {reportFilter.startDate ? formatShortDate(reportFilter.startDate) : t.start} | {t.periodTo}: {reportFilter.endDate ? formatShortDate(reportFilter.endDate) : t.now}</h4>
                       
                       <h4 className="text-2xl font-black mt-6 border-b-4 border-black inline-block">{t.incTable}</h4>
                       <table>
@@ -1028,9 +1069,9 @@
                     </>
                   ) : reportType === 'installments' ? (
                     <>
-                      <h2 className="text-3xl font-black">{t.repSalesTitle}</h2>
-                      <h3 className="text-2xl font-bold">{reportData.buildingName}</h3>
-                      <h4 className="text-lg font-bold text-gray-700">{t.periodFrom}: {reportFilter.startDate ? formatShortDate(reportFilter.startDate) : t.start} {t.periodTo}: {reportFilter.endDate ? formatShortDate(reportFilter.endDate) : t.now}</h4>
+                      <h2 className="text-3xl font-black text-center mb-2">{t.repSalesTitle}</h2>
+                      <h3 className="text-2xl font-bold text-center mb-6">{reportData.buildingName}</h3>
+                      <h4 className="text-lg font-bold text-gray-700 mb-4">{t.periodFrom}: {reportFilter.startDate ? formatShortDate(reportFilter.startDate) : t.start} | {t.periodTo}: {reportFilter.endDate ? formatShortDate(reportFilter.endDate) : t.now}</h4>
 
                       <table>
                         <thead className="bg-gray-100 text-lg"><tr><th className="text-center">{t.date}</th><th className="text-center">{t.client}</th><th className="text-center">{t.building}</th><th className="text-center">{t.amount}</th><th className="text-center">{t.myShare}</th><th className="text-center">{t.partnerDue}</th><th className="text-center">{t.partnerPaidStatus}</th><th className="text-center">{t.status}</th></tr></thead>
@@ -1055,8 +1096,8 @@
                     </>
                   ) : (
                     <>
-                      <h2 className="text-3xl font-black">{t.repContractsTitle}</h2>
-                      <h3 className="text-2xl font-bold">{reportData.buildingName}</h3>
+                      <h2 className="text-3xl font-black text-center mb-2">{t.repContractsTitle}</h2>
+                      <h3 className="text-2xl font-bold text-center mb-6">{reportData.buildingName}</h3>
                       <table>
                         <thead className="bg-gray-100 text-lg"><tr><th className="text-center">{t.client}</th><th className="text-center">{t.building}</th><th className="text-center">{t.totalUnit}</th><th className="text-center">{t.paidAmt}</th><th className="text-center">{t.remAmt}</th><th className="text-center">{t.nextDue}</th></tr></thead>
                         <tbody>
@@ -1112,7 +1153,7 @@
               </div>
             )}
 
-            {/* Settings Tab */}
+            {/* Settings Tab - Updated with Change PIN Form */}
             {activeTab === 'settings' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 print-hide animate-fade-in">
                 
@@ -1156,6 +1197,23 @@
                     <button className="bg-slate-800 text-white p-4 rounded-xl w-full text-md font-bold shadow-lg hover:bg-slate-900 transition">{t.saveCustody}</button>
                   </form>
                 </div>
+                
+                <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200 md:col-span-2">
+                  <h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">تغيير رمز PIN للحماية</h4>
+                  <form onSubmit={(e)=>{
+                    e.preventDefault();
+                    requirePin(() => {
+                        const newPin = e.target.newPin.value;
+                        setData(p => ({...p, pinCode: newPin}));
+                        showMsg(t.success);
+                        e.target.reset();
+                    });
+                  }} className="flex flex-col gap-3">
+                    <label className="text-xs font-bold text-slate-500">ادخل الرمز الجديد (4 أرقام):</label>
+                    <input name="newPin" type="password" inputMode="numeric" maxLength="4" pattern="[0-9]{4}" placeholder="****" className="border-2 p-3 text-center tracking-[1em] text-2xl w-full rounded-xl font-bold focus:border-blue-500 outline-none bg-slate-50 max-w-xs mx-auto" required />
+                    <button className="bg-slate-800 text-white p-3 rounded-xl text-md font-bold shadow hover:bg-slate-900 transition mt-2 max-w-xs mx-auto w-full">حفظ الرمز السري الجديد</button>
+                  </form>
+                </div>
 
                 <div className="bg-white p-8 shadow-sm rounded-2xl md:col-span-2 text-center border-2 border-dashed border-blue-400 relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-2 bg-blue-500"></div>
@@ -1181,9 +1239,6 @@
     }
 
     ReactDOM.createRoot(document.getElementById('root')).render(<ErrorBoundary><MainApp /></ErrorBoundary>);
-  </script>
-  <script>
-    if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js'); }); }
   </script>
 </body>
 </html>

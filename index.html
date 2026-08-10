@@ -519,10 +519,7 @@
       return (
         <div className="min-h-screen flex flex-col bg-slate-100 pb-10">
           <header className="bg-slate-900 text-white p-4 shadow-lg print-hide flex justify-between items-center relative z-40">
-            <h1 className="text-xl font-bold tracking-wide flex items-center gap-2">🏢 <span className="hidden sm:inline">{t.appTitle}</span></h1>
-            <div className="flex-grow mx-4 max-w-md relative">
-               <input type="text" placeholder="🔍 بحث عن عميل..." className="w-full bg-slate-800 text-white px-4 py-2 rounded-full border border-slate-700 outline-none focus:border-blue-500 text-sm placeholder-slate-400" onChange={(e)=>{setGlobalSearch(e.target.value); if(e.target.value) setActiveTab('sales');}} value={globalSearch}/>
-            </div>
+            <h1 className="text-xl font-bold tracking-wide flex items-center gap-2">🏢 <span>{t.appTitle}</span></h1>
             <button onClick={() => setActiveTab('settings')} className="text-2xl hover:rotate-90 transition-transform">⚙️</button>
           </header>
 
@@ -610,7 +607,20 @@
                   <div className="bg-red-600 text-white p-4 text-center font-bold">🔒</div>
                   <div className="p-6">
                     <p className="text-center text-sm mb-4">أدخل الرمز السري</p>
-                    <input type="password" inputMode="numeric" pattern="[0-9]*" maxLength="4" autoFocus className="w-full border-b-2 border-red-400 p-2 text-center text-3xl tracking-[0.5em] font-bold outline-none focus:border-red-600 transition-colors bg-slate-50" onChange={e => { if(e.target.value === (data.pinCode || '0000')) { closeModal(); setTimeout(appModal.props.onSuccess, 50); } }} />
+                    <input type="password" inputMode="numeric" pattern="[0-9]*" maxLength="4" autoFocus className="w-full border-b-2 border-red-400 p-2 text-center text-3xl tracking-[0.5em] font-bold outline-none focus:border-red-600 transition-colors bg-slate-50" 
+                      onChange={e => { 
+                        const val = e.target.value;
+                        if(val.length === 4) {
+                          if (val === (data.pinCode || '0000')) {
+                            closeModal(); 
+                            setTimeout(appModal.props.onSuccess, 50); 
+                          } else {
+                            showMsg(lang === 'ar' ? 'الرمز غير صحيح' : 'Incorrect PIN', true);
+                            e.target.value = '';
+                          }
+                        }
+                      }} 
+                    />
                   </div>
                   <button onClick={closeModal} className="w-full p-4 bg-slate-100 text-slate-600 font-bold hover:bg-slate-200">{t.no}</button>
                 </div>
@@ -921,6 +931,7 @@
                 </div>
                 
                 <div className="bg-transparent lg:col-span-2 space-y-5">
+                  
                   {overdueInstallments.length > 0 && (
                     <div className="bg-red-50 p-5 rounded-2xl shadow-sm border border-red-200 cursor-pointer hover:shadow-md transition" onClick={() => setShowOverdue(!showOverdue)}>
                       <div className="flex justify-between items-center">
@@ -960,6 +971,11 @@
                       )}
                     </div>
                   )}
+
+                  {/* شريط البحث المضاف داخل تابة المبيعات */}
+                  <div className="relative">
+                    <input type="text" placeholder="🔍 بحث عن عميل..." className="w-full bg-white text-slate-800 px-4 py-3 rounded-xl border-2 border-slate-200 outline-none focus:border-blue-500 text-sm font-bold shadow-sm" onChange={(e)=>setGlobalSearch(e.target.value)} value={globalSearch}/>
+                  </div>
 
                   {filteredContracts.map(c => {
                     const u = (data.units || []).find(un => un.id === c.unitId);
@@ -1153,7 +1169,7 @@
               </div>
             )}
 
-            {/* Settings Tab - Updated with Change PIN Form */}
+            {/* Settings Tab */}
             {activeTab === 'settings' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 print-hide animate-fade-in">
                 
@@ -1202,11 +1218,12 @@
                   <h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">تغيير رمز PIN للحماية</h4>
                   <form onSubmit={(e)=>{
                     e.preventDefault();
+                    const formTarget = e.target;
+                    const newPinVal = formTarget.newPin.value;
                     requirePin(() => {
-                        const newPin = e.target.newPin.value;
-                        setData(p => ({...p, pinCode: newPin}));
+                        setData(p => ({...p, pinCode: newPinVal}));
                         showMsg(t.success);
-                        e.target.reset();
+                        formTarget.reset();
                     });
                   }} className="flex flex-col gap-3">
                     <label className="text-xs font-bold text-slate-500">ادخل الرمز الجديد (4 أرقام):</label>

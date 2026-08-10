@@ -44,6 +44,33 @@
     const getTodayStr = () => new Date().toISOString().substring(0, 10);
     const todayDateStr = getTodayStr();
 
+    // دالة لضغط الصور قبل حفظها في الذاكرة لتوفير المساحة
+    const compressImage = (file, callback) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = event => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800; // تصغير العرض الأقصى
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > MAX_WIDTH) {
+            height = height * (MAX_WIDTH / width);
+            width = MAX_WIDTH;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6); // ضغط الجودة لـ 60%
+          callback(compressedBase64);
+        }
+      }
+    };
+
     const dict = {
       ar: {
         appTitle: "RealStateApp",
@@ -58,7 +85,7 @@
         backup: "النسخ الاحتياطي", reset: "إعادة ضبط المصنع",
         lang: "لغة البرنامج / Language", yes: "نعم متأكد", no: "إلغاء", txTitle: "تسجيل حركة نقدية",
         showDetails: "التفاصيل ▼", hideDetails: "إخفاء ▲", opBalance: "رصيد أول المدة",
-        hasPartner: "يوجد شريك؟", partnerPercent: "نسبة الشريك (%)", myShare: "نسبتي", partnerShare: "للشريك",
+        hasPartner: "يوجد شريك؟", partnerPercent: "نسبة الشريك (%)", partnerNameInput: "اسم الشريك (اختياري)", myShare: "نسبتي", partnerShare: "للشريك",
         payPartnerBtn: "توريد للشريك", payPartnerTitle: "تأكيد توريد مبلغ الشريك", payPartnerDesc: "سيتم خصم المبلغ من العهدة المختارة كـ (مصروف)",
         deductFromSafe: "خصم من عهدة (مطلوب)", selectSafe: "-- اختر العهدة --",
         sortBy: "ترتيب حسب:", sortDate: "التاريخ", sortClient: "العميل", sortBuilding: "العمارة",
@@ -72,13 +99,13 @@
         newContractTitle: "إنشاء عقد جديد", clientName: "اسم العميل", selectUnit: "-- اختر الوحدة --",
         totalAmount: "الإجمالي (ج.م)", downPayment: "المقدم المدفوع", instCount: "عدد الأقساط", paySystem: "نظام الدفع", firstInstDate: "تاريخ أول قسط",
         saveContract: "تسجيل العقد وإنشاء الأقساط", overdueTitle: "⚠️ أقساط متأخرة ومستحقة", cancelContract: "فسخ العقد", status: "الحالة", paid: "مدفوع", pending: "مستحق",
-        addManualInst: "➕ إضافة قسط يدوي", noContracts: "لا توجد عقود نشطة",
+        addManualInst: "➕ إضافة قسط يدوي", addAttachment: "📎 إرفاق مستند (صورة)", attachments: "المرفقات", noContracts: "لا توجد عقود نشطة",
         repCustodyTitle: "تقرير كشف حساب", repSalesTitle: "بيان أقساط ومستحقات", periodFrom: "من", periodTo: "إلى", start: "البداية", now: "الآن",
         repOpBalance: "رصيد بداية المدة المُرَحَّل", incTable: "جدول الإيرادات", expTable: "جدول المصروفات",
         totalIncomes: "إجمالي الإيرادات", totalExpenses: "إجمالي المصروفات", currentNet: "صافي العهدة الحالي",
-        repInstTitle: "تقرير الأقساط", repCustodyBtn: "كشف حساب العهد", repSalesBtn: "تقرير الأقساط", repContractsBtn: "موقف العملاء والوحدات",
-        repContractsTitle: "تقرير موقف العملاء والوحدات", totalUnit: "إجمالي الوحدة", paidAmt: "المدفوع", remAmt: "المتبقي", nextDue: "القسط القادم",
-        partnerDue: "مستحق للشريك", partnerPaidStatus: "مدفوع للشريك",
+        repInstTitle: "تقرير الأقساط", repCustodyBtn: "كشف حساب العهد", repSalesBtn: "تقرير الأقساط", repContractsBtn: "موقف العملاء والوحدات", repPartnersBtn: "حسابات الشركاء",
+        repContractsTitle: "تقرير موقف العملاء والوحدات", partnerReportTitle: "كشف حساب المستثمر / الشريك", totalUnit: "إجمالي الوحدة", paidAmt: "المدفوع", remAmt: "المتبقي", nextDue: "القسط القادم",
+        partnerDue: "مستحق للشريك", partnerPaidStatus: "مدفوع للشريك", totalExpected: "إجمالي الأرباح المتوقعة", totalCollectedNotPaid: "مستحق للتوريد (مُحصل)", totalPaidToPartner: "تم توريده للشريك", totalPending: "باقي في السوق (لم يُحصل)",
         printPdf: "🖨️ طباعة PDF", exportExcel: "📊 تصدير Excel",
         langTitle: "اللغة / Language", addCatTitle: "🏷️ إضافة تصنيف", catName: "اسم التصنيف...", addCatBtn: "إضافة",
         newCustodyTitle: "👤 إضافة عهدة جديدة", respName: "اسم المسؤول...", initAmount: "الرصيد الافتتاحي", saveCustody: "حفظ العهدة", suggestedNet: "مقترح: صافي آخر عهدة",
@@ -101,7 +128,7 @@
         backup: "Backup", reset: "Factory Reset",
         lang: "Language / لغة البرنامج", yes: "Yes", no: "Cancel", txTitle: "Record Transaction",
         showDetails: "Details ▼", hideDetails: "Hide ▲", opBalance: "Opening Balance",
-        hasPartner: "Has Partner?", partnerPercent: "Partner %", myShare: "My Share", partnerShare: "Partner",
+        hasPartner: "Has Partner?", partnerPercent: "Partner %", partnerNameInput: "Partner Name (Optional)", myShare: "My Share", partnerShare: "Partner",
         payPartnerBtn: "Pay Partner", payPartnerTitle: "Pay Partner's Share", payPartnerDesc: "Deducted from selected safe as expense.",
         deductFromSafe: "Deduct From Safe (Required)", selectSafe: "-- Select Safe --",
         sortBy: "Sort By:", sortDate: "Date", sortClient: "Client", sortBuilding: "Building",
@@ -115,13 +142,13 @@
         newContractTitle: "New Contract", clientName: "Client Name", selectUnit: "-- Select Unit --",
         totalAmount: "Total Amount", downPayment: "Down Payment", instCount: "Installments", paySystem: "Payment Plan", firstInstDate: "First Due Date",
         saveContract: "Save Contract", overdueTitle: "⚠️ Overdue Installments", cancelContract: "Cancel Contract", status: "Status", paid: "Paid", pending: "Pending",
-        addManualInst: "➕ Manual Installment", noContracts: "No active contracts",
+        addManualInst: "➕ Manual Installment", addAttachment: "📎 Add Attachment", attachments: "Attachments", noContracts: "No active contracts",
         repCustodyTitle: "Account Statement", repSalesTitle: "Installments Statement", periodFrom: "From", periodTo: "To", start: "Start", now: "Now",
         repOpBalance: "Carried Forward Balance", incTable: "Incomes", expTable: "Expenses",
         totalIncomes: "Total Incomes", totalExpenses: "Total Expenses", currentNet: "Current Net Balance",
-        repInstTitle: "Installments Report", repCustodyBtn: "Safes Statement", repSalesBtn: "Sales Report", repContractsBtn: "Clients & Units Status",
-        repContractsTitle: "Clients & Units Status Report", totalUnit: "Total Unit", paidAmt: "Paid", remAmt: "Remaining", nextDue: "Next Due",
-        partnerDue: "Partner Due", partnerPaidStatus: "Partner Paid",
+        repInstTitle: "Installments Report", repCustodyBtn: "Safes Statement", repSalesBtn: "Sales Report", repContractsBtn: "Clients & Units Status", repPartnersBtn: "Partners Accounts",
+        repContractsTitle: "Clients & Units Status Report", partnerReportTitle: "Partner/Investor Statement", totalUnit: "Total Unit", paidAmt: "Paid", remAmt: "Remaining", nextDue: "Next Due",
+        partnerDue: "Partner Due", partnerPaidStatus: "Partner Paid", totalExpected: "Total Expected Profit", totalCollectedNotPaid: "Due for Payment (Collected)", totalPaidToPartner: "Paid to Partner", totalPending: "Pending in Market",
         printPdf: "🖨️ Print PDF", exportExcel: "📊 Export Excel",
         langTitle: "Language / لغة البرنامج", addCatTitle: "🏷️ Add Category", catName: "Category Name...", addCatBtn: "Add",
         newCustodyTitle: "👤 Add Safe", respName: "Responsible Name...", initAmount: "Initial Balance", saveCustody: "Save Safe", suggestedNet: "Suggested: Last Safe Net",
@@ -214,6 +241,7 @@
       const [newBuilding, setNewBuilding] = useState('');
       const [newBuildingPartner, setNewBuildingPartner] = useState(false);
       const [newBuildingPartnerPercent, setNewBuildingPartnerPercent] = useState('');
+      const [newBuildingPartnerName, setNewBuildingPartnerName] = useState('');
 
       const [newUnit, setNewUnit] = useState({ buildingId: '', unitNumber: '', price: '' });
       const [newCategory, setNewCategory] = useState('');
@@ -225,6 +253,7 @@
       const [reportType, setReportType] = useState('transactions'); 
       const [reportFilter, setReportFilter] = useState({ startDate: '', endDate: '', custodyIds: [], buildingIds: [] });
       const [reportSort, setReportSort] = useState('date');
+      const [selectedPartnerR, setSelectedPartnerR] = useState(''); // للمستثمرين في التقارير
 
       const [dashboardCustodyFilter, setDashboardCustodyFilter] = useState(() => { try { const s=localStorage.getItem('real_estate_last_custody'); if(!s) return []; const p = JSON.parse(s); return Array.isArray(p) ? p : [p].filter(Boolean); }catch(e){return [];} });
       
@@ -254,6 +283,17 @@
 
       const uniqueCustodyNames = useMemo(() => [...new Set((data.custodies||[]).map(c=>c.personName))], [data.custodies]);
       const filteredCustodyNames = newCustody.personName ? uniqueCustodyNames.filter(n => n.includes(newCustody.personName) && n !== newCustody.personName) : [];
+
+      // تجهيز قائمة المستثمرين/الشركاء المتاحة للتقارير
+      const uniquePartnersList = useMemo(() => {
+        const names = [];
+        (data.buildings||[]).forEach(b => {
+            if (b.hasPartner && b.partnerPercent > 0 && b.partnerName && !names.includes(b.partnerName)) {
+                names.push(b.partnerName);
+            }
+        });
+        return names;
+      }, [data.buildings]);
 
       const custodyCalculations = useMemo(() => {
         return (data.custodies || []).map(c => {
@@ -353,11 +393,45 @@
         });
       }, [data, reportFilter, reportType]);
 
+      // حسابات محفظة الشريك المجمعة
+      const partnerReportData = useMemo(() => {
+          if (reportType !== 'partners' || !selectedPartnerR) return null;
+          let expected = 0; let paid = 0; let unpaid = 0; let pending = 0;
+          
+          const bds = (data.buildings||[]).filter(b => b.hasPartner && b.partnerName === selectedPartnerR);
+          const bdsIds = bds.map(b => b.id);
+          const activeContracts = (data.contracts||[]).filter(c => c.status === 'active' && bdsIds.includes(c.buildingId));
+          const activeContractIds = activeContracts.map(c => c.id);
+
+          const instsDetails = [];
+
+          (data.installments||[]).forEach(inst => {
+             if (activeContractIds.includes(inst.contractId)) {
+                 const c = activeContracts.find(ct => ct.id === inst.contractId);
+                 const b = bds.find(bd => bd.id === c.buildingId);
+                 const pShare = Math.round(Number(inst.amount) * (b.partnerPercent/100));
+
+                 expected += pShare;
+                 if (inst.status === 'paid') {
+                     if (inst.partnerPaid) paid += pShare;
+                     else {
+                        unpaid += pShare;
+                        instsDetails.push({ client: c.clientName, building: b.name, share: pShare, date: inst.dueDate });
+                     }
+                 } else {
+                     pending += pShare;
+                 }
+             }
+          });
+          return { expected, paid, unpaid, pending, instsDetails };
+      }, [data, reportType, selectedPartnerR]);
+
       const handlePrint = () => {
         const originalTitle = document.title;
         let printName = t.repCustodyTitle;
         if (reportType === 'installments') printName = t.repSalesTitle;
         if (reportType === 'contracts') printName = t.repContractsTitle;
+        if (reportType === 'partners') printName = t.partnerReportTitle;
         document.title = `${printName.replace(/\s+/g, '_')}_${todayDateStr}.pdf`;
         setTimeout(() => { window.print(); document.title = originalTitle; }, 100);
       };
@@ -396,6 +470,11 @@
            });
            exportData.push({});
            exportData.push({ [t.client]: '', [t.building]: t.total, [t.totalUnit]: reportContractsList.reduce((s,c)=>s+c.totalAmount,0), [t.paidAmt]: reportContractsList.reduce((s,c)=>s+c.paidAmount,0), [t.remAmt]: reportContractsList.reduce((s,c)=>s+c.remainingAmount,0), [t.nextDue]: '' });
+        } else if (reportType === 'partners' && partnerReportData) {
+           fileName = `Partner_${selectedPartnerR}_${todayDateStr}`;
+           partnerReportData.instsDetails.forEach(d => {
+              exportData.push({ [t.client]: d.client, [t.building]: d.building, [t.amount]: d.share, [t.dueDate]: formatShortDate(d.date) });
+           });
         }
         
         const ws = XLSX.utils.json_to_sheet(exportData);
@@ -420,16 +499,14 @@
         setNewTransaction(prev => ({ ...prev, amount: '', description: '', date: getTodayStr() })); 
       };
 
-      // تعديل دالة الاسترجاع لحفظ الـ PIN الحالي
       const handleResetFactory = () => { 
         requirePin(() => {
           setAppModal({show: true, type: 'CONFIRM', props: {
             title: t.dangerZone,
             message: t.resetDesc,
             onConfirm: () => { 
-              const currentPin = data.pinCode || '0000'; // نحفظ الرمز السري الحالي
+              const currentPin = data.pinCode || '0000';
               localStorage.clear(); 
-              // نرجع الرمز السري زي ما كان بعد المسح
               localStorage.setItem('real_estate_core_data', JSON.stringify({ ...initialData, pinCode: currentPin }));
               window.location.reload(); 
             }
@@ -440,8 +517,9 @@
       const addBuilding = (e) => { 
         e.preventDefault(); 
         const pPercent = newBuildingPartner ? Number(newBuildingPartnerPercent) : 0;
-        setData(p=>({...p, buildings: [...(p.buildings||[]), {id: 'b_'+Date.now(), name: newBuilding, hasPartner: newBuildingPartner, partnerPercent: pPercent}]})); 
-        setNewBuilding(''); setNewBuildingPartner(false); setNewBuildingPartnerPercent(''); showMsg(t.success); 
+        const pName = newBuildingPartnerName || ('شريك ' + newBuilding); // اسم افتراضي لو مدخلش اسم
+        setData(p=>({...p, buildings: [...(p.buildings||[]), {id: 'b_'+Date.now(), name: newBuilding, hasPartner: newBuildingPartner, partnerPercent: pPercent, partnerName: pName}]})); 
+        setNewBuilding(''); setNewBuildingPartner(false); setNewBuildingPartnerPercent(''); setNewBuildingPartnerName(''); showMsg(t.success); 
       };
 
       const addUnit = (e) => { e.preventDefault(); setData(p => ({ ...p, units: [...(p.units || []), { id: 'u_' + Date.now(), ...newUnit, status: 'available' }] })); setNewUnit({ buildingId: '', unitNumber: '', price: '' }); showMsg(t.success); };
@@ -484,7 +562,7 @@
                updatedContracts.push({
                   id: contractId, clientName: newContract.clientName, unitId: unit.id, buildingId: unit.buildingId, 
                   totalAmount: total, downPayment: dp, date: todayDateStr, status: 'active',
-                  installmentsCount: count, interval: interval
+                  installmentsCount: count, interval: interval, attachments: []
                });
             }
 
@@ -651,7 +729,14 @@
                 </div>
               )}
 
-              {/* النافذة الخاصة بإدخال الرمز السري تم تعديلها لضمان قراءة أحدث رمز دون أخطاء */}
+              {/* عارض الصور للمرفقات */}
+              {appModal.type === 'IMAGE_VIEW' && (
+                <div className="bg-black p-2 rounded-2xl w-full max-w-2xl relative shadow-2xl animate-fade-in flex flex-col items-center justify-center" onClick={e=>e.stopPropagation()}>
+                  <button onClick={closeModal} className="absolute top-4 right-4 bg-red-600 text-white w-10 h-10 rounded-full font-black text-xl hover:bg-red-700 shadow z-50">X</button>
+                  <img src={appModal.props.src} className="w-full h-auto rounded-xl max-h-[85vh] object-contain border border-slate-800" />
+                </div>
+              )}
+
               {appModal.type === 'PIN' && (
                 <div className="bg-white w-full max-w-xs rounded-2xl overflow-hidden shadow-2xl animate-slide-up" onClick={e=>e.stopPropagation()}>
                   <div className="bg-red-600 text-white p-4 text-center font-bold">🔒</div>
@@ -920,7 +1005,12 @@
                     <label className="font-bold text-sm flex items-center gap-2 cursor-pointer bg-slate-50 p-2 rounded-xl border">
                       <input type="checkbox" className="w-5 h-5" checked={newBuildingPartner} onChange={e => setNewBuildingPartner(e.target.checked)} /> {t.hasPartner}
                     </label>
-                    {newBuildingPartner && <NumberInput required placeholder={t.partnerPercent} className="border-2 p-3 rounded-xl text-md w-full font-bold focus:border-blue-400 outline-none bg-slate-50" value={newBuildingPartnerPercent} onChange={v=>setNewBuildingPartnerPercent(v)}/>}
+                    {newBuildingPartner && (
+                       <div className="flex gap-2">
+                         <input type="text" placeholder={t.partnerNameInput} className="border-2 p-3 rounded-xl text-sm font-bold focus:border-blue-400 outline-none bg-slate-50 flex-1" value={newBuildingPartnerName} onChange={e=>setNewBuildingPartnerName(e.target.value)}/>
+                         <NumberInput required placeholder={t.partnerPercent} className="border-2 p-3 rounded-xl text-md w-24 font-bold focus:border-blue-400 outline-none bg-slate-50 text-center" value={newBuildingPartnerPercent} onChange={v=>setNewBuildingPartnerPercent(v)}/>
+                       </div>
+                    )}
                     <button className="bg-slate-800 text-white px-4 py-3 rounded-xl text-md font-bold w-full shadow hover:bg-slate-900">{t.saveBuilding}</button>
                   </form>
                 </div>
@@ -1040,7 +1130,6 @@
                     </div>
                   )}
 
-                  {/* شريط البحث المضاف داخل تابة المبيعات */}
                   <div className="relative">
                     <input type="text" placeholder="🔍 بحث عن عميل..." className="w-full bg-white text-slate-800 px-4 py-3 rounded-xl border-2 border-slate-200 outline-none focus:border-blue-500 text-sm font-bold shadow-sm" onChange={(e)=>setGlobalSearch(e.target.value)} value={globalSearch}/>
                   </div>
@@ -1060,7 +1149,6 @@
                                 <button onClick={(e)=>{
                                   e.stopPropagation(); 
                                   requirePin(() => {
-                                      // فتح العقد في الفورم الرئيسي العلوي مباشرة
                                       setEditingContractId(c.id);
                                       const cInsts = (data.installments || []).filter(i => i.contractId === c.id).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate));
                                       const firstDate = cInsts.length > 0 ? cInsts[0].dueDate : todayDateStr;
@@ -1108,7 +1196,6 @@
                                         {inst.status === 'paid' && !inst.partnerPaid && b?.hasPartner && b.partnerPercent > 0 && (
                                           <button onClick={() => setAppModal({show:true, type:'PAY_PARTNER', props:{partnerAmt: Math.round(inst.amount * (b.partnerPercent/100)), onConfirm:(dt, custId)=>payPartnerShare(inst.id, Math.round(inst.amount * (b.partnerPercent/100)), c.clientName, b.name, custId, dt)}})} className="bg-purple-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-purple-600 transition">{t.payPartnerBtn}</button>
                                         )}
-                                        {/* زر طباعة الإيصال */}
                                         {inst.status === 'paid' && (
                                           <button onClick={() => setAppModal({show: true, type:'RECEIPT', props:{ date: formatShortDate(inst.dueDate), clientName: c.clientName, buildingName: `${b?.name} - الوحدة ${u?.unitNumber}`, amount: inst.amount }})} className="bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-slate-900 transition flex justify-center items-center gap-1">🖨️ إيصال</button>
                                         )}
@@ -1118,7 +1205,36 @@
                                 </tbody>
                               </table>
                             </div>
-                            <div className="text-left"><button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptManual, showDate:true, defaultDate: todayDateStr, onConfirm:(amt,dt)=>{ setData(p=>({...p, installments: [...(p.installments||[]), {id:'inst_man_'+Date.now(), contractId:c.id, amount:Number(amt), dueDate:dt, status:'pending'}]})); showMsg(t.success); } }})} className="bg-blue-50 text-blue-700 border border-blue-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-blue-100 transition">{t.addManualInst}</button></div>
+                            
+                            <div className="flex gap-2 justify-start mb-4">
+                              <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptManual, showDate:true, defaultDate: todayDateStr, onConfirm:(amt,dt)=>{ setData(p=>({...p, installments: [...(p.installments||[]), {id:'inst_man_'+Date.now(), contractId:c.id, amount:Number(amt), dueDate:dt, status:'pending'}]})); showMsg(t.success); } }})} className="bg-blue-50 text-blue-700 border border-blue-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-blue-100 transition">{t.addManualInst}</button>
+                              
+                              {/* زرار رفع المرفقات */}
+                              <label className="bg-slate-50 text-slate-700 border border-slate-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-slate-100 transition cursor-pointer flex items-center justify-center">
+                                {t.addAttachment}
+                                <input type="file" accept="image/*" className="hidden" onChange={e => {
+                                  const file = e.target.files[0];
+                                  if(!file) return;
+                                  compressImage(file, (compressedBase64) => {
+                                    setData(p => ({ ...p, contracts: p.contracts.map(ct => ct.id === c.id ? { ...ct, attachments: [...(ct.attachments || []), compressedBase64] } : ct) }));
+                                    showMsg(t.success);
+                                  });
+                                }}/>
+                              </label>
+                            </div>
+
+                            {/* عارض المرفقات المصغرة */}
+                            {(c.attachments || []).length > 0 && (
+                                <div className="mt-4">
+                                  <span className="text-xs font-bold text-slate-500 mb-2 block">{t.attachments}:</span>
+                                  <div className="flex gap-3 overflow-x-auto p-3 bg-slate-50 rounded-xl border border-slate-200 shadow-inner">
+                                      {c.attachments.map((att, idx) => (
+                                          <img key={idx} src={att} className="h-20 w-20 object-cover rounded-lg cursor-pointer border-2 border-slate-300 shadow hover:scale-105 hover:border-blue-400 transition" onClick={(e) => { e.stopPropagation(); setAppModal({show: true, type: 'IMAGE_VIEW', props: { src: att }}); }} />
+                                      ))}
+                                  </div>
+                                </div>
+                            )}
+
                           </div>
                         )}
                       </div>
@@ -1197,6 +1313,25 @@
                         </tbody>
                       </table>
                     </>
+                  ) : reportType === 'partners' && partnerReportData ? (
+                    <>
+                      <h2 className="text-3xl font-black text-center mb-2">{t.partnerReportTitle}</h2>
+                      <h3 className="text-2xl font-bold text-center mb-6">{selectedPartnerR}</h3>
+                      <div className="flex justify-around mb-8 border-b-4 border-black pb-4 text-center">
+                        <div><p className="font-bold text-gray-500 mb-1">{t.totalExpected}</p><p className="text-2xl font-black">{partnerReportData.expected.toLocaleString()}</p></div>
+                        <div><p className="font-bold text-gray-500 mb-1">{t.totalPaidToPartner}</p><p className="text-2xl font-black text-emerald-600">{partnerReportData.paid.toLocaleString()}</p></div>
+                        <div><p className="font-bold text-gray-500 mb-1">{t.totalCollectedNotPaid}</p><p className="text-2xl font-black text-red-600">{partnerReportData.unpaid.toLocaleString()}</p></div>
+                      </div>
+                      <table>
+                        <thead className="bg-gray-100 text-lg"><tr><th className="text-center">{t.dueDate}</th><th className="text-center">{t.client}</th><th className="text-center">{t.building}</th><th className="text-center">نصيب الشريك (مستحق)</th></tr></thead>
+                        <tbody>
+                           {partnerReportData.instsDetails.map((d, i) => (
+                             <tr key={i}><td dir="ltr" className="text-center font-mono print-row-text">{formatShortDate(d.date)}</td><td className="font-bold text-lg">{d.client}</td><td className="text-center font-bold text-lg">{d.building}</td><td className="text-center font-black text-xl text-red-600">{d.share.toLocaleString()}</td></tr>
+                           ))}
+                           {partnerReportData.instsDetails.length === 0 && <tr><td colSpan="4" className="p-4 font-bold text-gray-500">لا توجد مبالغ متأخرة ومستحقة للتوريد حالياً</td></tr>}
+                        </tbody>
+                      </table>
+                    </>
                   ) : (
                     <>
                       <h2 className="text-3xl font-black text-center mb-2">{t.repContractsTitle}</h2>
@@ -1217,10 +1352,12 @@
                 </div>
 
                 <div className="print-hide">
-                  <div className="flex bg-slate-100 p-1.5 rounded-xl mb-6 shadow-inner gap-1 flex-wrap md:flex-nowrap">
-                    <button onClick={()=>setReportType('transactions')} className={`flex-1 min-w-[100px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='transactions'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repCustodyBtn}</button>
-                    <button onClick={()=>setReportType('installments')} className={`flex-1 min-w-[100px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='installments'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repSalesBtn}</button>
-                    <button onClick={()=>setReportType('contracts')} className={`flex-1 min-w-[100px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='contracts'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repContractsBtn}</button>
+                  <div className="flex bg-slate-100 p-1.5 rounded-xl mb-6 shadow-inner gap-1 flex-wrap md:flex-nowrap overflow-x-auto">
+                    <button onClick={()=>setReportType('transactions')} className={`flex-1 min-w-[120px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='transactions'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repCustodyBtn}</button>
+                    <button onClick={()=>setReportType('installments')} className={`flex-1 min-w-[120px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='installments'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repSalesBtn}</button>
+                    <button onClick={()=>setReportType('contracts')} className={`flex-1 min-w-[120px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='contracts'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repContractsBtn}</button>
+                    {/* التحديث: زر حسابات الشركاء */}
+                    <button onClick={()=>setReportType('partners')} className={`flex-1 min-w-[120px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='partners'?'bg-white text-purple-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repPartnersBtn}</button>
                   </div>
                   
                   {reportType === 'installments' && (
@@ -1234,20 +1371,57 @@
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6 bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner">
-                    <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.periodFrom}</label><input type="date" className="w-full border-2 p-3 text-sm rounded-xl font-bold focus:border-blue-400 outline-none bg-white font-mono" value={reportFilter.startDate} onChange={e=>setReportFilter({...reportFilter, startDate: e.target.value})}/></div>
-                    <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.periodTo}</label><input type="date" className="w-full border-2 p-3 text-sm rounded-xl font-bold focus:border-blue-400 outline-none bg-white font-mono" value={reportFilter.endDate} onChange={e=>setReportFilter({...reportFilter, endDate: e.target.value})}/></div>
-                    {reportType === 'transactions' && (
-                      <div className="relative z-30">
-                        <label className="text-xs font-bold text-slate-500 mb-1 block">{t.custody}</label>
-                        <MultiSelectDropdown options={sortedCustodies.map(c => ({ id: c.id, label: c.personName }))} selected={reportFilter.custodyIds} onChange={(newIds) => setReportFilter({...reportFilter, custodyIds: newIds})} placeholder={t.allCustodies} />
+                  {reportType === 'partners' ? (
+                     <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner mb-6">
+                        <label className="text-xs font-bold text-slate-500 mb-2 block">اختر اسم المستثمر / الشريك</label>
+                        <select className="w-full max-w-md border-2 p-3 text-sm rounded-xl font-bold focus:border-purple-400 outline-none bg-white mb-6" value={selectedPartnerR} onChange={e=>setSelectedPartnerR(e.target.value)}>
+                           <option value="">-- اختر الشريك --</option>
+                           {uniquePartnersList.map((pn, i) => <option key={i} value={pn}>{pn}</option>)}
+                        </select>
+
+                        {partnerReportData && (
+                           <div className="animate-slide-up space-y-6">
+                              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="bg-white p-4 rounded-xl border-l-4 border-slate-400 shadow-sm"><p className="text-xs font-bold text-slate-500 mb-1">{t.totalExpected}</p><p className="text-xl font-black text-slate-800">{partnerReportData.expected.toLocaleString()}</p></div>
+                                <div className="bg-white p-4 rounded-xl border-l-4 border-emerald-400 shadow-sm"><p className="text-xs font-bold text-slate-500 mb-1">{t.totalPaidToPartner}</p><p className="text-xl font-black text-emerald-600">{partnerReportData.paid.toLocaleString()}</p></div>
+                                <div className="bg-white p-4 rounded-xl border-l-4 border-red-400 shadow-sm relative"><p className="text-xs font-bold text-slate-500 mb-1">{t.totalCollectedNotPaid}</p><p className="text-xl font-black text-red-600">{partnerReportData.unpaid.toLocaleString()}</p>
+                                  {partnerReportData.unpaid > 0 && <span className="absolute top-2 left-2 flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span></span>}
+                                </div>
+                                <div className="bg-white p-4 rounded-xl border-l-4 border-amber-400 shadow-sm"><p className="text-xs font-bold text-slate-500 mb-1">{t.totalPending}</p><p className="text-xl font-black text-amber-600">{partnerReportData.pending.toLocaleString()}</p></div>
+                              </div>
+
+                              {partnerReportData.unpaid > 0 && (
+                                <div className="overflow-x-auto bg-white rounded-xl shadow-sm border border-slate-200">
+                                  <table className="w-full text-sm text-right">
+                                    <thead className="bg-red-50 text-red-800 border-b"><tr><th className="p-3">العميل</th><th className="p-3">الوحدة/العمارة</th><th className="p-3">نصيب الشريك (مستحق)</th></tr></thead>
+                                    <tbody>
+                                      {partnerReportData.instsDetails.map((d, idx) => (
+                                        <tr key={idx} className="border-b hover:bg-slate-50"><td className="p-3 font-bold text-slate-800">{d.client}</td><td className="p-3 font-bold text-slate-600">{d.building}</td><td className="p-3 font-black text-red-600">{d.share.toLocaleString()}</td></tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
+                           </div>
+                        )}
+                     </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6 bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner">
+                      <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.periodFrom}</label><input type="date" className="w-full border-2 p-3 text-sm rounded-xl font-bold focus:border-blue-400 outline-none bg-white font-mono" value={reportFilter.startDate} onChange={e=>setReportFilter({...reportFilter, startDate: e.target.value})}/></div>
+                      <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.periodTo}</label><input type="date" className="w-full border-2 p-3 text-sm rounded-xl font-bold focus:border-blue-400 outline-none bg-white font-mono" value={reportFilter.endDate} onChange={e=>setReportFilter({...reportFilter, endDate: e.target.value})}/></div>
+                      {reportType === 'transactions' && (
+                        <div className="relative z-30">
+                          <label className="text-xs font-bold text-slate-500 mb-1 block">{t.custody}</label>
+                          <MultiSelectDropdown options={sortedCustodies.map(c => ({ id: c.id, label: c.personName }))} selected={reportFilter.custodyIds} onChange={(newIds) => setReportFilter({...reportFilter, custodyIds: newIds})} placeholder={t.allCustodies} />
+                        </div>
+                      )}
+                      <div className="relative z-20">
+                        <label className="text-xs font-bold text-slate-500 mb-1 block">{t.building}</label>
+                        <MultiSelectDropdown options={sortedBuildings.map(b => ({ id: b.id, label: b.name }))} selected={reportFilter.buildingIds} onChange={(newIds) => setReportFilter({...reportFilter, buildingIds: newIds})} placeholder={t.allBuildings} />
                       </div>
-                    )}
-                    <div className="relative z-20">
-                      <label className="text-xs font-bold text-slate-500 mb-1 block">{t.building}</label>
-                      <MultiSelectDropdown options={sortedBuildings.map(b => ({ id: b.id, label: b.name }))} selected={reportFilter.buildingIds} onChange={(newIds) => setReportFilter({...reportFilter, buildingIds: newIds})} placeholder={t.allBuildings} />
                     </div>
-                  </div>
+                  )}
+
                   <div className="flex gap-4 flex-col md:flex-row">
                     <button onClick={handlePrint} className="flex-1 bg-slate-800 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-slate-900 transition-transform hover:-translate-y-1">{t.printPdf}</button>
                     <button onClick={handleExportExcel} className="flex-1 bg-green-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-green-700 transition-transform hover:-translate-y-1">{t.exportExcel}</button>
@@ -1301,7 +1475,6 @@
                   </form>
                 </div>
                 
-                {/* تعديل جذري لنموذج تغيير كلمة المرور لتجنب اللخبطة */}
                 <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200 md:col-span-2">
                   <h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">تغيير رمز PIN للحماية</h4>
                   <form onSubmit={(e)=>{
@@ -1352,7 +1525,6 @@
                           try {
                             const imported = JSON.parse(ev.target.result);
                             setData(p => {
-                                // دمج البيانات المسترجعة مع الحفاظ على الرمز السري الحالي
                                 const newData = { ...imported, pinCode: p.pinCode || '0000' }; 
                                 localStorage.setItem('real_estate_core_data', JSON.stringify(newData));
                                 return newData;

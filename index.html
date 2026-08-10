@@ -354,17 +354,26 @@
       );
     }
 
+    // Updated MultiSelectDropdown with Explicit Checkbox Choices
     function MultiSelectDropdown({ options, selected, onChange, placeholder }) {
       const [isOpen, setIsOpen] = useState(false);
       const dropdownRef = useRef(null);
+
       useEffect(() => {
         const handleClickOutside = (e) => { if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setIsOpen(false); };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
       }, []);
-      
+
+      const isAll = (selected || []).includes('ALL');
       const selectedLabels = (selected || []).map(id => options.find(o => o.id === id)?.label).filter(Boolean);
-      const displayTxt = selectedLabels.length === 0 ? (placeholder || '-- الخزينة العامة --') : (selectedLabels.length <= 2 ? selectedLabels.join(' + ') : `(${selectedLabels.length})`);
+      
+      let displayTxt = placeholder || '-- جميع العهد والخزينة --';
+      if (isAll) {
+        displayTxt = '-- جميع العهد والخزينة --';
+      } else if (selectedLabels.length > 0) {
+        displayTxt = selectedLabels.length <= 2 ? selectedLabels.join(' + ') : `(${selectedLabels.length} عهد مختارة)`;
+      }
 
       return (
         <div className={`relative w-full ${isOpen ? 'z-50' : 'z-20'}`} ref={dropdownRef}>
@@ -372,16 +381,33 @@
             <span className="truncate">{displayTxt}</span><span className="text-xs text-blue-600">▼</span>
           </div>
           {isOpen && (
-            <div className="absolute top-full right-0 w-full bg-white border-2 border-slate-200 mt-1 shadow-2xl max-h-48 overflow-y-auto z-50 p-2 space-y-2 rounded-xl animate-fade-in text-slate-800">
-              <label className="flex items-center gap-2 cursor-pointer font-bold border-b pb-2 text-slate-700 hover:bg-slate-50 p-1 rounded">
-                <input type="checkbox" checked={(selected || []).length===0} onChange={()=>onChange([])} className="w-4 h-4 text-blue-600"/>
-                {placeholder || '-- الخزينة العامة --'}
-              </label>
-              {(options || []).map(opt => (
-                <label key={opt.id} className="flex items-center gap-2 cursor-pointer whitespace-nowrap text-sm hover:bg-slate-50 p-1 rounded transition text-slate-800">
-                  <input type="checkbox" checked={(selected || []).includes(opt.id)} className="w-4 h-4 text-blue-600" onChange={(e)=>{ const newIds = e.target.checked ? [...(selected || []), opt.id] : (selected || []).filter(id=>id!==opt.id); onChange(newIds); }}/> {opt.label}
-                </label>
-              ))}
+            <div className="absolute top-full right-0 w-full bg-white border-2 border-slate-200 mt-1 shadow-2xl max-h-56 overflow-y-auto z-50 p-2 space-y-1 rounded-xl animate-fade-in text-slate-800">
+              {(options || []).map(opt => {
+                const checked = (selected || []).includes(opt.id);
+                return (
+                  <label key={opt.id} className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-50 p-2 rounded-lg transition text-slate-800 font-bold border-b border-slate-100 last:border-none">
+                    <input 
+                      type="checkbox" 
+                      checked={checked} 
+                      className="w-4 h-4 text-blue-600 rounded" 
+                      onChange={(e) => {
+                        if (opt.id === 'ALL') {
+                          onChange(e.target.checked ? ['ALL'] : []);
+                        } else {
+                          let next = (selected || []).filter(id => id !== 'ALL');
+                          if (e.target.checked) {
+                            next.push(opt.id);
+                          } else {
+                            next = next.filter(id => id !== opt.id);
+                          }
+                          onChange(next);
+                        }
+                      }}
+                    /> 
+                    <span>{opt.label}</span>
+                  </label>
+                );
+              })}
             </div>
           )}
         </div>
@@ -442,6 +468,7 @@
       
       const [editingContractId, setEditingContractId] = useState(null);
       const [globalSearch, setGlobalSearch] = useState('');
+      const [showContractsList, setShowContractsList] = useState(false);
 
       const [newBuilding, setNewBuilding] = useState('');
       const [newBuildingPartner, setNewBuildingPartner] = useState(false);
@@ -510,6 +537,12 @@
         ...sortedCustodies.map(c => ({ value: c.id, label: c.personName }))
       ], [sortedCustodies, t.generalSafe]);
 
+      const custodyMultiOptions = useMemo(() => [
+        { id: 'ALL', label: '🌐 جميع العهد والخزينة' },
+        { id: 'GENERAL_SAFE', label: '🏛️ الخزينة العامة' },
+        ...sortedCustodies.map(c => ({ id: c.id, label: c.personName }))
+      ], [sortedCustodies]);
+
       const buildingOptions = useMemo(() => [
         { value: '', label: t.allBuildings },
         ...sortedBuildings.map(b => ({ value: b.id, label: b.name }))
@@ -520,6 +553,25 @@
         ...sortedCategories.map(c => ({ value: c.id, label: c.name }))
       ], [sortedCategories, t.selectCat]);
 
+      const isTxInSelectedCustodies = (tx, selectedIds) => {
+        if (!selectedIds || selectedIds.length === 0 || selectedIds.includes('ALL')) return true;
+        
+        const hasGeneralSafe = selectedIds.includes('GENERAL_SAFE');
+        const specificIds = selectedIds.filter(id => id !== 'ALL' && id !== 'GENERAL_SAFE');
+
+        if (hasGeneralSafe) {
+          if (!tx.custodyId && !tx.toCustodyId) return true;
+          if (tx.type === 'transfer' && (!tx.custodyId || !tx.toCustodyId)) return true;
+        }
+
+        if (specificIds.length > 0) {
+          if (tx.custodyId && specificIds.includes(tx.custodyId)) return true;
+          if (tx.toCustodyId && specificIds.includes(tx.toCustodyId)) return true;
+        }
+
+        return false;
+      };
+
       const custodyCalculations = useMemo(() => {
         return (data.custodies || []).map(c => {
           const expenses = (data.transactions || []).filter(tx => (tx.type === 'expense' && tx.custodyId === c.id) || (tx.type === 'transfer' && tx.custodyId === c.id)).reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
@@ -529,33 +581,38 @@
       }, [data]);
 
       let dashboardNet = 0;
-      if (dashboardCustodyFilter.length === 0) {
-         const inc = (data.transactions||[]).filter(tx => (tx.type==='income' && !tx.custodyId) || (tx.type==='transfer' && !tx.toCustodyId)).reduce((s,tx)=>s+Number(tx.amount||0),0);
-         const exp = (data.transactions||[]).filter(tx => (tx.type==='expense' && !tx.custodyId) || (tx.type==='transfer' && !tx.custodyId)).reduce((s,tx)=>s+Number(tx.amount||0),0);
-         dashboardNet = inc - exp;
-      } else if (dashboardCustodyFilter.includes('ALL')) {
+      if (!dashboardCustodyFilter || dashboardCustodyFilter.length === 0 || dashboardCustodyFilter.includes('ALL')) {
          const inc = (data.transactions||[]).filter(tx=>tx.type==='income').reduce((s,tx)=>s+Number(tx.amount||0),0);
          const exp = (data.transactions||[]).filter(tx=>tx.type==='expense').reduce((s,tx)=>s+Number(tx.amount||0),0);
          const initCust = (data.custodies||[]).reduce((s,c)=>s+Number(c.totalAmount||0),0);
          dashboardNet = initCust + inc - exp;
       } else {
-         dashboardNet = custodyCalculations.filter(c => dashboardCustodyFilter.includes(c.id)).reduce((s, c) => s + c.remaining, 0);
+         let net = 0;
+         if (dashboardCustodyFilter.includes('GENERAL_SAFE')) {
+            const inc = (data.transactions||[]).filter(tx => (tx.type==='income' && !tx.custodyId) || (tx.type==='transfer' && !tx.toCustodyId)).reduce((s,tx)=>s+Number(tx.amount||0),0);
+            const exp = (data.transactions||[]).filter(tx => (tx.type==='expense' && !tx.custodyId) || (tx.type==='transfer' && !tx.custodyId)).reduce((s,tx)=>s+Number(tx.amount||0),0);
+            net += (inc - exp);
+         }
+         const specIds = dashboardCustodyFilter.filter(id => id !== 'ALL' && id !== 'GENERAL_SAFE');
+         if (specIds.length > 0) {
+            net += custodyCalculations.filter(c => specIds.includes(c.id)).reduce((s, c) => s + c.remaining, 0);
+         }
+         dashboardNet = net;
       }
 
-      const selectedCustodiesObjs = selectedCustodies.length > 0 ? (data.custodies || []).filter(c => selectedCustodies.includes(c.id)) : (data.custodies || []);
-      const totalOpeningBalance = selectedCustodiesObjs.reduce((sum, c) => sum + Number(c.totalAmount || 0), 0);
+      const totalOpeningBalance = useMemo(() => {
+        if (!selectedCustodies || selectedCustodies.length === 0 || selectedCustodies.includes('ALL')) {
+          return (data.custodies || []).reduce((sum, c) => sum + Number(c.totalAmount || 0), 0);
+        }
+        return (data.custodies || [])
+          .filter(c => selectedCustodies.includes(c.id))
+          .reduce((sum, c) => sum + Number(c.totalAmount || 0), 0);
+      }, [data.custodies, selectedCustodies]);
 
       const filteredCustodyTrans = useMemo(() => {
         return (data.transactions || []).filter(tx => {
-          if ((selectedCustodies || []).length > 0) {
-            const isMatch = selectedCustodies.includes(tx.custodyId) || selectedCustodies.includes(tx.toCustodyId);
-            if(!isMatch) return false;
-          }
+          if (!isTxInSelectedCustodies(tx, selectedCustodies)) return false;
           if (tx.type !== custodyTabSub && tx.type !== 'transfer') return false;
-          if (tx.type === 'transfer') {
-             if(custodyTabSub === 'income' && (selectedCustodies.length === 0 ? tx.toCustodyId !== '' : !selectedCustodies.includes(tx.toCustodyId))) return false;
-             if(custodyTabSub === 'expense' && (selectedCustodies.length === 0 ? tx.custodyId !== '' : !selectedCustodies.includes(tx.custodyId))) return false;
-          }
           if (custodySearch && !tx.description?.includes(custodySearch)) return false;
           return true;
         }).sort((a,b) => new Date(b.date || 0) - new Date(a.date || 0));
@@ -581,10 +638,7 @@
         const filtered = (data.transactions || []).filter(tx => {
           if (reportFilter.startDate && tx.date < reportFilter.startDate) return false;
           if (reportFilter.endDate && tx.date > reportFilter.endDate) return false;
-          if ((reportFilter.custodyIds || []).length > 0) {
-            const isMatch = reportFilter.custodyIds.includes(tx.custodyId) || reportFilter.custodyIds.includes(tx.toCustodyId);
-            if(!isMatch) return false;
-          }
+          if (!isTxInSelectedCustodies(tx, reportFilter.custodyIds)) return false;
           if ((reportFilter.buildingIds || []).length > 0 && !(reportFilter.buildingIds || []).includes(tx.buildingId)) return false;
           return true;
         }).sort((a,b) => new Date(a.date || 0) - new Date(b.date || 0));
@@ -873,7 +927,7 @@
          showMsg(t.success); 
       };
 
-      // Edit Installment with Suspended Pool accumulation
+      // Edit Installment
       const editInstallment = (instId, newAmountNum, newDueDate) => {
         const newAmt = Number(newAmountNum);
         setData(prev => {
@@ -891,11 +945,9 @@
           let currentSuspended = (contractIndex > -1 ? Number(updatedContracts[contractIndex].suspendedAmount || 0) : 0);
 
           if (newAmt <= 0) {
-            // Completely remove installment row and accumulate its amount into suspended pool
             updatedInsts = updatedInsts.filter(i => i.id !== instId);
             currentSuspended += oldAmt;
           } else {
-            // Update installment with new amount and edited due date
             updatedInsts[instIndex] = {
               ...oldInst,
               amount: newAmt,
@@ -923,7 +975,7 @@
         showMsg(t.success);
       };
 
-      // Add Manual Installment & deduct from suspended pool
+      // Add Manual Installment
       const addManualInstallment = (contractId, amtNum, dateStr) => {
         const amt = Number(amtNum);
         if(!amt || amt <= 0) return;
@@ -959,7 +1011,7 @@
         showMsg(t.success);
       };
 
-      // Convert Suspended Pool to New Pending Installment
+      // Convert Suspended Pool to Installment
       const convertSuspendedToInstallment = (contractId, amtNum, dateStr) => {
         const amt = Number(amtNum);
         if (!amt || amt <= 0) return;
@@ -1078,6 +1130,7 @@
       const lastCustodyNet = sortedCustodies.length > 0 ? (custodyCalculations.find(c => c.id === sortedCustodies[0].id)?.remaining || 0) : 0;
 
       const filteredContracts = (data.contracts || []).filter(c => c.status === 'active' && (!globalSearch || c.clientName.includes(globalSearch)));
+      const isContractsListOpen = showContractsList || globalSearch.trim().length > 0;
 
       return (
         <div className="min-h-screen flex flex-col bg-slate-100 pb-10">
@@ -1329,10 +1382,10 @@
                     <div className="bg-gradient-to-br from-amber-50 to-orange-100 p-5 rounded-2xl border border-amber-200 shadow-inner">
                       <p className="text-sm text-amber-900 mb-2 font-bold">{t.activeCustody}</p>
                       <MultiSelectDropdown 
-                        options={sortedCustodies.map(c => ({ id: c.id, label: c.personName }))} 
+                        options={custodyMultiOptions} 
                         selected={dashboardCustodyFilter} 
                         onChange={setDashboardCustodyFilter} 
-                        placeholder={t.generalSafe} 
+                        placeholder={t.allCustodies} 
                       />
                       <p className="text-3xl font-black text-amber-600 mt-4">{t.net}: {dashboardNet.toLocaleString()} <span className="text-lg font-bold">ج.م</span></p>
                       <div className="flex gap-3 mt-5 pt-4 border-t border-amber-200/60">
@@ -1460,7 +1513,12 @@
               <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 print-hide animate-fade-in">
                 <div className="mb-5 bg-slate-50 p-4 rounded-xl border border-slate-200">
                   <label className="font-bold block mb-2 text-slate-800 text-sm">{t.activeCustody}:</label>
-                  <MultiSelectDropdown options={sortedCustodies.map(c => ({ id: c.id, label: c.personName }))} selected={selectedCustodies} onChange={setSelectedCustodies} placeholder={t.allCustodies} />
+                  <MultiSelectDropdown 
+                    options={custodyMultiOptions} 
+                    selected={selectedCustodies} 
+                    onChange={setSelectedCustodies} 
+                    placeholder={t.allCustodies} 
+                  />
                 </div>
                 <div className="mb-5"><input type="text" placeholder={t.searchDesc} className="w-full border-2 border-slate-300 focus:border-blue-400 p-3 rounded-xl text-md font-bold outline-none transition bg-white shadow-sm" value={custodySearch} onChange={e => setCustodySearch(e.target.value)} /></div>
                 <div className="flex bg-slate-100 p-1.5 rounded-xl mb-4 shadow-inner">
@@ -1668,220 +1726,245 @@
                     </div>
                   )}
 
-                  <div className="relative">
-                    <input type="text" placeholder="🔍 بحث عن عميل..." className="w-full bg-white text-slate-800 px-4 py-2.5 rounded-xl border-2 border-slate-200 outline-none focus:border-blue-500 text-sm font-bold shadow-sm" onChange={(e)=>setGlobalSearch(e.target.value)} value={globalSearch}/>
-                  </div>
+                  {/* Main Master Accordion Container for Clients */}
+                  <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div 
+                      className="p-3.5 bg-slate-800 text-white font-bold flex justify-between items-center cursor-pointer hover:bg-slate-900 transition"
+                      onClick={() => setShowContractsList(!showContractsList)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">👥</span>
+                        <span className="text-sm font-black">قائمة العقود والعملاء ({filteredContracts.length})</span>
+                      </div>
+                      <span className="text-xs bg-slate-700 text-slate-200 px-3 py-1 rounded-lg border border-slate-600 font-bold">
+                        {isContractsListOpen ? 'إخفاء القائمة ▲' : 'عرض العملاء ▼'}
+                      </span>
+                    </div>
 
-                  {filteredContracts.map(c => {
-                    const u = (data.units || []).find(un => un.id === c.unitId);
-                    const b = (data.buildings || []).find(bd => bd.id === c.buildingId);
-                    const isExpanded = expandedBuildings[c.id]; 
-                    const suspendedPool = Number(c.suspendedAmount || 0);
-
-                    return (
-                      <div key={c.id} className="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 cursor-pointer hover:border-blue-300 transition" onClick={() => setExpandedBuildings(p => ({...p, [c.id]: !p[c.id]}))}>
-                        <div className="flex justify-between items-center gap-2">
-                          <div className="flex items-center gap-2 min-w-0 flex-grow">
-                            <p className="font-black text-blue-900 text-base truncate">{c.clientName}</p>
-                            <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-lg border shrink-0">{b?.name} - {u?.unitNumber}</span>
-                            {suspendedPool > 0 && (
-                              <span className="text-[11px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-300 shrink-0">معلق: {suspendedPool.toLocaleString()}</span>
-                            )}
-                          </div>
-                          
-                          <div className="flex items-center gap-2 shrink-0">
-                            <button className="text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm border border-blue-100">
-                              {isExpanded ? t.hideDetails : t.showDetails}
-                            </button>
-                          </div>
+                    {isContractsListOpen && (
+                      <div className="p-3.5 space-y-3 bg-slate-50/50 animate-slide-up">
+                        <div className="relative">
+                          <input type="text" placeholder="🔍 بحث عن عميل..." className="w-full bg-white text-slate-800 px-4 py-2.5 rounded-xl border-2 border-slate-200 outline-none focus:border-blue-500 text-sm font-bold shadow-sm" onChange={(e)=>setGlobalSearch(e.target.value)} value={globalSearch}/>
                         </div>
-                        
-                        {isExpanded && (
-                          <div className="mt-3 border-t pt-3 animate-slide-up" onClick={e=>e.stopPropagation()}>
-                            <div className="flex justify-between items-center mb-3 bg-slate-50 p-2 rounded-xl border">
-                              <span className="text-xs font-bold text-slate-600">إجراءات العقد الأساسية:</span>
-                              <div className="flex gap-2">
-                                <button onClick={(e)=>{
-                                  e.stopPropagation(); 
-                                  requirePin(() => {
-                                      setEditingContractId(c.id);
-                                      const cInsts = (data.installments || []).filter(i => i.contractId === c.id).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate));
-                                      const firstDate = cInsts.length > 0 ? cInsts[0].dueDate : todayDateStr;
-                                      
-                                      setNewContract({
-                                          clientName: c.clientName,
-                                          unitId: c.unitId,
-                                          totalAmount: c.totalAmount,
-                                          downPayment: c.downPayment || '',
-                                          custodyId: '',
-                                          installmentsCount: c.installmentsCount || cInsts.length,
-                                          firstInstallmentDate: firstDate,
-                                          interval: c.interval || '1'
-                                      });
-                                      window.scrollTo({ top: 0, behavior: 'smooth' }); 
-                                  });
-                                }} className="text-xs text-amber-700 bg-amber-50 px-3 py-1.5 rounded-xl font-bold border border-amber-200 hover:bg-amber-100 transition">تعديل العقد</button>
-                                <button onClick={(e) => { e.stopPropagation(); requirePin(()=>setAppModal({show:true, type:'CONFIRM', props:{title: t.cancelContract, message: t.confirmCancel, onConfirm:()=>{ setData(p=>({...p, contracts: p.contracts.map(ct=>ct.id===c.id?{...ct,status:'canceled'}:ct), installments: p.installments.filter(i=>!(i.contractId===c.id && i.status==='pending')), units: p.units.map(un=>un.id===c.unitId?{...un,status:'available'}:un)})); showMsg(t.success); }}})); }} className="text-xs text-red-600 bg-red-50 px-3 py-1.5 rounded-xl font-bold border border-red-100 hover:bg-red-100 transition">{t.cancelContract}</button>
-                              </div>
-                            </div>
 
-                            <div className="overflow-x-auto mb-4">
-                              <table className="w-full text-sm text-right" style={{textAlign: lang==='en'?'left':'right'}}>
-                                <thead className="text-slate-400 border-b-2"><tr><th className="p-2 pb-2 font-medium">{t.dueDate}</th><th className="p-2 pb-2 font-medium">{t.amount}</th><th className="p-2 pb-2 font-medium">{t.status}</th><th className="p-2 pb-2 font-medium">{t.action}</th></tr></thead>
-                                <tbody>
-                                  {/* Consolidated Suspended Pool Row */}
+                        {filteredContracts.map(c => {
+                          const u = (data.units || []).find(un => un.id === c.unitId);
+                          const b = (data.buildings || []).find(bd => bd.id === c.buildingId);
+                          const isExpanded = expandedBuildings[c.id]; 
+                          const suspendedPool = Number(c.suspendedAmount || 0);
+
+                          return (
+                            <div key={c.id} className="bg-white p-2.5 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-blue-300 transition" onClick={() => setExpandedBuildings(p => ({...p, [c.id]: !p[c.id]}))}>
+                              <div className="flex justify-between items-center gap-2">
+                                <div className="flex items-center gap-2 min-w-0 flex-grow">
                                   {suspendedPool > 0 && (
-                                    <tr className="border-b-2 border-amber-200 bg-amber-50/70">
-                                      <td className="p-2 font-bold text-amber-800 text-xs">-- معلق مجمع --</td>
-                                      <td className="p-2 font-black text-amber-900 text-base">{suspendedPool.toLocaleString()} ج.م</td>
-                                      <td className="p-2"><span className="text-amber-800 font-bold text-xs bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-300">مبلغ معلق</span></td>
-                                      <td className="p-2 flex gap-1">
-                                        <button onClick={() => setAppModal({
-                                          show: true,
-                                          type: 'PROMPT_INST',
-                                          props: {
-                                            title: 'جدولة المبلغ المعلق لقسط جديد',
-                                            showDate: true,
-                                            defaultAmount: suspendedPool,
-                                            defaultDate: todayDateStr,
-                                            onConfirm: (amt, dt) => convertSuspendedToInstallment(c.id, amt, dt)
-                                          }
-                                        })} className="bg-purple-600 text-white px-2.5 py-1 rounded-lg text-xs font-bold shadow hover:bg-purple-700 transition">➕ تحويل لقسط</button>
-                                      </td>
-                                    </tr>
+                                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" title="يوجد رصيد معلق"></span>
+                                  )}
+                                  <p className="font-black text-blue-900 text-sm truncate">{c.clientName}</p>
+                                </div>
+                                
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <button className="text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm border border-blue-100">
+                                    {isExpanded ? t.hideDetails : t.showDetails}
+                                  </button>
+                                </div>
+                              </div>
+                              
+                              {isExpanded && (
+                                <div className="mt-3 border-t pt-3 animate-slide-up" onClick={e=>e.stopPropagation()}>
+                                  <div className="flex justify-between items-center mb-3 bg-slate-50 p-2.5 rounded-xl border flex-wrap gap-2 text-xs font-bold">
+                                    <span className="text-slate-700 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
+                                      🏢 {b?.name} - الوحدة {u?.unitNumber}
+                                    </span>
+                                    {suspendedPool > 0 && (
+                                      <span className="text-amber-800 bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-300">
+                                        ⚠️ رصيد معلق مجمع: {suspendedPool.toLocaleString()} ج.م
+                                      </span>
+                                    )}
+                                    <div className="flex gap-2 mr-auto">
+                                      <button onClick={(e)=>{
+                                        e.stopPropagation(); 
+                                        requirePin(() => {
+                                            setEditingContractId(c.id);
+                                            const cInsts = (data.installments || []).filter(i => i.contractId === c.id).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate));
+                                            const firstDate = cInsts.length > 0 ? cInsts[0].dueDate : todayDateStr;
+                                            
+                                            setNewContract({
+                                                clientName: c.clientName,
+                                                unitId: c.unitId,
+                                                totalAmount: c.totalAmount,
+                                                downPayment: c.downPayment || '',
+                                                custodyId: '',
+                                                installmentsCount: c.installmentsCount || cInsts.length,
+                                                firstInstallmentDate: firstDate,
+                                                interval: c.interval || '1'
+                                            });
+                                            window.scrollTo({ top: 0, behavior: 'smooth' }); 
+                                        });
+                                      }} className="text-xs text-amber-700 bg-amber-50 px-3 py-1 rounded-xl font-bold border border-amber-200 hover:bg-amber-100 transition">تعديل العقد</button>
+                                      <button onClick={(e) => { e.stopPropagation(); requirePin(()=>setAppModal({show:true, type:'CONFIRM', props:{title: t.cancelContract, message: t.confirmCancel, onConfirm:()=>{ setData(p=>({...p, contracts: p.contracts.map(ct=>ct.id===c.id?{...ct,status:'canceled'}:ct), installments: p.installments.filter(i=>!(i.contractId===c.id && i.status==='pending')), units: p.units.map(un=>un.id===c.unitId?{...un,status:'available'}:un)})); showMsg(t.success); }}})); }} className="text-xs text-red-600 bg-red-50 px-3 py-1 rounded-xl font-bold border border-red-100 hover:bg-red-100 transition">{t.cancelContract}</button>
+                                    </div>
+                                  </div>
+
+                                  <div className="overflow-x-auto mb-4">
+                                    <table className="w-full text-sm text-right" style={{textAlign: lang==='en'?'left':'right'}}>
+                                      <thead className="text-slate-400 border-b-2"><tr><th className="p-2 pb-2 font-medium">{t.dueDate}</th><th className="p-2 pb-2 font-medium">{t.amount}</th><th className="p-2 pb-2 font-medium">{t.status}</th><th className="p-2 pb-2 font-medium">{t.action}</th></tr></thead>
+                                      <tbody>
+                                        {suspendedPool > 0 && (
+                                          <tr className="border-b-2 border-amber-200 bg-amber-50/70">
+                                            <td className="p-2 font-bold text-amber-800 text-xs">-- معلق مجمع --</td>
+                                            <td className="p-2 font-black text-amber-900 text-base">{suspendedPool.toLocaleString()} ج.م</td>
+                                            <td className="p-2"><span className="text-amber-800 font-bold text-xs bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-300">مبلغ معلق</span></td>
+                                            <td className="p-2 flex gap-1">
+                                              <button onClick={() => setAppModal({
+                                                show: true,
+                                                type: 'PROMPT_INST',
+                                                props: {
+                                                  title: 'جدولة المبلغ المعلق لقسط جديد',
+                                                  showDate: true,
+                                                  defaultAmount: suspendedPool,
+                                                  defaultDate: todayDateStr,
+                                                  onConfirm: (amt, dt) => convertSuspendedToInstallment(c.id, amt, dt)
+                                                }
+                                              })} className="bg-purple-600 text-white px-2.5 py-1 rounded-lg text-xs font-bold shadow hover:bg-purple-700 transition">➕ تحويل لقسط</button>
+                                            </td>
+                                          </tr>
+                                        )}
+
+                                        {(data.installments || []).filter(i => i.contractId === c.id).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate)).map(inst => {
+                                          const totalPartnerShare = Math.round(inst.amount * (b?.partnerPercent/100));
+                                          const currentPaidToPartner = inst.partnerPaidAmount !== undefined ? Number(inst.partnerPaidAmount) : (inst.partnerPaid ? totalPartnerShare : 0);
+                                          const remainingToPartner = Math.max(0, totalPartnerShare - currentPaidToPartner);
+
+                                          return (
+                                            <tr key={inst.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                                              <td className="p-2 font-mono text-xs text-slate-500 whitespace-nowrap" dir="ltr">{formatShortDate(inst.dueDate)}</td>
+                                              <td className="p-2">
+                                                <div className="font-bold text-slate-800 text-base">{Number(inst.amount).toLocaleString()} {inst.isDownPayment && <span className="text-[10px] bg-blue-100 text-blue-800 px-1 rounded ml-1">مقدم</span>}</div>
+                                                {b?.hasPartner && b.partnerPercent > 0 && (
+                                                  <div className="text-[10px] text-slate-500 mt-1 space-y-0.5">
+                                                    <span className="bg-blue-50 text-blue-700 px-1 rounded block">{t.myShare}: {Math.round(inst.amount * ((100 - b.partnerPercent)/100)).toLocaleString()}</span>
+                                                    <span className="bg-purple-50 text-purple-700 px-1 rounded block">{t.partnerShare}: {totalPartnerShare.toLocaleString()} {currentPaidToPartner > 0 && `(تم توريد ${currentPaidToPartner.toLocaleString()})`}</span>
+                                                  </div>
+                                                )}
+                                              </td>
+                                              <td className="p-2">
+                                                {inst.status === 'suspended' || Number(inst.amount) === 0 ? (
+                                                  <span className="text-slate-500 font-bold text-xs bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">{t.suspended}</span>
+                                                ) : inst.status === 'paid' ? (
+                                                  <span className="text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-lg text-xs border border-emerald-100">{t.paid}</span>
+                                                ) : (
+                                                  <span className="text-amber-500 font-bold text-xs bg-amber-50 px-3 py-1 rounded-lg border border-amber-100">{t.pending}</span>
+                                                )}
+                                              </td>
+                                              <td className="p-2 flex flex-col gap-2">
+                                                {inst.status === 'pending' && Number(inst.amount) > 0 && (
+                                                  <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptCollect, defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId)=>payInstallment(inst.id, c.clientName, b?.id, amt, dt, custId) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">{t.collect}</button>
+                                                )}
+                                                
+                                                <button onClick={() => setAppModal({
+                                                  show: true, 
+                                                  type: 'PROMPT_INST', 
+                                                  props: {
+                                                    title: t.promptEditInst, 
+                                                    showDate: true, 
+                                                    defaultAmount: inst.amount, 
+                                                    defaultDate: inst.dueDate, 
+                                                    onConfirm: (amt, dt) => editInstallment(inst.id, amt, dt) 
+                                                  }
+                                                })} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">{t.edit}</button>
+                                                
+                                                {inst.status === 'paid' && remainingToPartner > 0 && b?.hasPartner && b.partnerPercent > 0 && (
+                                                  <button onClick={() => setAppModal({
+                                                    show:true, 
+                                                    type:'PAY_PARTNER', 
+                                                    props:{
+                                                      partnerAmt: remainingToPartner, 
+                                                      onConfirm:(actualAmt, dt, custId)=>payPartnerShare(inst.id, actualAmt, c.clientName, b.name, custId, dt)
+                                                    }
+                                                  })} className="bg-purple-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-purple-600 transition">
+                                                    {t.payPartnerBtn} {currentPaidToPartner > 0 ? '(متبقي)' : ''}
+                                                  </button>
+                                                )}
+                                                {inst.status === 'paid' && (
+                                                  <button onClick={() => {
+                                                    const contractInsts = (data.installments || []).filter(i => i.contractId === c.id);
+                                                    const paidSum = contractInsts.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.amount), 0);
+                                                    const unitPrice = Number(c.totalAmount || 0);
+                                                    const remaining = unitPrice - paidSum;
+                                                    setAppModal({
+                                                      show: true, 
+                                                      type:'RECEIPT', 
+                                                      props:{ 
+                                                        date: formatShortDate(todayDateStr),
+                                                        dueDate: formatShortDate(inst.dueDate), 
+                                                        clientName: inst.isDownPayment ? `${c.clientName} (مقدم)` : c.clientName, 
+                                                        buildingName: `${b?.name} - الوحدة ${u?.unitNumber}`, 
+                                                        amount: inst.amount,
+                                                        unitPrice: unitPrice,
+                                                        totalPaid: paidSum,
+                                                        remainingAmount: remaining
+                                                      }
+                                                    });
+                                                  }} className="bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-slate-900 transition flex justify-center items-center gap-1">🖨️ إيصال</button>
+                                                )}
+                                              </td>
+                                            </tr>
+                                          );
+                                        })}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                  
+                                  <div className="flex gap-2 justify-start mb-4">
+                                    <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptManual, showDate:true, defaultDate: todayDateStr, onConfirm:(amt,dt)=>addManualInstallment(c.id, amt, dt) }})} className="bg-blue-50 text-blue-700 border border-blue-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-blue-100 transition">{t.addManualInst}</button>
+                                    
+                                    <label className="bg-slate-50 text-slate-700 border border-slate-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-slate-100 transition cursor-pointer flex items-center justify-center">
+                                      {t.addAttachment}
+                                      <input type="file" accept="image/*" className="hidden" onChange={e => {
+                                        const file = e.target.files[0];
+                                        if(!file) return;
+                                        compressImage(file, (compressedBase64) => {
+                                          setData(p => ({ ...p, contracts: p.contracts.map(ct => ct.id === c.id ? { ...ct, attachments: [...(ct.attachments || []), compressedBase64] } : ct) }));
+                                          showMsg(t.success);
+                                        });
+                                      }}/>
+                                    </label>
+                                  </div>
+
+                                  {(c.attachments || []).length > 0 && (
+                                      <div className="mt-4">
+                                        <span className="text-xs font-bold text-slate-500 mb-2 block">{t.attachments}:</span>
+                                        <div className="flex gap-3 overflow-x-auto p-3 bg-slate-50 rounded-xl border border-slate-200 shadow-inner">
+                                            {c.attachments.map((att, idx) => (
+                                                <div key={idx} className="relative inline-block flex-shrink-0">
+                                                  <img src={att} className="h-20 w-20 object-cover rounded-lg cursor-pointer border-2 border-slate-300 shadow hover:scale-105 hover:border-blue-400 transition" onClick={(e) => { e.stopPropagation(); setAppModal({show: true, type: 'IMAGE_VIEW', props: { src: att }}); }} />
+                                                  <button onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    requirePin(() => {
+                                                      setData(p => ({
+                                                        ...p,
+                                                        contracts: p.contracts.map(ct => ct.id === c.id ? { ...ct, attachments: ct.attachments.filter((_, i) => i !== idx) } : ct)
+                                                      }));
+                                                      showMsg(t.success);
+                                                    });
+                                                  }} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-md hover:bg-red-700 transition">X</button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                      </div>
                                   )}
 
-                                  {(data.installments || []).filter(i => i.contractId === c.id).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate)).map(inst => {
-                                    const totalPartnerShare = Math.round(inst.amount * (b?.partnerPercent/100));
-                                    const currentPaidToPartner = inst.partnerPaidAmount !== undefined ? Number(inst.partnerPaidAmount) : (inst.partnerPaid ? totalPartnerShare : 0);
-                                    const remainingToPartner = Math.max(0, totalPartnerShare - currentPaidToPartner);
-
-                                    return (
-                                      <tr key={inst.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                                        <td className="p-2 font-mono text-xs text-slate-500 whitespace-nowrap" dir="ltr">{formatShortDate(inst.dueDate)}</td>
-                                        <td className="p-2">
-                                          <div className="font-bold text-slate-800 text-base">{Number(inst.amount).toLocaleString()} {inst.isDownPayment && <span className="text-[10px] bg-blue-100 text-blue-800 px-1 rounded ml-1">مقدم</span>}</div>
-                                          {b?.hasPartner && b.partnerPercent > 0 && (
-                                            <div className="text-[10px] text-slate-500 mt-1 space-y-0.5">
-                                              <span className="bg-blue-50 text-blue-700 px-1 rounded block">{t.myShare}: {Math.round(inst.amount * ((100 - b.partnerPercent)/100)).toLocaleString()}</span>
-                                              <span className="bg-purple-50 text-purple-700 px-1 rounded block">{t.partnerShare}: {totalPartnerShare.toLocaleString()} {currentPaidToPartner > 0 && `(تم توريد ${currentPaidToPartner.toLocaleString()})`}</span>
-                                            </div>
-                                          )}
-                                        </td>
-                                        <td className="p-2">
-                                          {inst.status === 'suspended' || Number(inst.amount) === 0 ? (
-                                            <span className="text-slate-500 font-bold text-xs bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">{t.suspended}</span>
-                                          ) : inst.status === 'paid' ? (
-                                            <span className="text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-lg text-xs border border-emerald-100">{t.paid}</span>
-                                          ) : (
-                                            <span className="text-amber-500 font-bold text-xs bg-amber-50 px-3 py-1 rounded-lg border border-amber-100">{t.pending}</span>
-                                          )}
-                                        </td>
-                                        <td className="p-2 flex flex-col gap-2">
-                                          {inst.status === 'pending' && Number(inst.amount) > 0 && (
-                                            <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptCollect, defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId)=>payInstallment(inst.id, c.clientName, b?.id, amt, dt, custId) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">{t.collect}</button>
-                                          )}
-                                          
-                                          <button onClick={() => setAppModal({
-                                            show: true, 
-                                            type: 'PROMPT_INST', 
-                                            props: {
-                                              title: t.promptEditInst, 
-                                              showDate: true, 
-                                              defaultAmount: inst.amount, 
-                                              defaultDate: inst.dueDate, 
-                                              onConfirm: (amt, dt) => editInstallment(inst.id, amt, dt) 
-                                            }
-                                          })} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">{t.edit}</button>
-                                          
-                                          {inst.status === 'paid' && remainingToPartner > 0 && b?.hasPartner && b.partnerPercent > 0 && (
-                                            <button onClick={() => setAppModal({
-                                              show:true, 
-                                              type:'PAY_PARTNER', 
-                                              props:{
-                                                partnerAmt: remainingToPartner, 
-                                                onConfirm:(actualAmt, dt, custId)=>payPartnerShare(inst.id, actualAmt, c.clientName, b.name, custId, dt)
-                                              }
-                                            })} className="bg-purple-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-purple-600 transition">
-                                              {t.payPartnerBtn} {currentPaidToPartner > 0 ? '(متبقي)' : ''}
-                                            </button>
-                                          )}
-                                          {inst.status === 'paid' && (
-                                            <button onClick={() => {
-                                              const contractInsts = (data.installments || []).filter(i => i.contractId === c.id);
-                                              const paidSum = contractInsts.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.amount), 0);
-                                              const unitPrice = Number(c.totalAmount || 0);
-                                              const remaining = unitPrice - paidSum;
-                                              setAppModal({
-                                                show: true, 
-                                                type:'RECEIPT', 
-                                                props:{ 
-                                                  date: formatShortDate(todayDateStr),
-                                                  dueDate: formatShortDate(inst.dueDate), 
-                                                  clientName: inst.isDownPayment ? `${c.clientName} (مقدم)` : c.clientName, 
-                                                  buildingName: `${b?.name} - الوحدة ${u?.unitNumber}`, 
-                                                  amount: inst.amount,
-                                                  unitPrice: unitPrice,
-                                                  totalPaid: paidSum,
-                                                  remainingAmount: remaining
-                                                }
-                                              });
-                                            }} className="bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-slate-900 transition flex justify-center items-center gap-1">🖨️ إيصال</button>
-                                          )}
-                                        </td>
-                                      </tr>
-                                    );
-                                  })}
-                                </tbody>
-                              </table>
-                            </div>
-                            
-                            <div className="flex gap-2 justify-start mb-4">
-                              <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptManual, showDate:true, defaultDate: todayDateStr, onConfirm:(amt,dt)=>addManualInstallment(c.id, amt, dt) }})} className="bg-blue-50 text-blue-700 border border-blue-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-blue-100 transition">{t.addManualInst}</button>
-                              
-                              <label className="bg-slate-50 text-slate-700 border border-slate-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-slate-100 transition cursor-pointer flex items-center justify-center">
-                                {t.addAttachment}
-                                <input type="file" accept="image/*" className="hidden" onChange={e => {
-                                  const file = e.target.files[0];
-                                  if(!file) return;
-                                  compressImage(file, (compressedBase64) => {
-                                    setData(p => ({ ...p, contracts: p.contracts.map(ct => ct.id === c.id ? { ...ct, attachments: [...(ct.attachments || []), compressedBase64] } : ct) }));
-                                    showMsg(t.success);
-                                  });
-                                }}/>
-                              </label>
-                            </div>
-
-                            {/* عارض المرفقات مع زر الحذف */}
-                            {(c.attachments || []).length > 0 && (
-                                <div className="mt-4">
-                                  <span className="text-xs font-bold text-slate-500 mb-2 block">{t.attachments}:</span>
-                                  <div className="flex gap-3 overflow-x-auto p-3 bg-slate-50 rounded-xl border border-slate-200 shadow-inner">
-                                      {c.attachments.map((att, idx) => (
-                                          <div key={idx} className="relative inline-block flex-shrink-0">
-                                            <img src={att} className="h-20 w-20 object-cover rounded-lg cursor-pointer border-2 border-slate-300 shadow hover:scale-105 hover:border-blue-400 transition" onClick={(e) => { e.stopPropagation(); setAppModal({show: true, type: 'IMAGE_VIEW', props: { src: att }}); }} />
-                                            <button onClick={(e) => {
-                                              e.stopPropagation();
-                                              requirePin(() => {
-                                                setData(p => ({
-                                                  ...p,
-                                                  contracts: p.contracts.map(ct => ct.id === c.id ? { ...ct, attachments: ct.attachments.filter((_, i) => i !== idx) } : ct)
-                                                }));
-                                                showMsg(t.success);
-                                              });
-                                            }} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-md hover:bg-red-700 transition">X</button>
-                                          </div>
-                                      ))}
-                                  </div>
                                 </div>
-                            )}
-
-                          </div>
-                        )}
+                              )}
+                            </div>
+                          );
+                        })}
+                        {filteredContracts.length === 0 && <div className="text-center p-10 text-slate-400 font-bold bg-white rounded-2xl shadow-sm border border-slate-200">لا توجد نتائج بحث مطابقة</div>}
                       </div>
-                    )
-                  })}
-                  {filteredContracts.length === 0 && <div className="text-center p-10 text-slate-400 font-bold bg-white rounded-2xl shadow-sm border border-slate-200">لا توجد نتائج بحث مطابقة</div>}
+                    )}
+                  </div>
+
                 </div>
               </div>
             )}
@@ -2155,7 +2238,7 @@
                       {reportType === 'transactions' && (
                         <div className="relative z-30">
                           <label className="text-xs font-bold text-slate-500 mb-1 block">{t.custody}</label>
-                          <MultiSelectDropdown options={sortedCustodies.map(c => ({ id: c.id, label: c.personName }))} selected={reportFilter.custodyIds} onChange={(newIds) => setReportFilter({...reportFilter, custodyIds: newIds})} placeholder={t.allCustodies} />
+                          <MultiSelectDropdown options={custodyMultiOptions} selected={reportFilter.custodyIds} onChange={(newIds) => setReportFilter({...reportFilter, custodyIds: newIds})} placeholder={t.allCustodies} />
                         </div>
                       )}
                       <div className="relative z-20">

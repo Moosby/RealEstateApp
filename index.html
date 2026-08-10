@@ -15,6 +15,8 @@
   <style>
     select, option, input, textarea {
       color-scheme: light !important;
+      background-color: #ffffff !important;
+      color: #0f172a !important;
     }
     @media print {
       html, body, #root, .min-h-screen, main, main > div { 
@@ -225,14 +227,14 @@
 
       return (
         <div className="relative z-20 w-full" ref={dropdownRef}>
-          <div className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl bg-white cursor-pointer font-bold flex justify-between items-center shadow-sm hover:border-blue-400 transition" onClick={() => setIsOpen(!isOpen)}>
+          <div className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl bg-white cursor-pointer font-bold flex justify-between items-center shadow-sm hover:border-blue-400 transition text-slate-800" onClick={() => setIsOpen(!isOpen)}>
             <span className="truncate">{displayTxt}</span><span className="text-xs text-blue-600">▼</span>
           </div>
           {isOpen && (
-            <div className="absolute top-full right-0 w-full bg-white border-2 border-slate-200 mt-1 shadow-2xl max-h-48 overflow-y-auto z-50 p-2 space-y-2 rounded-xl animate-fade-in">
+            <div className="absolute top-full right-0 w-full bg-white border-2 border-slate-200 mt-1 shadow-2xl max-h-48 overflow-y-auto z-50 p-2 space-y-2 rounded-xl animate-fade-in text-slate-800">
               <label className="flex items-center gap-2 cursor-pointer font-bold border-b pb-2 text-slate-700 hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={(selected || []).length===0} onChange={()=>onChange([])} className="w-4 h-4 text-blue-600"/> --- </label>
               {(options || []).map(opt => (
-                <label key={opt.id} className="flex items-center gap-2 cursor-pointer whitespace-nowrap text-sm hover:bg-slate-50 p-1 rounded transition">
+                <label key={opt.id} className="flex items-center gap-2 cursor-pointer whitespace-nowrap text-sm hover:bg-slate-50 p-1 rounded transition text-slate-800">
                   <input type="checkbox" checked={(selected || []).includes(opt.id)} className="w-4 h-4 text-blue-600" onChange={(e)=>{ const newIds = e.target.checked ? [...(selected || []), opt.id] : (selected || []).filter(id=>id!==opt.id); onChange(newIds); }}/> {opt.label}
                 </label>
               ))}
@@ -313,6 +315,7 @@
       const [reportFilter, setReportFilter] = useState({ startDate: '', endDate: '', custodyIds: [], buildingIds: [] });
       const [reportSort, setReportSort] = useState('date');
       const [selectedPartnerR, setSelectedPartnerR] = useState(''); 
+      const [showPartnerDetails, setShowPartnerDetails] = useState(false);
 
       const [dashboardCustodyFilter, setDashboardCustodyFilter] = useState(() => { try { const s=localStorage.getItem('real_estate_last_custody'); if(!s) return []; const p = JSON.parse(s); return Array.isArray(p) ? p : [p].filter(Boolean); }catch(e){return [];} });
       
@@ -954,9 +957,9 @@
                     {appModal.props.showCustody && (
                       <div>
                         <label className="text-xs font-bold text-slate-500 mb-1">{t.promptCustody}</label>
-                        <select name="custody" className="w-full border-2 border-slate-300 p-3 rounded-xl font-bold text-blue-800 bg-slate-50 outline-none focus:border-blue-500 cursor-pointer">
+                        <select name="custody" className="w-full border-2 border-slate-300 p-3 rounded-xl font-bold text-blue-800 bg-white outline-none focus:border-blue-500 cursor-pointer">
                           <option value="">{t.generalSafe}</option>
-                          {sortedCustodies.map(c => <option key={c.id} value={c.id}>{c.personName}</option>)}
+                          {sortedCustodies.map(c => <option key={c.id} value={c.id} className="bg-white text-slate-800">{c.personName}</option>)}
                         </select>
                       </div>
                     )}
@@ -989,9 +992,9 @@
                     </div>
                     <div className="mb-6">
                       <label className="text-xs font-bold text-slate-500 mb-1 block">{t.deductFromSafe}</label>
-                      <select name="custody" className="w-full border-2 border-slate-300 p-3 rounded-xl font-bold text-purple-800 bg-slate-50 outline-none focus:border-purple-500 cursor-pointer">
-                        <option value="">{t.generalSafe}</option>
-                        {sortedCustodies.map(c => <option key={c.id} value={c.id}>{c.personName}</option>)}
+                      <select name="custody" className="w-full border-2 border-slate-300 p-3 rounded-xl font-bold text-purple-800 bg-white outline-none focus:border-purple-500 cursor-pointer">
+                        <option value="" className="bg-white text-slate-800">{t.generalSafe}</option>
+                        {sortedCustodies.map(c => <option key={c.id} value={c.id} className="bg-white text-slate-800">{c.personName}</option>)}
                       </select>
                     </div>
                     <div className="flex gap-2">
@@ -1098,10 +1101,10 @@
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4">
-                    <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.custody}</label><select className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl font-bold text-blue-800 bg-slate-50 focus:border-blue-500 outline-none transition cursor-pointer" value={newTransaction.custodyId} onChange={e=>setNewTransaction({...newTransaction, custodyId: e.target.value})}><option value="">{t.generalSafe}</option>{sortedCustodies.map(c=><option key={c.id} value={c.id}>{c.personName}</option>)}</select></div>
-                    <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.building}</label><select className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl font-bold bg-slate-50 focus:border-blue-500 outline-none transition cursor-pointer" value={newTransaction.buildingId} onChange={e=>setNewTransaction({...newTransaction, buildingId: e.target.value})}><option value="">{t.allBuildings}</option>{sortedBuildings.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
+                    <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.custody}</label><select className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl font-bold text-blue-800 bg-white focus:border-blue-500 outline-none transition cursor-pointer" value={newTransaction.custodyId} onChange={e=>setNewTransaction({...newTransaction, custodyId: e.target.value})}><option value="" className="bg-white text-slate-800">{t.generalSafe}</option>{sortedCustodies.map(c=><option key={c.id} value={c.id} className="bg-white text-slate-800">{c.personName}</option>)}</select></div>
+                    <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.building}</label><select className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl font-bold bg-white focus:border-blue-500 outline-none transition cursor-pointer" value={newTransaction.buildingId} onChange={e=>setNewTransaction({...newTransaction, buildingId: e.target.value})}><option value="" className="bg-white text-slate-800">{t.allBuildings}</option>{sortedBuildings.map(b=><option key={b.id} value={b.id} className="bg-white text-slate-800">{b.name}</option>)}</select></div>
                   </div>
-                  {newTransaction.type === 'expense' && <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.category}</label><select className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl font-bold bg-slate-50 focus:border-blue-500 outline-none transition cursor-pointer" required value={newTransaction.categoryId} onChange={e=>setNewTransaction({...newTransaction, categoryId: e.target.value})}><option value="">{t.selectCat}</option>{sortedCategories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>}
+                  {newTransaction.type === 'expense' && <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.category}</label><select className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl font-bold bg-white focus:border-blue-500 outline-none transition cursor-pointer" required value={newTransaction.categoryId} onChange={e=>setNewTransaction({...newTransaction, categoryId: e.target.value})}><option value="" className="bg-white text-slate-800">{t.selectCat}</option>{sortedCategories.map(c=><option key={c.id} value={c.id} className="bg-white text-slate-800">{c.name}</option>)}</select></div>}
                   <button className={`w-full text-white py-4 rounded-xl text-xl font-black shadow-lg transition hover:-translate-y-1 ${editingTxId ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-600 hover:bg-blue-700'}`}>{editingTxId ? t.updateTx : t.saveTx}</button>
                   {editingTxId && <button type="button" onClick={()=>{setEditingTxId(null); setNewTransaction({ type: 'income', amount: '', categoryId: '', buildingId: '', custodyId: '', description: '', date: todayDateStr });}} className="w-full mt-2 text-slate-500 font-bold py-2 hover:bg-slate-100 rounded-xl transition">{t.cancel}</button>}
                 </form>
@@ -1180,7 +1183,7 @@
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-md mx-auto">
                   <h3 className="font-bold mb-5 text-center text-lg text-slate-800">{t.addUnitTitle}</h3>
                   <form onSubmit={addUnit} className="flex flex-col gap-4">
-                    <div><select className="border-2 p-3 rounded-xl text-sm w-full font-bold focus:border-blue-400 outline-none bg-slate-50 cursor-pointer" required value={newUnit.buildingId} onChange={e => setNewUnit({...newUnit, buildingId: e.target.value})}><option value="">{t.allBuildings}</option>{sortedBuildings.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
+                    <div><select className="border-2 p-3 rounded-xl text-sm w-full font-bold focus:border-blue-400 outline-none bg-white cursor-pointer" required value={newUnit.buildingId} onChange={e => setNewUnit({...newUnit, buildingId: e.target.value})}><option value="" className="bg-white text-slate-800">{t.allBuildings}</option>{sortedBuildings.map(b => <option key={b.id} value={b.id} className="bg-white text-slate-800">{b.name}</option>)}</select></div>
                     <div><input type="text" placeholder={t.unitName} className="border-2 p-3 rounded-xl text-sm w-full font-bold focus:border-blue-400 outline-none bg-slate-50" required value={newUnit.unitNumber} onChange={e => setNewUnit({...newUnit, unitNumber: e.target.value})} /></div>
                     <button className="bg-blue-600 text-white px-4 py-3 rounded-xl text-md font-bold w-full shadow hover:bg-blue-700">{t.saveUnit}</button>
                   </form>
@@ -1220,22 +1223,22 @@
                   )}
                   <form onSubmit={addContract} className="space-y-4">
                     <input type="text" placeholder={t.clientName} className="w-full border-2 p-3 rounded-xl text-sm font-bold bg-slate-50 focus:border-blue-400 outline-none" required value={newContract.clientName} onChange={e => setNewContract({...newContract, clientName: e.target.value})} />
-                    <select className="w-full border-2 p-3 rounded-xl text-sm font-bold bg-slate-50 focus:border-blue-400 outline-none cursor-pointer" required value={newContract.unitId} onChange={e => setNewContract({...newContract, unitId: e.target.value})}>
-                      <option value="">{t.selectUnit}</option>
-                      {(data.units || []).filter(u => u.status === 'available' || (editingContractId && newContract.unitId === u.id)).map(u => <option key={u.id} value={u.id}>{(data.buildings || []).find(b=>b.id===u.buildingId)?.name} - {u.unitNumber}</option>)}
+                    <select className="w-full border-2 p-3 rounded-xl text-sm font-bold bg-white focus:border-blue-400 outline-none cursor-pointer" required value={newContract.unitId} onChange={e => setNewContract({...newContract, unitId: e.target.value})}>
+                      <option value="" className="bg-white text-slate-800">{t.selectUnit}</option>
+                      {(data.units || []).filter(u => u.status === 'available' || (editingContractId && newContract.unitId === u.id)).map(u => <option key={u.id} value={u.id} className="bg-white text-slate-800">{(data.buildings || []).find(b=>b.id===u.buildingId)?.name} - {u.unitNumber}</option>)}
                     </select>
                     <div><label className="text-xs font-bold text-slate-500 block mb-1">{t.totalAmount}</label><NumberInput required value={newContract.totalAmount} onChange={v => setNewContract({...newContract, totalAmount: v})} className="w-full border-2 p-3 rounded-xl text-lg font-bold bg-white focus:border-blue-400 outline-none" /></div>
                     <div><label className="text-xs font-bold text-slate-500 block mb-1">{t.downPayment}</label><NumberInput required value={newContract.downPayment} onChange={v => setNewContract({...newContract, downPayment: v})} className="w-full border-2 p-3 rounded-xl text-lg font-bold bg-white focus:border-blue-400 outline-none" /></div>
                     <div><label className="text-xs font-bold text-slate-500 block mb-1">{t.instCount}</label><NumberInput required value={newContract.installmentsCount} onChange={v => setNewContract({...newContract, installmentsCount: v})} className="w-full border-2 p-3 rounded-xl text-lg font-bold bg-white focus:border-blue-400 outline-none text-center" /></div>
                     <div>
                       <label className="text-xs font-bold text-slate-500 block mb-1">{t.paySystem}</label>
-                      <select required className="w-full border-2 p-3 rounded-xl text-sm font-bold bg-slate-50 focus:border-blue-400 outline-none cursor-pointer" value={newContract.interval} onChange={e => setNewContract({...newContract, interval: e.target.value})}>
-                        <option value="1">{t.sys1}</option>
-                        <option value="2">{t.sys2}</option>
-                        <option value="3">{t.sys3}</option>
-                        <option value="4">{t.sys4}</option>
-                        <option value="6">{t.sys6}</option>
-                        <option value="12">{t.sys12}</option>
+                      <select required className="w-full border-2 p-3 rounded-xl text-sm font-bold bg-white focus:border-blue-400 outline-none cursor-pointer" value={newContract.interval} onChange={e => setNewContract({...newContract, interval: e.target.value})}>
+                        <option value="1" className="bg-white text-slate-800">{t.sys1}</option>
+                        <option value="2" className="bg-white text-slate-800">{t.sys2}</option>
+                        <option value="3" className="bg-white text-slate-800">{t.sys3}</option>
+                        <option value="4" className="bg-white text-slate-800">{t.sys4}</option>
+                        <option value="6" className="bg-white text-slate-800">{t.sys6}</option>
+                        <option value="12" className="bg-white text-slate-800">{t.sys12}</option>
                       </select>
                     </div>
                     <div><label className="text-xs font-bold text-slate-500 block mb-1">{t.firstInstDate}</label><input type="date" className="w-full border-2 p-3 rounded-xl text-sm font-bold bg-slate-50 focus:border-blue-400 outline-none font-mono" required value={newContract.firstInstallmentDate} onChange={e => setNewContract({...newContract, firstInstallmentDate: e.target.value})} /></div>
@@ -1556,6 +1559,15 @@
                                <td className="text-center font-bold text-xs">{d.partnerStatus}</td>
                              </tr>
                            ))}
+                           {partnerReportData.instsDetails.length > 0 && (
+                             <tr className="bg-gray-200 font-black">
+                               <td colSpan="3" className="text-left font-black text-sm" style={{textAlign: lang==='ar'?'left':'right'}}>الإجمالي:</td>
+                               <td className="text-center font-black text-sm">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.totalAmount||0),0).toLocaleString()}</td>
+                               <td className="text-center font-black text-sm text-purple-900">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.share||0),0).toLocaleString()}</td>
+                               <td className="text-center font-black text-sm text-emerald-800">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.paidToPartner||0),0).toLocaleString()}</td>
+                               <td></td>
+                             </tr>
+                           )}
                            {partnerReportData.instsDetails.length === 0 && <tr><td colSpan="7" className="p-4 font-bold text-gray-500">لا توجد أية عقود أو أقساط مسجلة لهذا الشريك</td></tr>}
                         </tbody>
                       </table>
@@ -1591,9 +1603,9 @@
                     <div className="mb-4 flex items-center gap-3">
                       <label className="font-bold text-slate-700 text-sm">{t.sortBy}</label>
                       <select className="border-2 p-2 rounded-lg text-sm outline-none focus:border-blue-400 font-bold cursor-pointer" value={reportSort} onChange={e=>setReportSort(e.target.value)}>
-                        <option value="date">{t.sortDate}</option>
-                        <option value="client">{t.sortClient}</option>
-                        <option value="building">{t.sortBuilding}</option>
+                        <option value="date" className="bg-white text-slate-800">{t.sortDate}</option>
+                        <option value="client" className="bg-white text-slate-800">{t.sortClient}</option>
+                        <option value="building" className="bg-white text-slate-800">{t.sortBuilding}</option>
                       </select>
                     </div>
                   )}
@@ -1602,8 +1614,8 @@
                      <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner mb-6">
                         <label className="text-xs font-bold text-slate-500 mb-2 block">اختر اسم المستثمر / الشريك</label>
                         <select className="w-full max-w-md border-2 p-3 text-sm rounded-xl font-bold focus:border-purple-400 outline-none bg-white mb-6 cursor-pointer" value={selectedPartnerR} onChange={e=>setSelectedPartnerR(e.target.value)}>
-                           <option value="">-- اختر الشريك --</option>
-                           {uniquePartnersList.map((pn, i) => <option key={i} value={pn}>{pn}</option>)}
+                           <option value="" className="bg-white text-slate-800">-- اختر الشريك --</option>
+                           {uniquePartnersList.map((pn, i) => <option key={i} value={pn} className="bg-white text-slate-800">{pn}</option>)}
                         </select>
 
                         {partnerReportData && (
@@ -1628,38 +1640,63 @@
                                 </div>
                               </div>
 
-                              <div className="overflow-x-auto bg-white rounded-xl shadow-sm border border-slate-200">
-                                <table className="w-full text-sm text-right">
-                                  <thead className="bg-slate-100 text-slate-700 border-b">
-                                    <tr>
-                                      <th className="p-3">تاريخ القسط</th>
-                                      <th className="p-3">العميل</th>
-                                      <th className="p-3">العمارة/الوحدة</th>
-                                      <th className="p-3">إجمالي القسط</th>
-                                      <th className="p-3">نصيب الشريك</th>
-                                      <th className="p-3">تم توريده</th>
-                                      <th className="p-3">حالة القسط</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {partnerReportData.instsDetails.map((d, idx) => (
-                                      <tr key={idx} className="border-b hover:bg-slate-50">
-                                        <td className="p-3 font-mono text-xs text-slate-500" dir="ltr">{formatShortDate(d.date)}</td>
-                                        <td className="p-3 font-bold text-slate-800">{d.client}</td>
-                                        <td className="p-3 font-bold text-slate-600">{d.building}</td>
-                                        <td className="p-3 font-bold text-slate-800">{d.totalAmount.toLocaleString()}</td>
-                                        <td className="p-3 font-black text-purple-800">{d.share.toLocaleString()}</td>
-                                        <td className="p-3 font-bold text-emerald-600">{d.paidToPartner > 0 ? d.paidToPartner.toLocaleString() : '--'}</td>
-                                        <td className="p-3 font-bold text-xs">
-                                           <span className={`px-2 py-1 rounded-md text-[11px] ${d.instStatus==='paid' ? (d.dueToPartner===0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800') : 'bg-slate-100 text-slate-500'}`}>
-                                              {d.partnerStatus}
-                                           </span>
-                                        </td>
-                                      </tr>
-                                    ))}
-                                    {partnerReportData.instsDetails.length === 0 && <tr><td colSpan="7" className="p-6 text-center text-gray-500 font-bold">لا توجد عقود أو أقساط لهذا الشريك</td></tr>}
-                                  </tbody>
-                                </table>
+                              <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                                <div 
+                                  className="flex justify-between items-center p-4 bg-slate-100/80 cursor-pointer hover:bg-slate-200/60 transition border-b"
+                                  onClick={() => setShowPartnerDetails(!showPartnerDetails)}
+                                >
+                                  <h4 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                                    📊 كشف كافة أقساط ومستحقات الشريك ({partnerReportData.instsDetails.length})
+                                  </h4>
+                                  <span className="text-xs bg-white text-purple-700 px-3 py-1 rounded-lg font-bold shadow-sm border">
+                                    {showPartnerDetails ? t.hideDetails : t.showDetails}
+                                  </span>
+                                </div>
+
+                                {showPartnerDetails && (
+                                  <div className="overflow-x-auto animate-slide-up">
+                                    <table className="w-full text-sm text-right">
+                                      <thead className="bg-slate-50 text-slate-700 border-b">
+                                        <tr>
+                                          <th className="p-3">تاريخ القسط</th>
+                                          <th className="p-3">العميل</th>
+                                          <th className="p-3">العمارة/الوحدة</th>
+                                          <th className="p-3">إجمالي القسط</th>
+                                          <th className="p-3">نصيب الشريك</th>
+                                          <th className="p-3">تم توريده</th>
+                                          <th className="p-3">حالة القسط</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {partnerReportData.instsDetails.map((d, idx) => (
+                                          <tr key={idx} className="border-b hover:bg-slate-50">
+                                            <td className="p-3 font-mono text-xs text-slate-500" dir="ltr">{formatShortDate(d.date)}</td>
+                                            <td className="p-3 font-bold text-slate-800">{d.client}</td>
+                                            <td className="p-3 font-bold text-slate-600">{d.building}</td>
+                                            <td className="p-3 font-bold text-slate-800">{d.totalAmount.toLocaleString()}</td>
+                                            <td className="p-3 font-black text-purple-800">{d.share.toLocaleString()}</td>
+                                            <td className="p-3 font-bold text-emerald-600">{d.paidToPartner > 0 ? d.paidToPartner.toLocaleString() : '--'}</td>
+                                            <td className="p-3 font-bold text-xs">
+                                               <span className={`px-2 py-1 rounded-md text-[11px] ${d.instStatus==='paid' ? (d.dueToPartner===0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800') : 'bg-slate-100 text-slate-500'}`}>
+                                                  {d.partnerStatus}
+                                               </span>
+                                            </td>
+                                          </tr>
+                                        ))}
+                                        {partnerReportData.instsDetails.length > 0 && (
+                                          <tr className="bg-slate-100 font-black border-t-2 border-slate-300">
+                                            <td colSpan="3" className="p-3 text-left font-black" style={{textAlign: lang==='ar'?'left':'right'}}>الإجمالي:</td>
+                                            <td className="p-3 font-black text-slate-900">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.totalAmount||0),0).toLocaleString()}</td>
+                                            <td className="p-3 font-black text-purple-900">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.share||0),0).toLocaleString()}</td>
+                                            <td className="p-3 font-black text-emerald-700">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.paidToPartner||0),0).toLocaleString()}</td>
+                                            <td></td>
+                                          </tr>
+                                        )}
+                                        {partnerReportData.instsDetails.length === 0 && <tr><td colSpan="7" className="p-6 text-center text-gray-500 font-bold">لا توجد عقود أو أقساط لهذا الشريك</td></tr>}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
                               </div>
                            </div>
                         )}

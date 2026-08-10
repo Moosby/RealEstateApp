@@ -13,6 +13,9 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
+    select, option, input, textarea {
+      color-scheme: light !important;
+    }
     @media print {
       html, body, #root, .min-h-screen, main, main > div { 
         height: auto !important; 
@@ -94,7 +97,7 @@
         lang: "لغة البرنامج / Language", yes: "نعم متأكد", no: "إلغاء", txTitle: "تسجيل حركة نقدية",
         showDetails: "التفاصيل ▼", hideDetails: "إخفاء ▲", opBalance: "رصيد أول المدة",
         hasPartner: "يوجد شريك؟", partnerPercent: "نسبة الشريك (%)", partnerNameInput: "اسم الشريك (اختياري)", myShare: "نسبتي", partnerShare: "للشريك",
-        payPartnerBtn: "توريد للشريك", payPartnerTitle: "تأكيد توريد مبلغ الشريك", payPartnerDesc: "سيتم خصم المبلغ من العهدة المختارة كـ (مصروف)",
+        payPartnerBtn: "توريد للشريك", payPartnerTitle: "تأكيد توريد مبلغ الشريك", payPartnerDesc: "يمكنك توريد المبلغ كاملاً أو جزء منه وخصمه كـ (مصروف)",
         deductFromSafe: "خصم من عهدة / الخزينة", selectSafe: "-- اختر العهدة --",
         sortBy: "ترتيب حسب:", sortDate: "التاريخ", sortClient: "العميل", sortBuilding: "العمارة",
         detailsMonthDues: "تفاصيل أقساط الشهر", client: "العميل", dueDate: "الاستحقاق", action: "إجراء",
@@ -184,9 +187,28 @@
       }
     }
 
-    function NumberInput({ name, value, onChange, placeholder, className, required, id }) {
-      const displayVal = (value !== '' && value !== undefined && value !== null && !isNaN(value)) ? Number(value).toLocaleString('en-US') : '';
-      return ( <input type="text" id={id} name={name} inputMode="numeric" value={displayVal} placeholder={placeholder} required={required} className={className} onChange={(e) => { const raw = e.target.value.replace(/[^0-9]/g, ''); onChange(raw); }} /> );
+    function NumberInput({ name, value, onChange, placeholder, className, required, id, defaultValue }) {
+      const [internalVal, setInternalVal] = useState(defaultValue !== undefined ? defaultValue : value);
+      useEffect(() => { if (value !== undefined) setInternalVal(value); }, [value]);
+
+      const displayVal = (internalVal !== '' && internalVal !== undefined && internalVal !== null && !isNaN(internalVal)) ? Number(internalVal).toLocaleString('en-US') : '';
+      return ( 
+        <input 
+          type="text" 
+          id={id} 
+          name={name} 
+          inputMode="numeric" 
+          value={displayVal} 
+          placeholder={placeholder} 
+          required={required} 
+          className={className} 
+          onChange={(e) => { 
+            const raw = e.target.value.replace(/[^0-9]/g, ''); 
+            setInternalVal(raw);
+            if(onChange) onChange(raw); 
+          }} 
+        /> 
+      );
     }
 
     function MultiSelectDropdown({ options, selected, onChange, placeholder }) {
@@ -238,7 +260,7 @@
         return initialData;
       });
 
-      // Data Migration for DownPayments
+      // Migration for DownPayments
       useEffect(() => {
         let needsUpdate = false;
         let updatedInsts = [...(data.installments || [])];
@@ -254,6 +276,7 @@
                         dueDate: c.date || todayDateStr,
                         status: 'paid',
                         partnerPaid: false,
+                        partnerPaidAmount: 0,
                         isDownPayment: true
                     });
                     needsUpdate = true;
@@ -438,29 +461,55 @@
           const activeContracts = (data.contracts||[]).filter(c => c.status === 'active' && bdsIds.includes(c.buildingId));
           const activeContractIds = activeContracts.map(c => c.id);
 
-          const instsDetails = [];
+          const allPartnerInsts = [];
 
           (data.installments||[]).forEach(inst => {
              if (activeContractIds.includes(inst.contractId)) {
                  const c = activeContracts.find(ct => ct.id === inst.contractId);
                  const b = bds.find(bd => bd.id === c.buildingId);
+                 const u = (data.units||[]).find(un => un.id === c.unitId);
                  const pShare = Math.round(Number(inst.amount) * (Number(b.partnerPercent)/100));
+                 const paidToPartnerAmt = inst.partnerPaidAmount !== undefined 
+                    ? Number(inst.partnerPaidAmount) 
+                    : (inst.partnerPaid ? pShare : 0);
 
                  expected += pShare;
+                 paid += paidToPartnerAmt;
+
                  if (inst.status === 'paid') {
-                     if (inst.partnerPaid) {
-                         paid += pShare;
-                     } else {
-                         unpaid += pShare;
-                         const clientName = inst.isDownPayment ? `${c.clientName} (مقدم)` : c.clientName;
-                         instsDetails.push({ client: clientName, building: b.name, share: pShare, date: inst.dueDate });
-                     }
+                     const remainingUnpaidToPartner = Math.max(0, pShare - paidToPartnerAmt);
+                     unpaid += remainingUnpaidToPartner;
                  } else {
                      pending += pShare;
                  }
+
+                 const clientLabel = inst.isDownPayment ? `${c.clientName} (مقدم)` : c.clientName;
+                 
+                 let partnerStatusText = 'غير محصل من العميل';
+                 if (inst.status === 'paid') {
+                    if (paidToPartnerAmt >= pShare) partnerStatusText = 'تم التوريد بالكامل';
+                    else if (paidToPartnerAmt > 0) partnerStatusText = `مورد جزئي (${paidToPartnerAmt.toLocaleString()})`;
+                    else partnerStatusText = 'مستحق للتوريد (مُحصل)';
+                 }
+
+                 allPartnerInsts.push({
+                    id: inst.id,
+                    client: clientLabel,
+                    building: `${b.name} - ${u?.unitNumber || ''}`,
+                    date: inst.dueDate,
+                    totalAmount: Number(inst.amount),
+                    share: pShare,
+                    paidToPartner: paidToPartnerAmt,
+                    dueToPartner: Math.max(0, pShare - paidToPartnerAmt),
+                    instStatus: inst.status,
+                    partnerStatus: partnerStatusText
+                 });
              }
           });
-          return { expected, paid, unpaid, pending, instsDetails };
+
+          allPartnerInsts.sort((a,b) => new Date(a.date || 0) - new Date(b.date || 0));
+
+          return { expected, paid, unpaid, pending, instsDetails: allPartnerInsts };
       }, [data, reportType, selectedPartnerR]);
 
       const handlePrint = () => {
@@ -604,7 +653,7 @@
 
             const newInsts = []; 
             if (dp > 0) {
-               newInsts.push({ id: 'inst_dp_' + Date.now(), contractId, amount: dp, dueDate: todayDateStr, status: 'paid', partnerPaid: false, isDownPayment: true });
+               newInsts.push({ id: 'inst_dp_' + Date.now(), contractId, amount: dp, dueDate: todayDateStr, status: 'paid', partnerPaid: false, partnerPaidAmount: 0, isDownPayment: true });
             }
 
             let curDate = new Date(newContract.firstInstallmentDate); 
@@ -613,7 +662,7 @@
             for(let i=0; i<count; i++) { 
                let currentAmt = baseInstAmount;
                if (i === count - 1) currentAmt += remainder; 
-               newInsts.push({ id: 'inst_' + Date.now() + '_' + i, contractId, amount: currentAmt, dueDate: curDate.toISOString().split('T')[0], status: 'pending', partnerPaid: false }); 
+               newInsts.push({ id: 'inst_' + Date.now() + '_' + i, contractId, amount: currentAmt, dueDate: curDate.toISOString().split('T')[0], status: 'pending', partnerPaid: false, partnerPaidAmount: 0 }); 
                curDate.setMonth(curDate.getMonth() + interval); 
             } 
             updatedInstallments.push(...newInsts);
@@ -655,7 +704,7 @@
               } else {
                 const remaining = fullAmount - paid;
                 updatedInsts[instIndex] = { ...instToUpdate, status: 'paid', amount: paid };
-                updatedInsts.push({ id: 'inst_rem_' + Date.now(), contractId: instToUpdate.contractId, amount: remaining, dueDate: instToUpdate.dueDate, status: 'pending', partnerPaid: false });
+                updatedInsts.push({ id: 'inst_rem_' + Date.now(), contractId: instToUpdate.contractId, amount: remaining, dueDate: instToUpdate.dueDate, status: 'pending', partnerPaid: false, partnerPaidAmount: 0 });
               }
               const trans = { id: 't_' + Date.now(), type: 'income', amount: paid, buildingId, custodyId: custodyId || '', description: (lang==='ar'?`تحصيل قسط ${paid < fullAmount ? '(جزئي)' : ''}: ${clientName}`:`Installment Collection ${paid < fullAmount ? '(Partial)' : ''}: ${clientName}`), date: date || todayDateStr };
               return { ...prev, installments: updatedInsts, transactions: [...(prev.transactions || []), trans] };
@@ -665,12 +714,31 @@
         showMsg(t.success);
       };
 
-      const payPartnerShare = (instId, partnerAmt, clientName, buildingName, custodyId, date) => {
+      const payPartnerShare = (instId, actualPaidAmt, clientName, buildingName, custodyId, date) => {
+        const paidAmtNum = Number(actualPaidAmt);
+        if(!paidAmtNum || paidAmtNum <= 0) return;
+
         setData(prev => {
-          const updatedInsts = prev.installments.map(i => i.id === instId ? { ...i, partnerPaid: true } : i);
+          const updatedInsts = prev.installments.map(i => {
+            if (i.id === instId) {
+              const b = (prev.buildings||[]).find(bd => bd.id === (prev.contracts||[]).find(c=>c.id===i.contractId)?.buildingId);
+              const totalPartnerShare = Math.round(Number(i.amount) * (Number(b?.partnerPercent || 0)/100));
+              const currentPaid = i.partnerPaidAmount !== undefined ? Number(i.partnerPaidAmount) : (i.partnerPaid ? totalPartnerShare : 0);
+              const newPaid = currentPaid + paidAmtNum;
+              const isFullyPaid = newPaid >= totalPartnerShare;
+
+              return {
+                ...i,
+                partnerPaidAmount: newPaid,
+                partnerPaid: isFullyPaid
+              };
+            }
+            return i;
+          });
+
           const trans = {
-            id: 't_' + Date.now(), type: 'expense', amount: partnerAmt, buildingId: '', custodyId: custodyId || '', 
-            description: (lang==='ar'?`توريد نصيب الشريك - ${clientName} - ${buildingName}`:`Pay Partner Share - ${clientName} - ${buildingName}`), 
+            id: 't_' + Date.now(), type: 'expense', amount: paidAmtNum, buildingId: '', custodyId: custodyId || '', 
+            description: (lang==='ar'?`توريد نصيب الشريك (${paidAmtNum.toLocaleString()} ج.م) - ${clientName} - ${buildingName}`:`Pay Partner Share (${paidAmtNum.toLocaleString()}) - ${clientName} - ${buildingName}`), 
             date: date || getTodayStr()
           };
           return { ...prev, installments: updatedInsts, transactions: [...(prev.transactions || []), trans] };
@@ -886,7 +954,7 @@
                     {appModal.props.showCustody && (
                       <div>
                         <label className="text-xs font-bold text-slate-500 mb-1">{t.promptCustody}</label>
-                        <select name="custody" className="w-full border-2 border-slate-300 p-3 rounded-xl font-bold text-blue-800 bg-slate-50 outline-none focus:border-blue-500">
+                        <select name="custody" className="w-full border-2 border-slate-300 p-3 rounded-xl font-bold text-blue-800 bg-slate-50 outline-none focus:border-blue-500 cursor-pointer">
                           <option value="">{t.generalSafe}</option>
                           {sortedCustodies.map(c => <option key={c.id} value={c.id}>{c.personName}</option>)}
                         </select>
@@ -901,16 +969,27 @@
                 <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}>
                   <div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div>
                   <h3 className="font-bold text-lg mb-2 text-center text-purple-800 border-b pb-2">{t.payPartnerTitle}</h3>
-                  <p className="text-center text-sm text-slate-500 mb-4">{t.payPartnerDesc}</p>
-                  <div className="text-center font-black text-3xl text-purple-600 mb-6">{Number(appModal.props.partnerAmt).toLocaleString()}</div>
-                  <form onSubmit={e => { e.preventDefault(); appModal.props.onConfirm(e.target.date.value, e.target.custody.value); closeModal(); }}>
+                  <p className="text-center text-sm text-slate-500 mb-2">{t.payPartnerDesc}</p>
+                  
+                  <form onSubmit={e => { 
+                    e.preventDefault(); 
+                    const amt = Number(e.target.partnerAmt.value.replace(/[^0-9]/g, ''));
+                    if(!amt || amt <= 0) return;
+                    appModal.props.onConfirm(amt, e.target.date.value, e.target.custody.value); 
+                    closeModal(); 
+                  }}>
                     <div className="mb-4">
-                      <label className="text-xs font-bold text-slate-500 mb-1">{t.date}</label>
-                      <input name="date" type="date" required defaultValue={todayDateStr} className="w-full border-2 border-slate-300 p-3 rounded-xl font-bold bg-slate-50 outline-none focus:border-purple-500" />
+                      <label className="text-xs font-bold text-slate-500 mb-1 block text-center">المبلغ المراد توريده للشريك (ج.م):</label>
+                      <NumberInput name="partnerAmt" required defaultValue={appModal.props.partnerAmt} className="w-full border-2 border-purple-300 p-3 text-2xl font-black text-center text-purple-800 rounded-xl outline-none focus:border-purple-600 bg-purple-50" />
+                      <span className="text-[11px] text-slate-400 block text-center mt-1">المستحق الحالي لهذا القسط: {Number(appModal.props.partnerAmt).toLocaleString()} ج.م</span>
+                    </div>
+                    <div className="mb-4">
+                      <label className="text-xs font-bold text-slate-500 mb-1 block">{t.date}</label>
+                      <input name="date" type="date" required defaultValue={todayDateStr} className="w-full border-2 border-slate-300 p-3 rounded-xl font-bold bg-slate-50 outline-none focus:border-purple-500 font-mono" />
                     </div>
                     <div className="mb-6">
-                      <label className="text-xs font-bold text-slate-500 mb-1">{t.deductFromSafe}</label>
-                      <select name="custody" className="w-full border-2 border-slate-300 p-3 rounded-xl font-bold text-purple-800 bg-slate-50 outline-none focus:border-purple-500">
+                      <label className="text-xs font-bold text-slate-500 mb-1 block">{t.deductFromSafe}</label>
+                      <select name="custody" className="w-full border-2 border-slate-300 p-3 rounded-xl font-bold text-purple-800 bg-slate-50 outline-none focus:border-purple-500 cursor-pointer">
                         <option value="">{t.generalSafe}</option>
                         {sortedCustodies.map(c => <option key={c.id} value={c.id}>{c.personName}</option>)}
                       </select>
@@ -1019,10 +1098,10 @@
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4">
-                    <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.custody}</label><select className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl font-bold text-blue-800 bg-slate-50 focus:border-blue-500 outline-none transition" value={newTransaction.custodyId} onChange={e=>setNewTransaction({...newTransaction, custodyId: e.target.value})}><option value="">{t.generalSafe}</option>{sortedCustodies.map(c=><option key={c.id} value={c.id}>{c.personName}</option>)}</select></div>
-                    <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.building}</label><select className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl font-bold bg-slate-50 focus:border-blue-500 outline-none transition" value={newTransaction.buildingId} onChange={e=>setNewTransaction({...newTransaction, buildingId: e.target.value})}><option value="">{t.allBuildings}</option>{sortedBuildings.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
+                    <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.custody}</label><select className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl font-bold text-blue-800 bg-slate-50 focus:border-blue-500 outline-none transition cursor-pointer" value={newTransaction.custodyId} onChange={e=>setNewTransaction({...newTransaction, custodyId: e.target.value})}><option value="">{t.generalSafe}</option>{sortedCustodies.map(c=><option key={c.id} value={c.id}>{c.personName}</option>)}</select></div>
+                    <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.building}</label><select className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl font-bold bg-slate-50 focus:border-blue-500 outline-none transition cursor-pointer" value={newTransaction.buildingId} onChange={e=>setNewTransaction({...newTransaction, buildingId: e.target.value})}><option value="">{t.allBuildings}</option>{sortedBuildings.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
                   </div>
-                  {newTransaction.type === 'expense' && <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.category}</label><select className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl font-bold bg-slate-50 focus:border-blue-500 outline-none transition" required value={newTransaction.categoryId} onChange={e=>setNewTransaction({...newTransaction, categoryId: e.target.value})}><option value="">{t.selectCat}</option>{sortedCategories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>}
+                  {newTransaction.type === 'expense' && <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.category}</label><select className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl font-bold bg-slate-50 focus:border-blue-500 outline-none transition cursor-pointer" required value={newTransaction.categoryId} onChange={e=>setNewTransaction({...newTransaction, categoryId: e.target.value})}><option value="">{t.selectCat}</option>{sortedCategories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>}
                   <button className={`w-full text-white py-4 rounded-xl text-xl font-black shadow-lg transition hover:-translate-y-1 ${editingTxId ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-600 hover:bg-blue-700'}`}>{editingTxId ? t.updateTx : t.saveTx}</button>
                   {editingTxId && <button type="button" onClick={()=>{setEditingTxId(null); setNewTransaction({ type: 'income', amount: '', categoryId: '', buildingId: '', custodyId: '', description: '', date: todayDateStr });}} className="w-full mt-2 text-slate-500 font-bold py-2 hover:bg-slate-100 rounded-xl transition">{t.cancel}</button>}
                 </form>
@@ -1101,7 +1180,7 @@
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-md mx-auto">
                   <h3 className="font-bold mb-5 text-center text-lg text-slate-800">{t.addUnitTitle}</h3>
                   <form onSubmit={addUnit} className="flex flex-col gap-4">
-                    <div><select className="border-2 p-3 rounded-xl text-sm w-full font-bold focus:border-blue-400 outline-none bg-slate-50" required value={newUnit.buildingId} onChange={e => setNewUnit({...newUnit, buildingId: e.target.value})}><option value="">{t.allBuildings}</option>{sortedBuildings.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
+                    <div><select className="border-2 p-3 rounded-xl text-sm w-full font-bold focus:border-blue-400 outline-none bg-slate-50 cursor-pointer" required value={newUnit.buildingId} onChange={e => setNewUnit({...newUnit, buildingId: e.target.value})}><option value="">{t.allBuildings}</option>{sortedBuildings.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
                     <div><input type="text" placeholder={t.unitName} className="border-2 p-3 rounded-xl text-sm w-full font-bold focus:border-blue-400 outline-none bg-slate-50" required value={newUnit.unitNumber} onChange={e => setNewUnit({...newUnit, unitNumber: e.target.value})} /></div>
                     <button className="bg-blue-600 text-white px-4 py-3 rounded-xl text-md font-bold w-full shadow hover:bg-blue-700">{t.saveUnit}</button>
                   </form>
@@ -1141,7 +1220,7 @@
                   )}
                   <form onSubmit={addContract} className="space-y-4">
                     <input type="text" placeholder={t.clientName} className="w-full border-2 p-3 rounded-xl text-sm font-bold bg-slate-50 focus:border-blue-400 outline-none" required value={newContract.clientName} onChange={e => setNewContract({...newContract, clientName: e.target.value})} />
-                    <select className="w-full border-2 p-3 rounded-xl text-sm font-bold bg-slate-50 focus:border-blue-400 outline-none" required value={newContract.unitId} onChange={e => setNewContract({...newContract, unitId: e.target.value})}>
+                    <select className="w-full border-2 p-3 rounded-xl text-sm font-bold bg-slate-50 focus:border-blue-400 outline-none cursor-pointer" required value={newContract.unitId} onChange={e => setNewContract({...newContract, unitId: e.target.value})}>
                       <option value="">{t.selectUnit}</option>
                       {(data.units || []).filter(u => u.status === 'available' || (editingContractId && newContract.unitId === u.id)).map(u => <option key={u.id} value={u.id}>{(data.buildings || []).find(b=>b.id===u.buildingId)?.name} - {u.unitNumber}</option>)}
                     </select>
@@ -1150,7 +1229,7 @@
                     <div><label className="text-xs font-bold text-slate-500 block mb-1">{t.instCount}</label><NumberInput required value={newContract.installmentsCount} onChange={v => setNewContract({...newContract, installmentsCount: v})} className="w-full border-2 p-3 rounded-xl text-lg font-bold bg-white focus:border-blue-400 outline-none text-center" /></div>
                     <div>
                       <label className="text-xs font-bold text-slate-500 block mb-1">{t.paySystem}</label>
-                      <select required className="w-full border-2 p-3 rounded-xl text-sm font-bold bg-slate-50 focus:border-blue-400 outline-none" value={newContract.interval} onChange={e => setNewContract({...newContract, interval: e.target.value})}>
+                      <select required className="w-full border-2 p-3 rounded-xl text-sm font-bold bg-slate-50 focus:border-blue-400 outline-none cursor-pointer" value={newContract.interval} onChange={e => setNewContract({...newContract, interval: e.target.value})}>
                         <option value="1">{t.sys1}</option>
                         <option value="2">{t.sys2}</option>
                         <option value="3">{t.sys3}</option>
@@ -1259,56 +1338,71 @@
                               <table className="w-full text-sm text-right" style={{textAlign: lang==='en'?'left':'right'}}>
                                 <thead className="text-slate-400 border-b-2"><tr><th className="p-2 pb-2 font-medium">{t.dueDate}</th><th className="p-2 pb-2 font-medium">{t.amount}</th><th className="p-2 pb-2 font-medium">{t.status}</th><th className="p-2 pb-2 font-medium">{t.action}</th></tr></thead>
                                 <tbody>
-                                  {(data.installments || []).filter(i => i.contractId === c.id).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate)).map(inst => (
-                                    <tr key={inst.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                                      <td className="p-2 font-mono text-xs text-slate-500 whitespace-nowrap" dir="ltr">{formatShortDate(inst.dueDate)}</td>
-                                      <td className="p-2">
-                                        <div className="font-bold text-slate-800 text-base">{Number(inst.amount).toLocaleString()} {inst.isDownPayment && <span className="text-[10px] bg-blue-100 text-blue-800 px-1 rounded ml-1">مقدم</span>}</div>
-                                        {b?.hasPartner && b.partnerPercent > 0 && (
-                                          <div className="text-[10px] text-slate-500 mt-1 space-y-0.5">
-                                            <span className="bg-blue-50 text-blue-700 px-1 rounded block">{t.myShare}: {Math.round(inst.amount * ((100 - b.partnerPercent)/100)).toLocaleString()}</span>
-                                            <span className="bg-purple-50 text-purple-700 px-1 rounded block">{t.partnerShare}: {Math.round(inst.amount * (b.partnerPercent/100)).toLocaleString()}</span>
-                                          </div>
-                                        )}
-                                      </td>
-                                      <td className="p-2">{inst.status === 'paid' ? <span className="text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-lg text-xs border border-emerald-100">{t.paid}</span> : <span className="text-amber-500 font-bold text-xs bg-amber-50 px-3 py-1 rounded-lg border border-amber-100">{t.pending}</span>}</td>
-                                      <td className="p-2 flex flex-col gap-2">
-                                        {inst.status === 'pending' && <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptCollect, defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId)=>payInstallment(inst.id, c.clientName, b?.id, amt, dt, custId) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">{t.collect}</button>}
-                                        {inst.status === 'pending' && <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptEditInst, showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>{ setData(p=>({...p, installments: p.installments.map(i=>i.id===inst.id?{...i, amount:Number(amt), dueDate:dt}:i)})); showMsg(t.success); } }})} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">{t.edit}</button>}
-                                        {inst.status === 'paid' && !inst.partnerPaid && b?.hasPartner && b.partnerPercent > 0 && (
-                                          <button onClick={() => setAppModal({show:true, type:'PAY_PARTNER', props:{partnerAmt: Math.round(inst.amount * (b.partnerPercent/100)), onConfirm:(dt, custId)=>payPartnerShare(inst.id, Math.round(inst.amount * (b.partnerPercent/100)), c.clientName, b.name, custId, dt)}})} className="bg-purple-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-purple-600 transition">{t.payPartnerBtn}</button>
-                                        )}
-                                        {inst.status === 'paid' && (
-                                          <button onClick={() => {
-                                            const contractInsts = (data.installments || []).filter(i => i.contractId === c.id);
-                                            const paidSum = contractInsts.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.amount), 0);
-                                            const unitPrice = Number(c.totalAmount || 0);
-                                            const remaining = unitPrice - paidSum;
-                                            setAppModal({
-                                              show: true, 
-                                              type:'RECEIPT', 
-                                              props:{ 
-                                                date: formatShortDate(todayDateStr),
-                                                dueDate: formatShortDate(inst.dueDate), 
-                                                clientName: inst.isDownPayment ? `${c.clientName} (مقدم)` : c.clientName, 
-                                                buildingName: `${b?.name} - الوحدة ${u?.unitNumber}`, 
-                                                amount: inst.amount,
-                                                unitPrice: unitPrice,
-                                                totalPaid: paidSum,
-                                                remainingAmount: remaining
+                                  {(data.installments || []).filter(i => i.contractId === c.id).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate)).map(inst => {
+                                    const totalPartnerShare = Math.round(inst.amount * (b?.partnerPercent/100));
+                                    const currentPaidToPartner = inst.partnerPaidAmount !== undefined ? Number(inst.partnerPaidAmount) : (inst.partnerPaid ? totalPartnerShare : 0);
+                                    const remainingToPartner = Math.max(0, totalPartnerShare - currentPaidToPartner);
+
+                                    return (
+                                      <tr key={inst.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                                        <td className="p-2 font-mono text-xs text-slate-500 whitespace-nowrap" dir="ltr">{formatShortDate(inst.dueDate)}</td>
+                                        <td className="p-2">
+                                          <div className="font-bold text-slate-800 text-base">{Number(inst.amount).toLocaleString()} {inst.isDownPayment && <span className="text-[10px] bg-blue-100 text-blue-800 px-1 rounded ml-1">مقدم</span>}</div>
+                                          {b?.hasPartner && b.partnerPercent > 0 && (
+                                            <div className="text-[10px] text-slate-500 mt-1 space-y-0.5">
+                                              <span className="bg-blue-50 text-blue-700 px-1 rounded block">{t.myShare}: {Math.round(inst.amount * ((100 - b.partnerPercent)/100)).toLocaleString()}</span>
+                                              <span className="bg-purple-50 text-purple-700 px-1 rounded block">{t.partnerShare}: {totalPartnerShare.toLocaleString()} {currentPaidToPartner > 0 && `(تم توريد ${currentPaidToPartner.toLocaleString()})`}</span>
+                                            </div>
+                                          )}
+                                        </td>
+                                        <td className="p-2">{inst.status === 'paid' ? <span className="text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-lg text-xs border border-emerald-100">{t.paid}</span> : <span className="text-amber-500 font-bold text-xs bg-amber-50 px-3 py-1 rounded-lg border border-amber-100">{t.pending}</span>}</td>
+                                        <td className="p-2 flex flex-col gap-2">
+                                          {inst.status === 'pending' && <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptCollect, defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId)=>payInstallment(inst.id, c.clientName, b?.id, amt, dt, custId) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">{t.collect}</button>}
+                                          {inst.status === 'pending' && <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptEditInst, showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>{ setData(p=>({...p, installments: p.installments.map(i=>i.id===inst.id?{...i, amount:Number(amt), dueDate:dt}:i)})); showMsg(t.success); } }})} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">{t.edit}</button>}
+                                          {inst.status === 'paid' && remainingToPartner > 0 && b?.hasPartner && b.partnerPercent > 0 && (
+                                            <button onClick={() => setAppModal({
+                                              show:true, 
+                                              type:'PAY_PARTNER', 
+                                              props:{
+                                                partnerAmt: remainingToPartner, 
+                                                onConfirm:(actualAmt, dt, custId)=>payPartnerShare(inst.id, actualAmt, c.clientName, b.name, custId, dt)
                                               }
-                                            });
-                                          }} className="bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-slate-900 transition flex justify-center items-center gap-1">🖨️ إيصال</button>
-                                        )}
-                                      </td>
-                                    </tr>
-                                  ))}
+                                            })} className="bg-purple-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-purple-600 transition">
+                                              {t.payPartnerBtn} {currentPaidToPartner > 0 ? '(متبقي)' : ''}
+                                            </button>
+                                          )}
+                                          {inst.status === 'paid' && (
+                                            <button onClick={() => {
+                                              const contractInsts = (data.installments || []).filter(i => i.contractId === c.id);
+                                              const paidSum = contractInsts.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.amount), 0);
+                                              const unitPrice = Number(c.totalAmount || 0);
+                                              const remaining = unitPrice - paidSum;
+                                              setAppModal({
+                                                show: true, 
+                                                type:'RECEIPT', 
+                                                props:{ 
+                                                  date: formatShortDate(todayDateStr),
+                                                  dueDate: formatShortDate(inst.dueDate), 
+                                                  clientName: inst.isDownPayment ? `${c.clientName} (مقدم)` : c.clientName, 
+                                                  buildingName: `${b?.name} - الوحدة ${u?.unitNumber}`, 
+                                                  amount: inst.amount,
+                                                  unitPrice: unitPrice,
+                                                  totalPaid: paidSum,
+                                                  remainingAmount: remaining
+                                                }
+                                              });
+                                            }} className="bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-slate-900 transition flex justify-center items-center gap-1">🖨️ إيصال</button>
+                                          )}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
                                 </tbody>
                               </table>
                             </div>
                             
                             <div className="flex gap-2 justify-start mb-4">
-                              <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptManual, showDate:true, defaultDate: todayDateStr, onConfirm:(amt,dt)=>{ setData(p=>({...p, installments: [...(p.installments||[]), {id:'inst_man_'+Date.now(), contractId:c.id, amount:Number(amt), dueDate:dt, status:'pending'}]})); showMsg(t.success); } }})} className="bg-blue-50 text-blue-700 border border-blue-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-blue-100 transition">{t.addManualInst}</button>
+                              <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptManual, showDate:true, defaultDate: todayDateStr, onConfirm:(amt,dt)=>{ setData(p=>({...p, installments: [...(p.installments||[]), {id:'inst_man_'+Date.now(), contractId:c.id, amount:Number(amt), dueDate:dt, status:'pending', partnerPaid: false, partnerPaidAmount: 0}]})); showMsg(t.success); } }})} className="bg-blue-50 text-blue-700 border border-blue-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-blue-100 transition">{t.addManualInst}</button>
                               
                               <label className="bg-slate-50 text-slate-700 border border-slate-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-slate-100 transition cursor-pointer flex items-center justify-center">
                                 {t.addAttachment}
@@ -1430,20 +1524,39 @@
                       <h2 className="text-3xl font-black text-center mb-2">{t.partnerReportTitle}</h2>
                       <h3 className="text-2xl font-bold text-center mb-6">{selectedPartnerR}</h3>
                       
-                      <div className="flex justify-around mb-8 border-b-4 border-black pb-4 text-center mt-6">
-                        <div><p className="font-bold text-gray-600 mb-1">{t.totalExpected}</p><p className="text-2xl font-black">{partnerReportData.expected.toLocaleString()}</p></div>
-                        <div><p className="font-bold text-gray-600 mb-1">{t.totalPaidToPartner}</p><p className="text-2xl font-black text-emerald-600">{partnerReportData.paid.toLocaleString()}</p></div>
-                        <div><p className="font-bold text-gray-600 mb-1">{t.totalCollectedNotPaid}</p><p className="text-2xl font-black text-red-600">{partnerReportData.unpaid.toLocaleString()}</p></div>
+                      <div className="grid grid-cols-4 gap-2 mb-8 border-b-4 border-black pb-4 text-center mt-6">
+                        <div className="border-r border-gray-300 pr-2"><p className="font-bold text-gray-600 text-xs mb-1">{t.totalExpected}</p><p className="text-xl font-black">{partnerReportData.expected.toLocaleString()}</p></div>
+                        <div className="border-r border-gray-300 pr-2"><p className="font-bold text-gray-600 text-xs mb-1">{t.totalPaidToPartner}</p><p className="text-xl font-black text-emerald-600">{partnerReportData.paid.toLocaleString()}</p></div>
+                        <div className="border-r border-gray-300 pr-2"><p className="font-bold text-gray-600 text-xs mb-1">{t.totalCollectedNotPaid}</p><p className="text-xl font-black text-red-600">{partnerReportData.unpaid.toLocaleString()}</p></div>
+                        <div><p className="font-bold text-gray-600 text-xs mb-1">{t.totalPending}</p><p className="text-xl font-black text-amber-600">{partnerReportData.pending.toLocaleString()}</p></div>
                       </div>
 
-                      <h4 className="text-xl font-black mt-4 mb-2">{t.detailsMonthDues}</h4>
+                      <h4 className="text-xl font-black mt-4 mb-2">كشف كافة أقساط ومستحقات الشريك</h4>
                       <table>
-                        <thead className="bg-gray-100 text-lg"><tr><th className="text-center">{t.dueDate}</th><th className="text-center">{t.client}</th><th className="text-center">{t.building}</th><th className="text-center">{t.partnerDue}</th></tr></thead>
+                        <thead className="bg-gray-100 text-sm">
+                          <tr>
+                            <th className="text-center">تاريخ القسط</th>
+                            <th className="text-center">{t.client}</th>
+                            <th className="text-center">{t.building}</th>
+                            <th className="text-center">إجمالي القسط</th>
+                            <th className="text-center">نصيب الشريك</th>
+                            <th className="text-center">تم توريده</th>
+                            <th className="text-center">حالة التوريد</th>
+                          </tr>
+                        </thead>
                         <tbody>
                            {partnerReportData.instsDetails.map((d, i) => (
-                             <tr key={i}><td dir="ltr" className="text-center font-mono print-row-text">{formatShortDate(d.date)}</td><td className="font-bold text-lg">{d.client}</td><td className="text-center font-bold text-lg">{d.building}</td><td className="text-center font-black text-xl text-red-600">{d.share.toLocaleString()}</td></tr>
+                             <tr key={i}>
+                               <td dir="ltr" className="text-center font-mono print-row-text">{formatShortDate(d.date)}</td>
+                               <td className="font-bold text-sm">{d.client}</td>
+                               <td className="text-center font-bold text-sm">{d.building}</td>
+                               <td className="text-center font-black text-sm">{d.totalAmount.toLocaleString()}</td>
+                               <td className="text-center font-black text-sm text-purple-800">{d.share.toLocaleString()}</td>
+                               <td className="text-center font-bold text-sm text-emerald-600">{d.paidToPartner > 0 ? d.paidToPartner.toLocaleString() : '--'}</td>
+                               <td className="text-center font-bold text-xs">{d.partnerStatus}</td>
+                             </tr>
                            ))}
-                           {partnerReportData.instsDetails.length === 0 && <tr><td colSpan="4" className="p-4 font-bold text-gray-500">لا توجد مبالغ متأخرة ومستحقة للتوريد حالياً</td></tr>}
+                           {partnerReportData.instsDetails.length === 0 && <tr><td colSpan="7" className="p-4 font-bold text-gray-500">لا توجد أية عقود أو أقساط مسجلة لهذا الشريك</td></tr>}
                         </tbody>
                       </table>
                     </>
@@ -1477,7 +1590,7 @@
                   {reportType === 'installments' && (
                     <div className="mb-4 flex items-center gap-3">
                       <label className="font-bold text-slate-700 text-sm">{t.sortBy}</label>
-                      <select className="border-2 p-2 rounded-lg text-sm outline-none focus:border-blue-400 font-bold" value={reportSort} onChange={e=>setReportSort(e.target.value)}>
+                      <select className="border-2 p-2 rounded-lg text-sm outline-none focus:border-blue-400 font-bold cursor-pointer" value={reportSort} onChange={e=>setReportSort(e.target.value)}>
                         <option value="date">{t.sortDate}</option>
                         <option value="client">{t.sortClient}</option>
                         <option value="building">{t.sortBuilding}</option>
@@ -1488,7 +1601,7 @@
                   {reportType === 'partners' ? (
                      <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner mb-6">
                         <label className="text-xs font-bold text-slate-500 mb-2 block">اختر اسم المستثمر / الشريك</label>
-                        <select className="w-full max-w-md border-2 p-3 text-sm rounded-xl font-bold focus:border-purple-400 outline-none bg-white mb-6" value={selectedPartnerR} onChange={e=>setSelectedPartnerR(e.target.value)}>
+                        <select className="w-full max-w-md border-2 p-3 text-sm rounded-xl font-bold focus:border-purple-400 outline-none bg-white mb-6 cursor-pointer" value={selectedPartnerR} onChange={e=>setSelectedPartnerR(e.target.value)}>
                            <option value="">-- اختر الشريك --</option>
                            {uniquePartnersList.map((pn, i) => <option key={i} value={pn}>{pn}</option>)}
                         </select>
@@ -1515,18 +1628,39 @@
                                 </div>
                               </div>
 
-                              {partnerReportData.unpaid > 0 && (
-                                <div className="overflow-x-auto bg-white rounded-xl shadow-sm border border-slate-200">
-                                  <table className="w-full text-sm text-right">
-                                    <thead className="bg-red-50 text-red-800 border-b"><tr><th className="p-3">العميل</th><th className="p-3">الوحدة/العمارة</th><th className="p-3">نصيب الشريك (مستحق)</th></tr></thead>
-                                    <tbody>
-                                      {partnerReportData.instsDetails.map((d, idx) => (
-                                        <tr key={idx} className="border-b hover:bg-slate-50"><td className="p-3 font-bold text-slate-800">{d.client}</td><td className="p-3 font-bold text-slate-600">{d.building}</td><td className="p-3 font-black text-red-600">{d.share.toLocaleString()}</td></tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              )}
+                              <div className="overflow-x-auto bg-white rounded-xl shadow-sm border border-slate-200">
+                                <table className="w-full text-sm text-right">
+                                  <thead className="bg-slate-100 text-slate-700 border-b">
+                                    <tr>
+                                      <th className="p-3">تاريخ القسط</th>
+                                      <th className="p-3">العميل</th>
+                                      <th className="p-3">العمارة/الوحدة</th>
+                                      <th className="p-3">إجمالي القسط</th>
+                                      <th className="p-3">نصيب الشريك</th>
+                                      <th className="p-3">تم توريده</th>
+                                      <th className="p-3">حالة القسط</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {partnerReportData.instsDetails.map((d, idx) => (
+                                      <tr key={idx} className="border-b hover:bg-slate-50">
+                                        <td className="p-3 font-mono text-xs text-slate-500" dir="ltr">{formatShortDate(d.date)}</td>
+                                        <td className="p-3 font-bold text-slate-800">{d.client}</td>
+                                        <td className="p-3 font-bold text-slate-600">{d.building}</td>
+                                        <td className="p-3 font-bold text-slate-800">{d.totalAmount.toLocaleString()}</td>
+                                        <td className="p-3 font-black text-purple-800">{d.share.toLocaleString()}</td>
+                                        <td className="p-3 font-bold text-emerald-600">{d.paidToPartner > 0 ? d.paidToPartner.toLocaleString() : '--'}</td>
+                                        <td className="p-3 font-bold text-xs">
+                                           <span className={`px-2 py-1 rounded-md text-[11px] ${d.instStatus==='paid' ? (d.dueToPartner===0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800') : 'bg-slate-100 text-slate-500'}`}>
+                                              {d.partnerStatus}
+                                           </span>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                    {partnerReportData.instsDetails.length === 0 && <tr><td colSpan="7" className="p-6 text-center text-gray-500 font-bold">لا توجد عقود أو أقساط لهذا الشريك</td></tr>}
+                                  </tbody>
+                                </table>
+                              </div>
                            </div>
                         )}
                      </div>

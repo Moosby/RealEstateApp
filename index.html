@@ -420,12 +420,19 @@
         setNewTransaction(prev => ({ ...prev, amount: '', description: '', date: getTodayStr() })); 
       };
 
+      // تعديل دالة الاسترجاع لحفظ الـ PIN الحالي
       const handleResetFactory = () => { 
         requirePin(() => {
           setAppModal({show: true, type: 'CONFIRM', props: {
             title: t.dangerZone,
             message: t.resetDesc,
-            onConfirm: () => { localStorage.clear(); window.location.reload(); }
+            onConfirm: () => { 
+              const currentPin = data.pinCode || '0000'; // نحفظ الرمز السري الحالي
+              localStorage.clear(); 
+              // نرجع الرمز السري زي ما كان بعد المسح
+              localStorage.setItem('real_estate_core_data', JSON.stringify({ ...initialData, pinCode: currentPin }));
+              window.location.reload(); 
+            }
           }});
         });
       };
@@ -1336,7 +1343,28 @@
                   <p className="text-sm mb-6 text-slate-600 font-bold bg-blue-50 inline-block p-2 rounded-lg">{t.backupDesc}</p>
                   <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
                     <button onClick={()=>{const b=new Blob([JSON.stringify(data)],{type:'application/json'});const l=document.createElement('a');l.href=URL.createObjectURL(b);l.download=`backup_${todayDateStr}.json`;l.click(); showMsg(t.success);}} className="bg-blue-600 text-white px-8 py-4 rounded-xl font-black text-lg shadow-lg hover:bg-blue-700 transition hover:-translate-y-1">{t.exportBtn}</button>
-                    <label className="bg-amber-500 text-white px-8 py-4 rounded-xl font-black text-lg shadow-lg hover:bg-amber-600 transition cursor-pointer hover:-translate-y-1">{t.importBtn}<input type="file" accept=".json" className="hidden" onChange={(e)=>{const r=new FileReader();r.onload=(ev)=>{try{setData(JSON.parse(ev.target.result));showMsg(t.success);}catch{showMsg('Invalid File',true);}};if(e.target.files[0])r.readAsText(e.target.files[0]);}}/></label>
+                    
+                    <label className="bg-amber-500 text-white px-8 py-4 rounded-xl font-black text-lg shadow-lg hover:bg-amber-600 transition cursor-pointer hover:-translate-y-1">
+                      {t.importBtn}
+                      <input type="file" accept=".json" className="hidden" onChange={(e)=>{
+                        const r = new FileReader();
+                        r.onload = (ev) => {
+                          try {
+                            const imported = JSON.parse(ev.target.result);
+                            setData(p => {
+                                // دمج البيانات المسترجعة مع الحفاظ على الرمز السري الحالي
+                                const newData = { ...imported, pinCode: p.pinCode || '0000' }; 
+                                localStorage.setItem('real_estate_core_data', JSON.stringify(newData));
+                                return newData;
+                            });
+                            showMsg(t.success);
+                          } catch {
+                            showMsg('Invalid File', true);
+                          }
+                        };
+                        if(e.target.files[0]) r.readAsText(e.target.files[0]);
+                      }}/>
+                    </label>
                   </div>
                 </div>
 

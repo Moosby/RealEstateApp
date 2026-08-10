@@ -208,7 +208,7 @@
       );
     }
 
-    // Custom Select Component with Dynamic Z-Index to Prevent Overlap
+    // Custom Select Component with Dynamic Z-Index
     function CustomSelect({ options, value, onChange, placeholder, className }) {
       const [isOpen, setIsOpen] = useState(false);
       const ref = useRef(null);
@@ -261,7 +261,7 @@
       );
     }
 
-    // Custom Date Input Component (Single-Click Select, Responsive Popover)
+    // Custom Date Input Component
     function CustomDateInput({ value, onChange, className }) {
       const [isOpen, setIsOpen] = useState(false);
       const dateObj = value ? new Date(value) : new Date();
@@ -364,7 +364,7 @@
       }, []);
       
       const selectedLabels = (selected || []).map(id => options.find(o => o.id === id)?.label).filter(Boolean);
-      const displayTxt = selectedLabels.length === 0 ? placeholder : (selectedLabels.length <= 2 ? selectedLabels.join(' + ') : `(${selectedLabels.length})`);
+      const displayTxt = selectedLabels.length === 0 ? (placeholder || '-- الخزينة العامة --') : (selectedLabels.length <= 2 ? selectedLabels.join(' + ') : `(${selectedLabels.length})`);
 
       return (
         <div className={`relative w-full ${isOpen ? 'z-50' : 'z-20'}`} ref={dropdownRef}>
@@ -373,7 +373,10 @@
           </div>
           {isOpen && (
             <div className="absolute top-full right-0 w-full bg-white border-2 border-slate-200 mt-1 shadow-2xl max-h-48 overflow-y-auto z-50 p-2 space-y-2 rounded-xl animate-fade-in text-slate-800">
-              <label className="flex items-center gap-2 cursor-pointer font-bold border-b pb-2 text-slate-700 hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={(selected || []).length===0} onChange={()=>onChange([])} className="w-4 h-4 text-blue-600"/> --- </label>
+              <label className="flex items-center gap-2 cursor-pointer font-bold border-b pb-2 text-slate-700 hover:bg-slate-50 p-1 rounded">
+                <input type="checkbox" checked={(selected || []).length===0} onChange={()=>onChange([])} className="w-4 h-4 text-blue-600"/>
+                {placeholder || '-- الخزينة العامة --'}
+              </label>
               {(options || []).map(opt => (
                 <label key={opt.id} className="flex items-center gap-2 cursor-pointer whitespace-nowrap text-sm hover:bg-slate-50 p-1 rounded transition text-slate-800">
                   <input type="checkbox" checked={(selected || []).includes(opt.id)} className="w-4 h-4 text-blue-600" onChange={(e)=>{ const newIds = e.target.checked ? [...(selected || []), opt.id] : (selected || []).filter(id=>id!==opt.id); onChange(newIds); }}/> {opt.label}
@@ -818,7 +821,7 @@
                const contractIndex = updatedContracts.findIndex(c => c.id === contractId);
                updatedContracts[contractIndex] = {
                   ...oldContract, clientName: newContract.clientName, unitId: unit.id, buildingId: unit.buildingId, 
-                  totalAmount: total, downPayment: dp, installmentsCount: count, interval: interval
+                  totalAmount: total, downPayment: dp, installmentsCount: count, interval: interval, suspendedAmount: 0
                };
 
             } else {
@@ -826,7 +829,7 @@
                updatedContracts.push({
                   id: contractId, clientName: newContract.clientName, unitId: unit.id, buildingId: unit.buildingId, 
                   totalAmount: total, downPayment: dp, date: todayDateStr, status: 'active',
-                  installmentsCount: count, interval: interval, attachments: []
+                  installmentsCount: count, interval: interval, attachments: [], suspendedAmount: 0
                });
             }
 
@@ -868,6 +871,129 @@
          setNewContract({ clientName: '', unitId: '', totalAmount: '', downPayment: '', custodyId: '', installmentsCount: '', firstInstallmentDate: '', interval: '1' }); 
          setEditingContractId(null);
          showMsg(t.success); 
+      };
+
+      // Edit Installment with Suspended Pool accumulation
+      const editInstallment = (instId, newAmountNum, newDueDate) => {
+        const newAmt = Number(newAmountNum);
+        setData(prev => {
+          const instIndex = (prev.installments || []).findIndex(i => i.id === instId);
+          if (instIndex === -1) return prev;
+
+          const oldInst = prev.installments[instIndex];
+          const oldAmt = Number(oldInst.amount || 0);
+          const diff = oldAmt - newAmt;
+
+          let updatedInsts = [...prev.installments];
+          let updatedContracts = [...prev.contracts];
+
+          const contractIndex = updatedContracts.findIndex(c => c.id === oldInst.contractId);
+          let currentSuspended = (contractIndex > -1 ? Number(updatedContracts[contractIndex].suspendedAmount || 0) : 0);
+
+          if (newAmt <= 0) {
+            // Completely remove installment row and accumulate its amount into suspended pool
+            updatedInsts = updatedInsts.filter(i => i.id !== instId);
+            currentSuspended += oldAmt;
+          } else {
+            // Update installment with new amount and edited due date
+            updatedInsts[instIndex] = {
+              ...oldInst,
+              amount: newAmt,
+              dueDate: newDueDate || oldInst.dueDate,
+              status: 'pending'
+            };
+
+            if (diff > 0) {
+              currentSuspended += diff;
+            } else if (diff < 0) {
+              const increase = Math.abs(diff);
+              currentSuspended = Math.max(0, currentSuspended - increase);
+            }
+          }
+
+          if (contractIndex > -1) {
+            updatedContracts[contractIndex] = {
+              ...updatedContracts[contractIndex],
+              suspendedAmount: currentSuspended
+            };
+          }
+
+          return { ...prev, installments: updatedInsts, contracts: updatedContracts };
+        });
+        showMsg(t.success);
+      };
+
+      // Add Manual Installment & deduct from suspended pool
+      const addManualInstallment = (contractId, amtNum, dateStr) => {
+        const amt = Number(amtNum);
+        if(!amt || amt <= 0) return;
+
+        setData(prev => {
+          const contractIndex = prev.contracts.findIndex(c => c.id === contractId);
+          let updatedContracts = [...prev.contracts];
+          if (contractIndex > -1) {
+            const currentSuspended = Number(updatedContracts[contractIndex].suspendedAmount || 0);
+            const newSuspended = Math.max(0, currentSuspended - amt);
+            updatedContracts[contractIndex] = {
+              ...updatedContracts[contractIndex],
+              suspendedAmount: newSuspended
+            };
+          }
+
+          const newInst = {
+            id: 'inst_man_' + Date.now(),
+            contractId: contractId,
+            amount: amt,
+            dueDate: dateStr || todayDateStr,
+            status: 'pending',
+            partnerPaid: false,
+            partnerPaidAmount: 0
+          };
+
+          return {
+            ...prev,
+            contracts: updatedContracts,
+            installments: [...prev.installments, newInst]
+          };
+        });
+        showMsg(t.success);
+      };
+
+      // Convert Suspended Pool to New Pending Installment
+      const convertSuspendedToInstallment = (contractId, amtNum, dateStr) => {
+        const amt = Number(amtNum);
+        if (!amt || amt <= 0) return;
+
+        setData(prev => {
+          const contractIndex = prev.contracts.findIndex(c => c.id === contractId);
+          let updatedContracts = [...prev.contracts];
+          if (contractIndex > -1) {
+            const currentSuspended = Number(updatedContracts[contractIndex].suspendedAmount || 0);
+            const deductAmt = Math.min(amt, currentSuspended);
+            const newSuspended = Math.max(0, currentSuspended - deductAmt);
+            updatedContracts[contractIndex] = {
+              ...updatedContracts[contractIndex],
+              suspendedAmount: newSuspended
+            };
+          }
+
+          const newInst = {
+            id: 'inst_conv_' + Date.now(),
+            contractId: contractId,
+            amount: amt,
+            dueDate: dateStr || todayDateStr,
+            status: 'pending',
+            partnerPaid: false,
+            partnerPaidAmount: 0
+          };
+
+          return {
+            ...prev,
+            contracts: updatedContracts,
+            installments: [...prev.installments, newInst]
+          };
+        });
+        showMsg(t.success);
       };
 
       const payInstallment = (instId, clientName, buildingId, paidAmount, date, custodyId) => {
@@ -1129,7 +1255,7 @@
               {appModal.type === 'PROMPT_INST' && (
                 <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl animate-slide-up p-6 relative" onClick={e=>e.stopPropagation()}>
                   <div className="bg-blue-800 text-white p-3 -mx-6 -mt-6 mb-4 text-center font-bold rounded-t-2xl">{appModal.props.title}</div>
-                  <form onSubmit={e => { e.preventDefault(); appModal.props.onConfirm(document.getElementById('promptAmtInput').value.replace(/[^0-9]/g, ''), appModal.props.promptDate || todayDateStr, appModal.props.promptCustodyVal || ''); closeModal(); }} className="space-y-4">
+                  <form onSubmit={e => { e.preventDefault(); appModal.props.onConfirm(document.getElementById('promptAmtInput').value.replace(/[^0-9]/g, ''), appModal.props.promptDate || appModal.props.defaultDate || todayDateStr, appModal.props.promptCustodyVal || ''); closeModal(); }} className="space-y-4">
                     {appModal.props.showDate && (
                       <div>
                         <label className="text-xs font-bold text-slate-500 mb-1 block">{t.date}</label>
@@ -1203,7 +1329,7 @@
                     <div className="bg-gradient-to-br from-amber-50 to-orange-100 p-5 rounded-2xl border border-amber-200 shadow-inner">
                       <p className="text-sm text-amber-900 mb-2 font-bold">{t.activeCustody}</p>
                       <MultiSelectDropdown 
-                        options={[{id:'ALL', label: t.allCustodies}, ...sortedCustodies.map(c => ({ id: c.id, label: c.personName }))]} 
+                        options={sortedCustodies.map(c => ({ id: c.id, label: c.personName }))} 
                         selected={dashboardCustodyFilter} 
                         onChange={setDashboardCustodyFilter} 
                         placeholder={t.generalSafe} 
@@ -1241,7 +1367,7 @@
                                 </td>
                                 <td className="p-3 flex flex-col gap-2">
                                   <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptCollect, defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId)=>payInstallment(inst.id, c?.clientName, c?.buildingId, amt, dt, custId) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">{t.collect}</button>
-                                  <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptEditInst, showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>{ setData(p=>({...p, installments: p.installments.map(i=>i.id===inst.id?{...i, amount:Number(amt), dueDate:dt, status: Number(amt)===0?'suspended':i.status }:i)})); showMsg(t.success); } }})} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">{t.edit}</button>
+                                  <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptEditInst, showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>editInstallment(inst.id, amt, dt) }})} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">{t.edit}</button>
                                 </td>
                               </tr>
                             )
@@ -1500,12 +1626,12 @@
                   </form>
                 </div>
                 
-                <div className="bg-transparent lg:col-span-2 space-y-5">
+                <div className="bg-transparent lg:col-span-2 space-y-4">
                   
                   {overdueInstallments.length > 0 && (
-                    <div className="bg-red-50 p-5 rounded-2xl shadow-sm border border-red-200 cursor-pointer hover:shadow-md transition" onClick={() => setShowOverdue(!showOverdue)}>
+                    <div className="bg-red-50 p-4 rounded-2xl shadow-sm border border-red-200 cursor-pointer hover:shadow-md transition" onClick={() => setShowOverdue(!showOverdue)}>
                       <div className="flex justify-between items-center">
-                        <p className="text-lg text-red-800 font-bold">{t.overdueTitle} ({overdueInstallments.length})</p>
+                        <p className="text-md text-red-800 font-bold">{t.overdueTitle} ({overdueInstallments.length})</p>
                         <span className="text-red-600 bg-white px-3 py-1 rounded-lg text-xs font-bold shadow-sm">{showOverdue ? t.hideDetails : t.showDetails}</span>
                       </div>
                       {showOverdue && (
@@ -1530,7 +1656,7 @@
                                     </td>
                                     <td className="p-2 flex flex-col gap-2">
                                       <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptCollect, defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId)=>payInstallment(inst.id, c.clientName, c.buildingId, amt, dt, custId) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">{t.collect}</button>
-                                      <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptEditInst, showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>{ setData(p=>({...p, installments: p.installments.map(i=>i.id===inst.id?{...i, amount:Number(amt), dueDate:dt, status: Number(amt)===0?'suspended':i.status }:i)})); showMsg(t.success); } }})} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">{t.edit}</button>
+                                      <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptEditInst, showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>editInstallment(inst.id, amt, dt) }})} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">{t.edit}</button>
                                     </td>
                                   </tr>
                                 )
@@ -1543,20 +1669,37 @@
                   )}
 
                   <div className="relative">
-                    <input type="text" placeholder="🔍 بحث عن عميل..." className="w-full bg-white text-slate-800 px-4 py-3 rounded-xl border-2 border-slate-200 outline-none focus:border-blue-500 text-sm font-bold shadow-sm" onChange={(e)=>setGlobalSearch(e.target.value)} value={globalSearch}/>
+                    <input type="text" placeholder="🔍 بحث عن عميل..." className="w-full bg-white text-slate-800 px-4 py-2.5 rounded-xl border-2 border-slate-200 outline-none focus:border-blue-500 text-sm font-bold shadow-sm" onChange={(e)=>setGlobalSearch(e.target.value)} value={globalSearch}/>
                   </div>
 
                   {filteredContracts.map(c => {
                     const u = (data.units || []).find(un => un.id === c.unitId);
                     const b = (data.buildings || []).find(bd => bd.id === c.buildingId);
                     const isExpanded = expandedBuildings[c.id]; 
+                    const suspendedPool = Number(c.suspendedAmount || 0);
+
                     return (
-                      <div key={c.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 cursor-pointer hover:border-blue-300 transition" onClick={() => setExpandedBuildings(p => ({...p, [c.id]: !p[c.id]}))}>
-                        <div className="flex justify-between items-center">
-                          <div><p className="font-black text-blue-900 text-xl mb-1">{c.clientName}</p><p className="text-xs font-bold text-slate-600 bg-slate-100 inline-block px-3 py-1.5 rounded-lg border">{b?.name} - {u?.unitNumber}</p></div>
-                          <div className="flex flex-col items-end gap-2">
-                            <span className="text-blue-600 bg-blue-50 px-3 py-1 rounded-lg text-xs font-bold shadow-sm">{isExpanded ? t.hideDetails : t.showDetails}</span>
-                            {isExpanded && (
+                      <div key={c.id} className="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 cursor-pointer hover:border-blue-300 transition" onClick={() => setExpandedBuildings(p => ({...p, [c.id]: !p[c.id]}))}>
+                        <div className="flex justify-between items-center gap-2">
+                          <div className="flex items-center gap-2 min-w-0 flex-grow">
+                            <p className="font-black text-blue-900 text-base truncate">{c.clientName}</p>
+                            <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-lg border shrink-0">{b?.name} - {u?.unitNumber}</span>
+                            {suspendedPool > 0 && (
+                              <span className="text-[11px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-300 shrink-0">معلق: {suspendedPool.toLocaleString()}</span>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button className="text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm border border-blue-100">
+                              {isExpanded ? t.hideDetails : t.showDetails}
+                            </button>
+                          </div>
+                        </div>
+                        
+                        {isExpanded && (
+                          <div className="mt-3 border-t pt-3 animate-slide-up" onClick={e=>e.stopPropagation()}>
+                            <div className="flex justify-between items-center mb-3 bg-slate-50 p-2 rounded-xl border">
+                              <span className="text-xs font-bold text-slate-600">إجراءات العقد الأساسية:</span>
                               <div className="flex gap-2">
                                 <button onClick={(e)=>{
                                   e.stopPropagation(); 
@@ -1577,19 +1720,37 @@
                                       });
                                       window.scrollTo({ top: 0, behavior: 'smooth' }); 
                                   });
-                                }} className="text-xs text-amber-700 bg-amber-50 px-4 py-2 rounded-xl font-bold border border-amber-200 hover:bg-amber-100 transition">تعديل بيانات العقد</button>
-                                <button onClick={(e) => { e.stopPropagation(); requirePin(()=>setAppModal({show:true, type:'CONFIRM', props:{title: t.cancelContract, message: t.confirmCancel, onConfirm:()=>{ setData(p=>({...p, contracts: p.contracts.map(ct=>ct.id===c.id?{...ct,status:'canceled'}:ct), installments: p.installments.filter(i=>!(i.contractId===c.id && i.status==='pending')), units: p.units.map(un=>un.id===c.unitId?{...un,status:'available'}:un)})); showMsg(t.success); }}})); }} className="text-xs text-red-600 bg-red-50 px-4 py-2 rounded-xl font-bold border border-red-100 hover:bg-red-100 transition">{t.cancelContract}</button>
+                                }} className="text-xs text-amber-700 bg-amber-50 px-3 py-1.5 rounded-xl font-bold border border-amber-200 hover:bg-amber-100 transition">تعديل العقد</button>
+                                <button onClick={(e) => { e.stopPropagation(); requirePin(()=>setAppModal({show:true, type:'CONFIRM', props:{title: t.cancelContract, message: t.confirmCancel, onConfirm:()=>{ setData(p=>({...p, contracts: p.contracts.map(ct=>ct.id===c.id?{...ct,status:'canceled'}:ct), installments: p.installments.filter(i=>!(i.contractId===c.id && i.status==='pending')), units: p.units.map(un=>un.id===c.unitId?{...un,status:'available'}:un)})); showMsg(t.success); }}})); }} className="text-xs text-red-600 bg-red-50 px-3 py-1.5 rounded-xl font-bold border border-red-100 hover:bg-red-100 transition">{t.cancelContract}</button>
                               </div>
-                            )}
-                          </div>
-                        </div>
-                        
-                        {isExpanded && (
-                          <div className="mt-4 border-t pt-4 animate-slide-up" onClick={e=>e.stopPropagation()}>
+                            </div>
+
                             <div className="overflow-x-auto mb-4">
                               <table className="w-full text-sm text-right" style={{textAlign: lang==='en'?'left':'right'}}>
                                 <thead className="text-slate-400 border-b-2"><tr><th className="p-2 pb-2 font-medium">{t.dueDate}</th><th className="p-2 pb-2 font-medium">{t.amount}</th><th className="p-2 pb-2 font-medium">{t.status}</th><th className="p-2 pb-2 font-medium">{t.action}</th></tr></thead>
                                 <tbody>
+                                  {/* Consolidated Suspended Pool Row */}
+                                  {suspendedPool > 0 && (
+                                    <tr className="border-b-2 border-amber-200 bg-amber-50/70">
+                                      <td className="p-2 font-bold text-amber-800 text-xs">-- معلق مجمع --</td>
+                                      <td className="p-2 font-black text-amber-900 text-base">{suspendedPool.toLocaleString()} ج.م</td>
+                                      <td className="p-2"><span className="text-amber-800 font-bold text-xs bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-300">مبلغ معلق</span></td>
+                                      <td className="p-2 flex gap-1">
+                                        <button onClick={() => setAppModal({
+                                          show: true,
+                                          type: 'PROMPT_INST',
+                                          props: {
+                                            title: 'جدولة المبلغ المعلق لقسط جديد',
+                                            showDate: true,
+                                            defaultAmount: suspendedPool,
+                                            defaultDate: todayDateStr,
+                                            onConfirm: (amt, dt) => convertSuspendedToInstallment(c.id, amt, dt)
+                                          }
+                                        })} className="bg-purple-600 text-white px-2.5 py-1 rounded-lg text-xs font-bold shadow hover:bg-purple-700 transition">➕ تحويل لقسط</button>
+                                      </td>
+                                    </tr>
+                                  )}
+
                                   {(data.installments || []).filter(i => i.contractId === c.id).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate)).map(inst => {
                                     const totalPartnerShare = Math.round(inst.amount * (b?.partnerPercent/100));
                                     const currentPaidToPartner = inst.partnerPaidAmount !== undefined ? Number(inst.partnerPaidAmount) : (inst.partnerPaid ? totalPartnerShare : 0);
@@ -1620,7 +1781,18 @@
                                           {inst.status === 'pending' && Number(inst.amount) > 0 && (
                                             <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptCollect, defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId)=>payInstallment(inst.id, c.clientName, b?.id, amt, dt, custId) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">{t.collect}</button>
                                           )}
-                                          <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptEditInst, showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>{ setData(p=>({...p, installments: p.installments.map(i=>i.id===inst.id?{...i, amount:Number(amt), dueDate:dt, status: Number(amt)===0?'suspended':i.status }:i)})); showMsg(t.success); } }})} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">{t.edit}</button>
+                                          
+                                          <button onClick={() => setAppModal({
+                                            show: true, 
+                                            type: 'PROMPT_INST', 
+                                            props: {
+                                              title: t.promptEditInst, 
+                                              showDate: true, 
+                                              defaultAmount: inst.amount, 
+                                              defaultDate: inst.dueDate, 
+                                              onConfirm: (amt, dt) => editInstallment(inst.id, amt, dt) 
+                                            }
+                                          })} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">{t.edit}</button>
                                           
                                           {inst.status === 'paid' && remainingToPartner > 0 && b?.hasPartner && b.partnerPercent > 0 && (
                                             <button onClick={() => setAppModal({
@@ -1665,7 +1837,7 @@
                             </div>
                             
                             <div className="flex gap-2 justify-start mb-4">
-                              <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptManual, showDate:true, defaultDate: todayDateStr, onConfirm:(amt,dt)=>{ setData(p=>({...p, installments: [...(p.installments||[]), {id:'inst_man_'+Date.now(), contractId:c.id, amount:Number(amt), dueDate:dt, status: Number(amt)===0?'suspended':'pending', partnerPaid: false, partnerPaidAmount: 0}]})); showMsg(t.success); } }})} className="bg-blue-50 text-blue-700 border border-blue-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-blue-100 transition">{t.addManualInst}</button>
+                              <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptManual, showDate:true, defaultDate: todayDateStr, onConfirm:(amt,dt)=>addManualInstallment(c.id, amt, dt) }})} className="bg-blue-50 text-blue-700 border border-blue-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-blue-100 transition">{t.addManualInst}</button>
                               
                               <label className="bg-slate-50 text-slate-700 border border-slate-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-slate-100 transition cursor-pointer flex items-center justify-center">
                                 {t.addAttachment}

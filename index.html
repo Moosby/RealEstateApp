@@ -207,6 +207,9 @@
       const [toast, setToast] = useState({ show: false, msg: '', isError: false });
       const [appModal, setAppModal] = useState({ show: false, type: '', props: {} });
       const [editingTxId, setEditingTxId] = useState(null);
+      
+      // التعديل الجديد: متغير لتخزين ID العقد اللي بيتعدل
+      const [editingContractId, setEditingContractId] = useState(null);
       const [globalSearch, setGlobalSearch] = useState('');
 
       const [newBuilding, setNewBuilding] = useState('');
@@ -437,23 +440,98 @@
 
       const addUnit = (e) => { e.preventDefault(); setData(p => ({ ...p, units: [...(p.units || []), { id: 'u_' + Date.now(), ...newUnit, status: 'available' }] })); setNewUnit({ buildingId: '', unitNumber: '', price: '' }); showMsg(t.success); };
       
+      // التعديل الشامل لحفظ أو تعديل العقد من نفس الفورم الرئيسي
       const addContract = (e) => { 
-         e.preventDefault(); const unit = (data.units || []).find(u => u.id === newContract.unitId); if (!unit) return; 
-         const contractId = 'cont_' + Date.now(); const dp = Number(newContract.downPayment); const total = Number(newContract.totalAmount); const count = Number(newContract.installmentsCount); 
-         const contract = { id: contractId, clientName: newContract.clientName, unitId: unit.id, buildingId: unit.buildingId, totalAmount: total, downPayment: dp, date: todayDateStr, status: 'active' }; 
-         const newInsts = []; 
-         let curDate = new Date(newContract.firstInstallmentDate); 
-         const baseInstAmount = count > 0 ? Math.floor((total - dp) / count) : 0; 
-         let remainder = (total - dp) - (baseInstAmount * count);
-         for(let i=0; i<count; i++) { 
-           let currentAmt = baseInstAmount;
-           if (i === count - 1) currentAmt += remainder; 
-           newInsts.push({ id: 'inst_' + Date.now() + '_' + i, contractId, amount: currentAmt, dueDate: curDate.toISOString().split('T')[0], status: 'pending', partnerPaid: false }); 
-           curDate.setMonth(curDate.getMonth() + Number(newContract.interval)); 
-         } 
-         const trans = { id: 't_' + Date.now(), type: 'income', amount: dp, buildingId: unit.buildingId, description: (lang==='ar'?`مقدم تعاقد: ${newContract.clientName}`:`Down Payment: ${newContract.clientName}`), date: todayDateStr }; 
-         setData(prev => ({ ...prev, contracts: [...(prev.contracts || []), contract], installments: [...(prev.installments || []), ...newInsts], transactions: [...(prev.transactions || []), trans], units: (prev.units || []).map(u => u.id === unit.id ? { ...u, status: 'sold' } : u) })); 
-         setNewContract({ clientName: '', unitId: '', totalAmount: '', downPayment: '', installmentsCount: '', firstInstallmentDate: '', interval: '1' }); showMsg(t.success); 
+         e.preventDefault(); 
+         const unit = (data.units || []).find(u => u.id === newContract.unitId); 
+         if (!unit) return; 
+
+         const dp = Number(newContract.downPayment); 
+         const total = Number(newContract.totalAmount); 
+         const count = Number(newContract.installmentsCount); 
+         const interval = Number(newContract.interval);
+
+         setData(prev => {
+            let updatedContracts = [...(prev.contracts || [])];
+            let updatedInstallments = [...(prev.installments || [])];
+            let updatedTransactions = [...(prev.transactions || [])];
+            let contractId;
+
+            if (editingContractId) {
+               // نظام التعديل: تصفير المدفوعات السابقة وتعديل العقد
+               contractId = editingContractId;
+               const oldContract = updatedContracts.find(c => c.id === contractId);
+               
+               // 1. حساب المدفوعات القديمة لعمل قيد تسوية (المقدم + الأقساط المسددة)
+               const oldInsts = updatedInstallments.filter(i => i.contractId === contractId);
+               const oldPaidInstsSum = oldInsts.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.amount), 0);
+               const totalOldPaid = Number(oldContract.downPayment || 0) + oldPaidInstsSum;
+
+               // 2. إزالة الأقساط القديمة نهائياً
+               updatedInstallments = updatedInstallments.filter(i => i.contractId !== contractId);
+
+               // 3. إضافة قيد عكسي للتسوية لو كان العميل دافع فلوس
+               if (totalOldPaid > 0) {
+                  updatedTransactions.push({
+                     id: 't_rev_' + Date.now(), type: 'expense', amount: totalOldPaid, buildingId: oldContract.buildingId, custodyId: '', 
+                     description: `تسوية لإلغاء مدفوعات سابقة بسبب تعديل عقد: ${newContract.clientName}`, date: todayDateStr
+                  });
+               }
+
+               // 4. تحديث بيانات العقد
+               const contractIndex = updatedContracts.findIndex(c => c.id === contractId);
+               updatedContracts[contractIndex] = {
+                  ...oldContract, clientName: newContract.clientName, unitId: unit.id, buildingId: unit.buildingId, 
+                  totalAmount: total, downPayment: dp, installmentsCount: count, interval: interval
+               };
+
+            } else {
+               // نظام الإنشاء لعقد جديد
+               contractId = 'cont_' + Date.now(); 
+               updatedContracts.push({
+                  id: contractId, clientName: newContract.clientName, unitId: unit.id, buildingId: unit.buildingId, 
+                  totalAmount: total, downPayment: dp, date: todayDateStr, status: 'active',
+                  installmentsCount: count, interval: interval
+               });
+            }
+
+            // إنشاء الأقساط (الجديدة أو المُعدلة)
+            const newInsts = []; 
+            let curDate = new Date(newContract.firstInstallmentDate); 
+            const baseInstAmount = count > 0 ? Math.floor((total - dp) / count) : 0; 
+            let remainder = (total - dp) - (baseInstAmount * count);
+            for(let i=0; i<count; i++) { 
+               let currentAmt = baseInstAmount;
+               if (i === count - 1) currentAmt += remainder; 
+               newInsts.push({ id: 'inst_' + Date.now() + '_' + i, contractId, amount: currentAmt, dueDate: curDate.toISOString().split('T')[0], status: 'pending', partnerPaid: false }); 
+               curDate.setMonth(curDate.getMonth() + interval); 
+            } 
+            updatedInstallments.push(...newInsts);
+
+            // تسجيل إيراد المقدم الجديد
+            if (dp > 0) {
+               updatedTransactions.push({ 
+                  id: 't_dp_' + Date.now(), type: 'income', amount: dp, buildingId: unit.buildingId, custodyId: '',
+                  description: `مقدم تعاقد ${editingContractId ? '(معدل)' : ''}: ${newContract.clientName}`, date: todayDateStr 
+               });
+            }
+
+            // تغيير حالة الوحدات لو لزم الأمر
+            const updatedUnits = (prev.units || []).map(u => {
+               if(u.id === unit.id) return { ...u, status: 'sold' };
+               if(editingContractId) {
+                  const oldC = prev.contracts.find(c => c.id === editingContractId);
+                  if (oldC && oldC.unitId === u.id && oldC.unitId !== unit.id) return { ...u, status: 'available' };
+               }
+               return u;
+            });
+
+            return { ...prev, contracts: updatedContracts, installments: updatedInstallments, transactions: updatedTransactions, units: updatedUnits };
+         });
+
+         setNewContract({ clientName: '', unitId: '', totalAmount: '', downPayment: '', installmentsCount: '', firstInstallmentDate: '', interval: '1' }); 
+         setEditingContractId(null);
+         showMsg(t.success); 
       };
 
       const payInstallment = (instId, clientName, buildingId, paidAmount, date, custodyId) => {
@@ -519,13 +597,13 @@
       return (
         <div className="min-h-screen flex flex-col bg-slate-100 pb-10">
           <header className="bg-slate-900 text-white p-4 shadow-lg print-hide flex justify-between items-center relative z-40">
-            <h1 className="text-xl font-bold tracking-wide flex items-center gap-2">🏢 <span>{t.appTitle}</span></h1>
+            <h1 className="text-xl font-bold tracking-wide flex items-center gap-2">🏢 <span className="hidden sm:inline">{t.appTitle}</span></h1>
             <button onClick={() => setActiveTab('settings')} className="text-2xl hover:rotate-90 transition-transform">⚙️</button>
           </header>
 
           <nav className="bg-slate-800 text-slate-200 grid grid-cols-3 md:grid-cols-6 border-b border-slate-700 print-hide shadow-md">
             {tabs.map(tab => (
-              <button key={tab.id} onClick={() => {setActiveTab(tab.id); setEditingTxId(null); setGlobalSearch('');}} 
+              <button key={tab.id} onClick={() => {setActiveTab(tab.id); setEditingTxId(null); setGlobalSearch(''); setEditingContractId(null);}} 
                 className={`p-3 text-sm font-bold text-center border-b border-l border-slate-700 transition-colors ${activeTab === tab.id ? 'bg-slate-100 text-blue-800 border-b-4 border-b-blue-600 shadow-inner' : 'hover:bg-slate-700'}`}>
                 {tab.label}
               </button>
@@ -552,6 +630,7 @@
                   <button onClick={() => { closeModal(); requirePin(() => { setAppModal({ show: true, type: 'CONFIRM', props: { title: t.delete, message: t.confirmDelTx, onConfirm: () => { setData(p => ({...p, transactions: (p.transactions||[]).filter(tx => tx.id !== appModal.props.tx?.id)})); showMsg(t.success); closeModal(); } }}); }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button>
                 </div>
               )}
+              
               {appModal.type === 'CAT_ACTION' && appModal.props.cat && (
                 <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}>
                   <div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div>
@@ -561,6 +640,7 @@
                   <button onClick={() => { requirePin(() => { setData(p => ({...p, categories: p.categories.filter(c => c.id !== appModal.props.cat.id)})); closeModal(); showMsg(t.success); }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button>
                 </div>
               )}
+              
               {appModal.type === 'BUILDING_ACTION' && appModal.props.b && (
                 <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}>
                   <div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div>
@@ -570,6 +650,7 @@
                   <button onClick={() => { requirePin(() => { setAppModal({show: true, type: 'CONFIRM', props: { title: t.delete, message: t.confirmDelBuild, onConfirm: () => { setData(p => ({...p, buildings: p.buildings.filter(b => b.id !== appModal.props.b.id)})); closeModal(); showMsg(t.success); } }}) }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button>
                 </div>
               )}
+              
               {appModal.type === 'UNIT_ACTION' && appModal.props.u && (
                 <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}>
                   <div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div>
@@ -580,28 +661,7 @@
                 </div>
               )}
 
-              {appModal.type === 'EDIT_CONTRACT' && (
-                <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}>
-                  <h3 className="font-bold text-lg mb-4 text-center border-b pb-2 text-slate-800">تعديل بيانات العقد</h3>
-                  <form onSubmit={(e)=>{
-                      e.preventDefault();
-                      const cName = e.target.cName.value;
-                      const tAmt = e.target.tAmt.value;
-                      setData(p => ({...p, contracts: p.contracts.map(c => c.id === appModal.props.contract.id ? {...c, clientName: cName, totalAmount: Number(tAmt)} : c)}));
-                      closeModal(); showMsg(t.success);
-                  }}>
-                    <label className="text-xs mb-1 block font-bold text-slate-500">اسم العميل</label>
-                    <input name="cName" defaultValue={appModal.props.contract.clientName} required className="w-full border-2 border-slate-300 focus:border-blue-500 outline-none p-3 rounded-xl mb-4 font-bold bg-slate-50" />
-                    <label className="text-xs mb-1 block font-bold text-slate-500">إجمالي المبلغ التعاقدي</label>
-                    <input name="tAmt" type="number" defaultValue={appModal.props.contract.totalAmount} required className="w-full border-2 border-slate-300 focus:border-blue-500 outline-none p-3 rounded-xl mb-5 font-bold bg-slate-50" />
-                    <div className="flex gap-2">
-                      <button type="submit" className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow hover:bg-blue-700">تحديث الحفظ</button>
-                      <button type="button" onClick={closeModal} className="flex-1 bg-slate-200 text-slate-700 py-3 rounded-xl font-bold">إلغاء</button>
-                    </div>
-                  </form>
-                </div>
-              )}
-
+              {/* النافذة الخاصة بإدخال الرمز السري مع التعديل الجديد لضمان قراءة أحدث رمز */}
               {appModal.type === 'PIN' && (
                 <div className="bg-white w-full max-w-xs rounded-2xl overflow-hidden shadow-2xl animate-slide-up" onClick={e=>e.stopPropagation()}>
                   <div className="bg-red-600 text-white p-4 text-center font-bold">🔒</div>
@@ -611,9 +671,10 @@
                       onChange={e => { 
                         const val = e.target.value;
                         if(val.length === 4) {
-                          if (val === (data.pinCode || '0000')) {
+                          const currentPin = data.pinCode || '0000';
+                          if (val === currentPin) {
                             closeModal(); 
-                            setTimeout(appModal.props.onSuccess, 50); 
+                            setTimeout(appModal.props.onSuccess, 100); 
                           } else {
                             showMsg(lang === 'ar' ? 'الرمز غير صحيح' : 'Incorrect PIN', true);
                             e.target.value = '';
@@ -903,13 +964,21 @@
             {/* Sales Tab */}
             {activeTab === 'sales' && (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print-hide animate-fade-in">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 h-fit">
-                  <h3 className="font-bold mb-5 border-b pb-2 text-lg text-slate-800">{t.newContractTitle}</h3>
+                
+                {/* الفورم الرئيسي لتسجيل أو تعديل العقود */}
+                <div className={`bg-white p-6 rounded-2xl shadow-sm border-2 h-fit transition-colors ${editingContractId ? 'border-amber-400 shadow-md' : 'border-slate-200'}`}>
+                  <h3 className="font-bold mb-5 border-b pb-2 text-lg text-slate-800">{editingContractId ? 'تعديل بيانات العقد الشامل' : t.newContractTitle}</h3>
+                  {editingContractId && (
+                    <div className="bg-amber-50 text-amber-700 text-xs p-3 rounded-xl mb-4 font-bold border border-amber-200 leading-relaxed">
+                      ⚠️ تنبيه: الحفظ سيلغي الأقساط القديمة ويقوم بتسوية المدفوعات السابقة (إن وُجدت) لإنشاء الجدول الجديد للعميل.
+                    </div>
+                  )}
                   <form onSubmit={addContract} className="space-y-4">
                     <input type="text" placeholder={t.clientName} className="w-full border-2 p-3 rounded-xl text-sm font-bold bg-slate-50 focus:border-blue-400 outline-none" required value={newContract.clientName} onChange={e => setNewContract({...newContract, clientName: e.target.value})} />
                     <select className="w-full border-2 p-3 rounded-xl text-sm font-bold bg-slate-50 focus:border-blue-400 outline-none" required value={newContract.unitId} onChange={e => setNewContract({...newContract, unitId: e.target.value})}>
                       <option value="">{t.selectUnit}</option>
-                      {(data.units || []).filter(u => u.status === 'available').map(u => <option key={u.id} value={u.id}>{(data.buildings || []).find(b=>b.id===u.buildingId)?.name} - {u.unitNumber}</option>)}
+                      {/* عرض الوحدة الحالية للعقد عشان يقدر يختارها تاني لو بيعدل، بجانب الوحدات المتاحة */}
+                      {(data.units || []).filter(u => u.status === 'available' || (editingContractId && newContract.unitId === u.id)).map(u => <option key={u.id} value={u.id}>{(data.buildings || []).find(b=>b.id===u.buildingId)?.name} - {u.unitNumber}</option>)}
                     </select>
                     <div><label className="text-xs font-bold text-slate-500 block mb-1">{t.totalAmount}</label><NumberInput required value={newContract.totalAmount} onChange={v => setNewContract({...newContract, totalAmount: v})} className="w-full border-2 p-3 rounded-xl text-lg font-bold bg-white focus:border-blue-400 outline-none" /></div>
                     <div><label className="text-xs font-bold text-slate-500 block mb-1">{t.downPayment}</label><NumberInput required value={newContract.downPayment} onChange={v => setNewContract({...newContract, downPayment: v})} className="w-full border-2 p-3 rounded-xl text-lg font-bold bg-white focus:border-blue-400 outline-none" /></div>
@@ -926,7 +995,13 @@
                       </select>
                     </div>
                     <div><label className="text-xs font-bold text-slate-500 block mb-1">{t.firstInstDate}</label><input type="date" className="w-full border-2 p-3 rounded-xl text-sm font-bold bg-slate-50 focus:border-blue-400 outline-none font-mono" required value={newContract.firstInstallmentDate} onChange={e => setNewContract({...newContract, firstInstallmentDate: e.target.value})} /></div>
-                    <button className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-md shadow-lg hover:bg-blue-700 transition mt-2">{t.saveContract}</button>
+                    
+                    <button className={`w-full text-white py-4 rounded-xl font-bold text-md shadow-lg transition mt-2 ${editingContractId ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-600 hover:bg-blue-700'}`}>
+                       {editingContractId ? 'تحديث العقد وتعديل الأقساط' : t.saveContract}
+                    </button>
+                    {editingContractId && (
+                       <button type="button" onClick={() => { setEditingContractId(null); setNewContract({ clientName: '', unitId: '', totalAmount: '', downPayment: '', installmentsCount: '', firstInstallmentDate: '', interval: '1' }); }} className="w-full mt-2 text-slate-500 font-bold py-2 hover:bg-slate-100 rounded-xl transition">إلغاء التعديل</button>
+                    )}
                   </form>
                 </div>
                 
@@ -989,7 +1064,26 @@
                             <span className="text-blue-600 bg-blue-50 px-3 py-1 rounded-lg text-xs font-bold shadow-sm">{isExpanded ? t.hideDetails : t.showDetails}</span>
                             {isExpanded && (
                               <div className="flex gap-2">
-                                <button onClick={(e)=>{e.stopPropagation(); requirePin(()=>setAppModal({show:true, type:'EDIT_CONTRACT', props: {contract: c}}));}} className="text-xs text-blue-700 bg-blue-50 px-4 py-2 rounded-xl font-bold border border-blue-200 hover:bg-blue-100 transition">تعديل بيانات العقد</button>
+                                <button onClick={(e)=>{
+                                  e.stopPropagation(); 
+                                  requirePin(() => {
+                                      // فتح العقد في الفورم الرئيسي العلوي
+                                      setEditingContractId(c.id);
+                                      const cInsts = (data.installments || []).filter(i => i.contractId === c.id).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate));
+                                      const firstDate = cInsts.length > 0 ? cInsts[0].dueDate : todayDateStr;
+                                      
+                                      setNewContract({
+                                          clientName: c.clientName,
+                                          unitId: c.unitId,
+                                          totalAmount: c.totalAmount,
+                                          downPayment: c.downPayment || '',
+                                          installmentsCount: c.installmentsCount || cInsts.length,
+                                          firstInstallmentDate: firstDate,
+                                          interval: c.interval || '1'
+                                      });
+                                      window.scrollTo({ top: 0, behavior: 'smooth' }); // الصعود لأعلى الصفحة تلقائياً
+                                  });
+                                }} className="text-xs text-amber-700 bg-amber-50 px-4 py-2 rounded-xl font-bold border border-amber-200 hover:bg-amber-100 transition">تعديل بيانات العقد</button>
                                 <button onClick={(e) => { e.stopPropagation(); requirePin(()=>setAppModal({show:true, type:'CONFIRM', props:{title: t.cancelContract, message: t.confirmCancel, onConfirm:()=>{ setData(p=>({...p, contracts: p.contracts.map(ct=>ct.id===c.id?{...ct,status:'canceled'}:ct), installments: p.installments.filter(i=>!(i.contractId===c.id && i.status==='pending')), units: p.units.map(un=>un.id===c.unitId?{...un,status:'available'}:un)})); showMsg(t.success); }}})); }} className="text-xs text-red-600 bg-red-50 px-4 py-2 rounded-xl font-bold border border-red-100 hover:bg-red-100 transition">{t.cancelContract}</button>
                               </div>
                             )}
@@ -1221,7 +1315,12 @@
                     const formTarget = e.target;
                     const newPinVal = formTarget.newPin.value;
                     requirePin(() => {
-                        setData(p => ({...p, pinCode: newPinVal}));
+                        setData(p => {
+                           const newData = {...p, pinCode: newPinVal};
+                           // التعديل: حفظ إجباري مباشر في الذاكرة لتجنب المسح عند التحديث
+                           localStorage.setItem('real_estate_core_data', JSON.stringify(newData));
+                           return newData;
+                        });
                         showMsg(t.success);
                         formTarget.reset();
                     });

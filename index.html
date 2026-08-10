@@ -14,19 +14,25 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     @media print {
-      html, body, #root, .min-h-screen { height: auto !important; min-height: auto !important; overflow: visible !important; position: static !important; background: white !important; }
+      html, body, #root, .min-h-screen, main, main > div { 
+        height: auto !important; 
+        min-height: auto !important; 
+        overflow: visible !important; 
+        position: static !important; 
+        background: white !important; 
+        margin: 0 !important; 
+        padding: 0 !important;
+        display: block !important;
+      }
       header, nav, .print-hide { display: none !important; }
       
-      main { height: auto !important; overflow: visible !important; position: static !important; }
-      main > div:not(.print-show) { display: none !important; }
-      .print-show { display: block !important; position: static !important; width: 100% !important; }
+      .print-show { display: block !important; position: static !important; width: 100% !important; visibility: visible !important; }
       
       .print-receipt-wrapper { position: static !important; display: block !important; background: transparent !important; padding: 0 !important; }
       .print-receipt-wrapper > div { position: static !important; box-shadow: none !important; max-width: 100% !important; width: 100% !important; margin: 0 !important; border: none !important; border-radius: 0 !important; }
-      .print-receipt-wrapper .flex.gap-2 { display: none !important; }
       .receipt-print-area { padding: 0 !important; border: none !important; }
       
-      @page { margin: 5mm; }
+      @page { size: auto; margin: 8mm; }
       table { width: 100%; border-collapse: collapse; margin: 15px auto; page-break-inside: auto; }
       tr { page-break-inside: avoid; page-break-after: auto; }
       th, td { border: 2px solid black !important; padding: 6px 8px !important; text-align: center; color: black !important; }
@@ -89,7 +95,7 @@
         showDetails: "التفاصيل ▼", hideDetails: "إخفاء ▲", opBalance: "رصيد أول المدة",
         hasPartner: "يوجد شريك؟", partnerPercent: "نسبة الشريك (%)", partnerNameInput: "اسم الشريك (اختياري)", myShare: "نسبتي", partnerShare: "للشريك",
         payPartnerBtn: "توريد للشريك", payPartnerTitle: "تأكيد توريد مبلغ الشريك", payPartnerDesc: "سيتم خصم المبلغ من العهدة المختارة كـ (مصروف)",
-        deductFromSafe: "خصم من عهدة (مطلوب)", selectSafe: "-- اختر العهدة --",
+        deductFromSafe: "خصم من عهدة / الخزينة", selectSafe: "-- اختر العهدة --",
         sortBy: "ترتيب حسب:", sortDate: "التاريخ", sortClient: "العميل", sortBuilding: "العمارة",
         detailsMonthDues: "تفاصيل أقساط الشهر", client: "العميل", dueDate: "الاستحقاق", action: "إجراء",
         noDues: "لا توجد أقساط مستحقة هذا الشهر", collect: "تحصيل",
@@ -132,7 +138,7 @@
         showDetails: "Details ▼", hideDetails: "Hide ▲", opBalance: "Opening Balance",
         hasPartner: "Has Partner?", partnerPercent: "Partner %", partnerNameInput: "Partner Name (Optional)", myShare: "My Share", partnerShare: "Partner",
         payPartnerBtn: "Pay Partner", payPartnerTitle: "Pay Partner's Share", payPartnerDesc: "Deducted from selected safe as expense.",
-        deductFromSafe: "Deduct From Safe (Required)", selectSafe: "-- Select Safe --",
+        deductFromSafe: "Deduct From Safe", selectSafe: "-- Select Safe --",
         sortBy: "Sort By:", sortDate: "Date", sortClient: "Client", sortBuilding: "Building",
         detailsMonthDues: "Month Dues Details", client: "Client", dueDate: "Due Date", action: "Action",
         noDues: "No pending dues this month", collect: "Collect",
@@ -232,7 +238,7 @@
         return initialData;
       });
 
-      // Data Migration for DownPayments (Retroactively creates Paid Installment for Down Payment)
+      // Data Migration for DownPayments
       useEffect(() => {
         let needsUpdate = false;
         let updatedInsts = [...(data.installments || [])];
@@ -660,11 +666,10 @@
       };
 
       const payPartnerShare = (instId, partnerAmt, clientName, buildingName, custodyId, date) => {
-        if (!custodyId) return showMsg(lang==='ar'?'مطلوب اختيار عهدة':'Safe is required', true);
         setData(prev => {
           const updatedInsts = prev.installments.map(i => i.id === instId ? { ...i, partnerPaid: true } : i);
           const trans = {
-            id: 't_' + Date.now(), type: 'expense', amount: partnerAmt, buildingId: '', custodyId: custodyId, 
+            id: 't_' + Date.now(), type: 'expense', amount: partnerAmt, buildingId: '', custodyId: custodyId || '', 
             description: (lang==='ar'?`توريد نصيب الشريك - ${clientName} - ${buildingName}`:`Pay Partner Share - ${clientName} - ${buildingName}`), 
             date: date || getTodayStr()
           };
@@ -799,19 +804,60 @@
               )}
               
               {appModal.type === 'RECEIPT' && (
-                <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-slide-up print-show" onClick={e=>e.stopPropagation()}>
-                  <div id="receipt-area" className="p-6 bg-white text-black text-center border-b-4 border-dashed receipt-print-area">
-                    <p className="text-sm font-bold mb-6 text-gray-500">إيصال استلام نقدية</p>
-                    <div className="text-right space-y-3 mb-6 bg-gray-50 p-4 rounded-xl border" dir="rtl">
-                      <p className="border-b pb-2"><strong className="text-gray-600">التاريخ:</strong> <span className="font-mono ml-2 font-bold">{appModal.props.date}</span></p>
-                      <p className="border-b pb-2"><strong className="text-gray-600">العميل:</strong> <span className="font-bold ml-2">{appModal.props.clientName}</span></p>
-                      <p className="border-b pb-2"><strong className="text-gray-600">البيان:</strong> <span className="font-bold ml-2">قسط وحدة ({appModal.props.buildingName})</span></p>
-                      <p className="text-lg text-emerald-700 pt-1"><strong className="text-gray-600 text-sm">المبلغ المستلم:</strong> <span className="font-black ml-2">{Number(appModal.props.amount).toLocaleString()} ج.م</span></p>
+                <div className="bg-white w-full max-w-md rounded-2xl overflow-hidden shadow-2xl animate-slide-up print-show" onClick={e=>e.stopPropagation()}>
+                  <div id="receipt-area" className="p-6 bg-white text-black text-center receipt-print-area">
+                    <p className="text-base font-black mb-4 text-slate-800 border-b-2 border-slate-800 pb-2">إيصال استلام نقدية</p>
+                    
+                    <div className="text-right space-y-2.5 mb-5 text-sm bg-slate-50 p-4 rounded-xl border border-slate-200" dir="rtl">
+                      <div className="flex justify-between border-b pb-1.5">
+                        <span className="text-gray-600 font-bold">تاريخ الاستلام:</span>
+                        <span className="font-mono font-bold text-slate-900">{appModal.props.date || formatShortDate(todayDateStr)}</span>
+                      </div>
+                      {appModal.props.dueDate && (
+                        <div className="flex justify-between border-b pb-1.5">
+                          <span className="text-gray-600 font-bold">تاريخ استحقاق القسط:</span>
+                          <span className="font-mono font-bold text-blue-800">{appModal.props.dueDate}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between border-b pb-1.5">
+                        <span className="text-gray-600 font-bold">العميل:</span>
+                        <span className="font-bold text-slate-900">{appModal.props.clientName}</span>
+                      </div>
+                      <div className="flex justify-between border-b pb-1.5">
+                        <span className="text-gray-600 font-bold">البيان / الوحدة:</span>
+                        <span className="font-bold text-slate-900">{appModal.props.buildingName}</span>
+                      </div>
+                      <div className="flex justify-between pt-1 text-base text-emerald-700">
+                        <span className="font-black">المبلغ المستلم:</span>
+                        <span className="font-black">{Number(appModal.props.amount).toLocaleString()} ج.م</span>
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-400 mt-4">تم الاستلام. شكراً لثقتكم.</p>
+
+                    {appModal.props.unitPrice !== undefined && (
+                      <div className="bg-blue-50/60 p-3.5 rounded-xl border border-blue-200 text-right text-xs mb-4" dir="rtl">
+                        <p className="font-black text-blue-900 text-sm mb-2 border-b border-blue-200 pb-1 text-center">📊 إجمالي موقف الوحدة</p>
+                        <div className="grid grid-cols-3 gap-2 text-center font-bold">
+                          <div className="bg-white p-2 rounded-lg border border-blue-100">
+                            <span className="text-gray-500 block text-[10px]">سعر الوحدة</span>
+                            <span className="text-slate-900 text-xs font-black">{Number(appModal.props.unitPrice).toLocaleString()}</span>
+                          </div>
+                          <div className="bg-white p-2 rounded-lg border border-blue-100">
+                            <span className="text-emerald-600 block text-[10px]">إجمالي المدفوع</span>
+                            <span className="text-emerald-700 text-xs font-black">{Number(appModal.props.totalPaid).toLocaleString()}</span>
+                          </div>
+                          <div className="bg-white p-2 rounded-lg border border-blue-100">
+                            <span className="text-red-600 block text-[10px]">المتبقي</span>
+                            <span className="text-red-700 text-xs font-black">{Number(appModal.props.remainingAmount).toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <p className="text-xs text-gray-500 mt-2 font-bold">تم الاستلام. شكراً لثقتكم.</p>
                   </div>
-                  <div className="p-4 flex gap-2 bg-slate-100">
-                     <button onClick={()=>{ window.print(); }} className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow hover:bg-blue-700">🖨️ طباعة الإيصال</button>
+                  
+                  <div className="p-4 flex gap-2 bg-slate-100 print-hide">
+                     <button onClick={()=>{ window.print(); }} className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow hover:bg-blue-700">🖨️ طباعة الإيصال PDF</button>
                      <button onClick={closeModal} className="flex-1 bg-slate-300 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-400">إغلاق</button>
                   </div>
                 </div>
@@ -864,8 +910,8 @@
                     </div>
                     <div className="mb-6">
                       <label className="text-xs font-bold text-slate-500 mb-1">{t.deductFromSafe}</label>
-                      <select name="custody" required className="w-full border-2 border-slate-300 p-3 rounded-xl font-bold text-purple-800 bg-slate-50 outline-none focus:border-purple-500">
-                        <option value="">{t.selectSafe}</option>
+                      <select name="custody" className="w-full border-2 border-slate-300 p-3 rounded-xl font-bold text-purple-800 bg-slate-50 outline-none focus:border-purple-500">
+                        <option value="">{t.generalSafe}</option>
                         {sortedCustodies.map(c => <option key={c.id} value={c.id}>{c.personName}</option>)}
                       </select>
                     </div>
@@ -1233,7 +1279,26 @@
                                           <button onClick={() => setAppModal({show:true, type:'PAY_PARTNER', props:{partnerAmt: Math.round(inst.amount * (b.partnerPercent/100)), onConfirm:(dt, custId)=>payPartnerShare(inst.id, Math.round(inst.amount * (b.partnerPercent/100)), c.clientName, b.name, custId, dt)}})} className="bg-purple-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-purple-600 transition">{t.payPartnerBtn}</button>
                                         )}
                                         {inst.status === 'paid' && (
-                                          <button onClick={() => setAppModal({show: true, type:'RECEIPT', props:{ date: formatShortDate(inst.dueDate), clientName: inst.isDownPayment ? `${c.clientName} (مقدم)` : c.clientName, buildingName: `${b?.name} - الوحدة ${u?.unitNumber}`, amount: inst.amount }})} className="bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-slate-900 transition flex justify-center items-center gap-1">🖨️ إيصال</button>
+                                          <button onClick={() => {
+                                            const contractInsts = (data.installments || []).filter(i => i.contractId === c.id);
+                                            const paidSum = contractInsts.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.amount), 0);
+                                            const unitPrice = Number(c.totalAmount || 0);
+                                            const remaining = unitPrice - paidSum;
+                                            setAppModal({
+                                              show: true, 
+                                              type:'RECEIPT', 
+                                              props:{ 
+                                                date: formatShortDate(todayDateStr),
+                                                dueDate: formatShortDate(inst.dueDate), 
+                                                clientName: inst.isDownPayment ? `${c.clientName} (مقدم)` : c.clientName, 
+                                                buildingName: `${b?.name} - الوحدة ${u?.unitNumber}`, 
+                                                amount: inst.amount,
+                                                unitPrice: unitPrice,
+                                                totalPaid: paidSum,
+                                                remainingAmount: remaining
+                                              }
+                                            });
+                                          }} className="bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-slate-900 transition flex justify-center items-center gap-1">🖨️ إيصال</button>
                                         )}
                                       </td>
                                     </tr>

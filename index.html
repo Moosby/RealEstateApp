@@ -13,11 +13,6 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    select, option, input, textarea {
-      color-scheme: light !important;
-      background-color: #ffffff !important;
-      color: #0f172a !important;
-    }
     @media print {
       html, body, #root, .min-h-screen, main, main > div { 
         height: auto !important; 
@@ -88,7 +83,7 @@
       ar: {
         appTitle: "RealStateApp",
         tab_dash: "الرئيسية", tab_tx: "إيراد/مصروف", tab_cust: "العهد", tab_inv: "الوحدات", tab_sales: "المبيعات", tab_rep: "التقارير", tab_settings: "الإعدادات",
-        income: "إيراد", expense: "مصروف", addIncome: "➕ إضافة إيراد", addExpense: "➖ تسجيل مصروف",
+        income: "إيراد", expense: "مصروف", transfer: "تحويل", addIncome: "➕ إيراد", addExpense: "➖ مصروف", addTransfer: "🔄 تحويل عهد",
         date: "التاريخ", amount: "المبلغ (ج.م)", desc: "البيان (التفاصيل)",
         custody: "العهدة / الخزينة", building: "العمارة", unit: "الوحدة", category: "تصنيف المصروف",
         save: "حفظ", update: "تحديث", cancel: "إلغاء", edit: "تعديل", delete: "حذف",
@@ -127,49 +122,6 @@
         sys1: "شهري", sys2: "كل شهرين", sys3: "ربع سنوي", sys4: "كل 4 شهور", sys6: "نصف سنوي", sys12: "سنوي",
         promptCollect: "تحصيل قسط", promptEditInst: "تعديل قسط", promptManual: "قسط يدوي", promptCustody: "إيداع في عهدة (اختياري)",
         confirmCancel: "متأكد من فسخ العقد؟", confirmDelCat: "حذف التصنيف؟", confirmDelBuild: "حذف العمارة؟", confirmDelUnit: "حذف الوحدة؟", confirmDelTx: "حذف الحركة؟", success: "تم بنجاح"
-      },
-      en: {
-        appTitle: "RealStateApp",
-        tab_dash: "Dashboard", tab_tx: "In/Out", tab_cust: "Safes", tab_inv: "Units", tab_sales: "Sales", tab_rep: "Reports", tab_settings: "Settings",
-        income: "Income", expense: "Expense", addIncome: "➕ Add Income", addExpense: "➖ Add Expense",
-        date: "Date", amount: "Amount", desc: "Description",
-        custody: "Safe/Custody", building: "Building", unit: "Unit", category: "Category",
-        save: "Save", update: "Update", cancel: "Cancel", edit: "Edit", delete: "Delete",
-        allCustodies: "-- All Safes --", generalSafe: "-- General Safe --", allBuildings: "-- All Buildings --", selectCat: "-- Select Category --",
-        monthDues: "Current Month Dues", activeCustody: "Safes Balances", net: "Net",
-        addCat: "Add Category", newCustody: "Assign New Safe", settings: "Settings & Security",
-        backup: "Backup", reset: "Factory Reset",
-        lang: "Language / لغة البرنامج", yes: "Yes", no: "Cancel", txTitle: "Record Transaction",
-        showDetails: "Details ▼", hideDetails: "Hide ▲", opBalance: "Opening Balance",
-        hasPartner: "Has Partner?", partnerPercent: "Partner %", partnerNameInput: "Partner Name (Optional)", myShare: "My Share", partnerShare: "Partner",
-        payPartnerBtn: "Pay Partner", payPartnerTitle: "Pay Partner's Share", payPartnerDesc: "Deducted from selected safe as expense.",
-        deductFromSafe: "Deduct From Safe", selectSafe: "-- Select Safe --",
-        sortBy: "Sort By:", sortDate: "Date", sortClient: "Client", sortBuilding: "Building",
-        detailsMonthDues: "Month Dues Details", client: "Client", dueDate: "Due Date", action: "Action",
-        noDues: "No pending dues this month", collect: "Collect",
-        saveTx: "💾 Save", updateTx: "🔄 Update",
-        searchDesc: "🔍 Search...", incomes: "Incomes ⬇", expenses: "Expenses ⬆",
-        total: "Total", noMatches: "No matches found",
-        addBuildingTitle: "🏢 Add Building", buildingName: "Building Name...", saveBuilding: "Save Building",
-        addUnitTitle: "🔑 Add Unit", unitName: "Unit Number/Name", saveUnit: "Save Unit",
-        newContractTitle: "New Contract", clientName: "Client Name", selectUnit: "-- Select Unit --",
-        totalAmount: "Total Amount", downPayment: "Down Payment", instCount: "Installments", paySystem: "Payment Plan", firstInstDate: "First Due Date",
-        saveContract: "Save Contract", overdueTitle: "⚠️ Overdue Installments", cancelContract: "Cancel Contract", status: "Status", paid: "Paid", pending: "Pending",
-        addManualInst: "➕ Manual Installment", addAttachment: "📎 Add Attachment", attachments: "Attachments", noContracts: "No active contracts",
-        repCustodyTitle: "Account Statement", repSalesTitle: "Installments Statement", periodFrom: "From", periodTo: "To", start: "Start", now: "Now",
-        repOpBalance: "Carried Forward Balance", incTable: "Incomes", expTable: "Expenses",
-        totalIncomes: "Total Incomes", totalExpenses: "Total Expenses", currentNet: "Current Net Balance",
-        repInstTitle: "Installments Report", repCustodyBtn: "Safes Statement", repSalesBtn: "Sales Report", repContractsBtn: "Clients & Units Status", repPartnersBtn: "Partners Accounts",
-        repContractsTitle: "Clients & Units Status Report", partnerReportTitle: "Partner/Investor Statement", totalUnit: "Total Unit", paidAmt: "Paid", remAmt: "Remaining", nextDue: "Next Due",
-        partnerDue: "Partner Due", partnerPaidStatus: "Partner Paid", totalExpected: "Total Expected Profit", totalCollectedNotPaid: "Due for Payment (Collected)", totalPaidToPartner: "Paid to Partner", totalPending: "Pending in Market",
-        printPdf: "🖨️ Print PDF", exportExcel: "📊 Export Excel",
-        langTitle: "Language / لغة البرنامج", addCatTitle: "🏷️ Add Category", catName: "Category Name...", addCatBtn: "Add",
-        newCustodyTitle: "👤 Add Safe", respName: "Responsible Name...", initAmount: "Initial Balance", saveCustody: "Save Safe", suggestedNet: "Suggested: Last Safe Net",
-        backupTitle: "💾 Backup & Restore", backupDesc: "Keep your data safe", exportBtn: "⬇️ Export Backup", importBtn: "⬆️ Restore Backup",
-        dangerZone: "⚠️ Danger Zone", resetDesc: "All data will be wiped. Are you sure?", resetBtn: "🗑️ Factory Reset",
-        sys1: "Monthly", sys2: "Every 2 Months", sys3: "Quarterly", sys4: "Every 4 Months", sys6: "Semi-Annually", sys12: "Annually",
-        promptCollect: "Collect Installment", promptEditInst: "Edit Installment", promptManual: "Manual Installment", promptCustody: "Deposit to Safe (Optional)",
-        confirmCancel: "Cancel contract?", confirmDelCat: "Delete Category?", confirmDelBuild: "Delete Building?", confirmDelUnit: "Delete Unit?", confirmDelTx: "Delete Transaction?", success: "Success"
       }
     };
 
@@ -210,6 +162,147 @@
             if(onChange) onChange(raw); 
           }} 
         /> 
+      );
+    }
+
+    // Custom Select Component (Replaces Native Dropdowns)
+    function CustomSelect({ options, value, onChange, placeholder, className }) {
+      const [isOpen, setIsOpen] = useState(false);
+      const ref = useRef(null);
+
+      useEffect(() => {
+        const handleClickOutside = (e) => { if (ref.current && !ref.current.contains(e.target)) setIsOpen(false); };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+      }, []);
+
+      const selectedOpt = options.find(o => String(o.value) === String(value));
+      const displayLabel = selectedOpt ? selectedOpt.label : (placeholder || 'اختر...');
+
+      return (
+        <div className={`relative z-20 w-full ${className || ''}`} ref={ref}>
+          <div 
+            className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl bg-white cursor-pointer font-bold flex justify-between items-center shadow-sm hover:border-blue-400 transition text-slate-800"
+            onClick={() => setIsOpen(!isOpen)}
+          >
+            <span className="truncate">{displayLabel}</span>
+            <span className="text-xs text-blue-600">▼</span>
+          </div>
+          {isOpen && (
+            <div className="absolute top-full right-0 w-full bg-white border-2 border-slate-200 mt-1 shadow-2xl max-h-52 overflow-y-auto z-50 p-1 space-y-1 rounded-xl animate-fade-in text-slate-800">
+              {placeholder && (
+                <div 
+                  className={`p-2.5 text-sm font-bold rounded-lg cursor-pointer transition ${value === '' ? 'bg-blue-50 text-blue-700 font-black' : 'hover:bg-slate-100 text-slate-700'}`}
+                  onClick={() => { onChange(''); setIsOpen(false); }}
+                >
+                  {placeholder}
+                </div>
+              )}
+              {options.map((opt, idx) => (
+                <div 
+                  key={idx} 
+                  className={`p-2.5 text-sm font-bold rounded-lg cursor-pointer transition ${String(value) === String(opt.value) ? 'bg-blue-600 text-white font-black' : 'hover:bg-slate-100 text-slate-800'}`}
+                  onClick={() => { onChange(opt.value); setIsOpen(false); }}
+                >
+                  {opt.label}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Custom Date Picker Component (Single-click Selection)
+    function CustomDateInput({ value, onChange, className }) {
+      const [isOpen, setIsOpen] = useState(false);
+      const dateObj = value ? new Date(value) : new Date();
+      const [viewYear, setViewYear] = useState(dateObj.getFullYear() || new Date().getFullYear());
+      const [viewMonth, setViewMonth] = useState(dateObj.getMonth() || new Date().getMonth());
+      const ref = useRef(null);
+
+      useEffect(() => {
+        if(value) {
+          const d = new Date(value);
+          if(!isNaN(d.getTime())) {
+            setViewYear(d.getFullYear());
+            setViewMonth(d.getMonth());
+          }
+        }
+      }, [value]);
+
+      useEffect(() => {
+        const handleClickOutside = (e) => { if (ref.current && !ref.current.contains(e.target)) setIsOpen(false); };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+      }, []);
+
+      const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+      const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay();
+
+      const monthsNames = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+
+      const handleSelectDay = (day) => {
+        const m = String(viewMonth + 1).padStart(2, '0');
+        const d = String(day).padStart(2, '0');
+        const selectedStr = `${viewYear}-${m}-${d}`;
+        onChange(selectedStr);
+        setIsOpen(false);
+      };
+
+      const formatDisplay = (dStr) => {
+        if(!dStr) return 'اختر التاريخ...';
+        const p = dStr.split('-');
+        return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : dStr;
+      };
+
+      return (
+        <div className="relative w-full" ref={ref}>
+          <div 
+            onClick={() => setIsOpen(!isOpen)}
+            className={`cursor-pointer font-mono font-bold flex justify-between items-center ${className || 'w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 text-slate-800'}`}
+          >
+            <span>{formatDisplay(value)}</span>
+            <span className="text-slate-400 text-sm">📅</span>
+          </div>
+
+          {isOpen && (
+            <div className="absolute top-full right-0 w-72 bg-white border-2 border-slate-200 mt-1 p-3 shadow-2xl z-50 rounded-2xl animate-fade-in text-slate-800" onClick={e=>e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-3">
+                <button type="button" onClick={() => { if(viewMonth === 0) { setViewMonth(11); setViewYear(viewYear-1); } else setViewMonth(viewMonth-1); }} className="p-1 px-2.5 bg-slate-100 rounded-lg text-slate-700 font-bold hover:bg-slate-200">▶</button>
+                <span className="font-bold text-sm text-slate-800">{monthsNames[viewMonth]} {viewYear}</span>
+                <button type="button" onClick={() => { if(viewMonth === 11) { setViewMonth(0); setViewYear(viewYear+1); } else setViewMonth(viewMonth+1); }} className="p-1 px-2.5 bg-slate-100 rounded-lg text-slate-700 font-bold hover:bg-slate-200">◀</button>
+              </div>
+
+              <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 mb-2">
+                <span>أحد</span><span>إثن</span><span>ثلا</span><span>أرب</span><span>خميس</span><span>جمعة</span><span>سبت</span>
+              </div>
+
+              <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold">
+                {Array.from({ length: firstDayOfWeek }).map((_, i) => <div key={'empty_'+i}></div>)}
+                {Array.from({ length: daysInMonth }).map((_, i) => {
+                  const day = i + 1;
+                  const m = String(viewMonth + 1).padStart(2, '0');
+                  const d = String(day).padStart(2, '0');
+                  const curStr = `${viewYear}-${m}-${d}`;
+                  const isSelected = value === curStr;
+                  const isToday = todayDateStr === curStr;
+
+                  return (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => handleSelectDay(day)}
+                      className={`p-2 rounded-xl transition font-mono ${isSelected ? 'bg-blue-600 text-white font-black shadow' : isToday ? 'bg-blue-100 text-blue-800 border border-blue-300' : 'hover:bg-slate-100 text-slate-700'}`}
+                    >
+                      {day}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       );
     }
 
@@ -308,8 +401,8 @@
       const [newCategory, setNewCategory] = useState('');
       const [newCustody, setNewCustody] = useState({ personName: '', totalAmount: '', notes: '' });
       
-      const [newTransaction, setNewTransaction] = useState({ type: 'income', amount: '', categoryId: '', buildingId: '', custodyId: '', description: '', date: todayDateStr });
-      const [newContract, setNewContract] = useState({ clientName: '', unitId: '', totalAmount: '', downPayment: '', installmentsCount: '', firstInstallmentDate: '', interval: '1' });
+      const [newTransaction, setNewTransaction] = useState({ type: 'income', amount: '', categoryId: '', buildingId: '', custodyId: '', toCustodyId: '', description: '', date: todayDateStr });
+      const [newContract, setNewContract] = useState({ clientName: '', unitId: '', totalAmount: '', downPayment: '', custodyId: '', installmentsCount: '', firstInstallmentDate: '', interval: '1' });
       
       const [reportType, setReportType] = useState('transactions'); 
       const [reportFilter, setReportFilter] = useState({ startDate: '', endDate: '', custodyIds: [], buildingIds: [] });
@@ -359,16 +452,16 @@
 
       const custodyCalculations = useMemo(() => {
         return (data.custodies || []).map(c => {
-          const expenses = (data.transactions || []).filter(tx => tx.type === 'expense' && tx.custodyId === c.id).reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
-          const incomes = (data.transactions || []).filter(tx => tx.type === 'income' && tx.custodyId === c.id).reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+          const expenses = (data.transactions || []).filter(tx => (tx.type === 'expense' && tx.custodyId === c.id) || (tx.type === 'transfer' && tx.custodyId === c.id)).reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+          const incomes = (data.transactions || []).filter(tx => (tx.type === 'income' && tx.custodyId === c.id) || (tx.type === 'transfer' && tx.toCustodyId === c.id)).reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
           return { ...c, used: expenses, incomes, remaining: Number(c.totalAmount || 0) + incomes - expenses };
         });
       }, [data]);
 
       let dashboardNet = 0;
       if (dashboardCustodyFilter.length === 0) {
-         const inc = (data.transactions||[]).filter(tx=>tx.type==='income' && !tx.custodyId).reduce((s,tx)=>s+Number(tx.amount||0),0);
-         const exp = (data.transactions||[]).filter(tx=>tx.type==='expense' && !tx.custodyId).reduce((s,tx)=>s+Number(tx.amount||0),0);
+         const inc = (data.transactions||[]).filter(tx => (tx.type==='income' && !tx.custodyId) || (tx.type==='transfer' && !tx.toCustodyId)).reduce((s,tx)=>s+Number(tx.amount||0),0);
+         const exp = (data.transactions||[]).filter(tx => (tx.type==='expense' && !tx.custodyId) || (tx.type==='transfer' && !tx.custodyId)).reduce((s,tx)=>s+Number(tx.amount||0),0);
          dashboardNet = inc - exp;
       } else if (dashboardCustodyFilter.includes('ALL')) {
          const inc = (data.transactions||[]).filter(tx=>tx.type==='income').reduce((s,tx)=>s+Number(tx.amount||0),0);
@@ -384,8 +477,15 @@
 
       const filteredCustodyTrans = useMemo(() => {
         return (data.transactions || []).filter(tx => {
-          if ((selectedCustodies || []).length > 0 && !(selectedCustodies || []).includes(tx.custodyId)) return false;
-          if (tx.type !== custodyTabSub) return false;
+          if ((selectedCustodies || []).length > 0) {
+            const isMatch = selectedCustodies.includes(tx.custodyId) || selectedCustodies.includes(tx.toCustodyId);
+            if(!isMatch) return false;
+          }
+          if (tx.type !== custodyTabSub && tx.type !== 'transfer') return false;
+          if (tx.type === 'transfer') {
+             if(custodyTabSub === 'income' && (selectedCustodies.length === 0 ? tx.toCustodyId !== '' : !selectedCustodies.includes(tx.toCustodyId))) return false;
+             if(custodyTabSub === 'expense' && (selectedCustodies.length === 0 ? tx.custodyId !== '' : !selectedCustodies.includes(tx.custodyId))) return false;
+          }
           if (custodySearch && !tx.description?.includes(custodySearch)) return false;
           return true;
         }).sort((a,b) => new Date(b.date || 0) - new Date(a.date || 0));
@@ -398,9 +498,9 @@
         selectedCustodyObjsR.forEach(c => {
            let bal = Number(c.totalAmount || 0);
            if (reportFilter.startDate) {
-              const beforeTrans = (data.transactions || []).filter(tx => tx.custodyId === c.id && tx.date < reportFilter.startDate);
-              bal += beforeTrans.filter(tx => tx.type === 'income').reduce((s, tx) => s + Number(tx.amount || 0), 0);
-              bal -= beforeTrans.filter(tx => tx.type === 'expense').reduce((s, tx) => s + Number(tx.amount || 0), 0);
+              const beforeTrans = (data.transactions || []).filter(tx => (tx.custodyId === c.id || tx.toCustodyId === c.id) && tx.date < reportFilter.startDate);
+              bal += beforeTrans.filter(tx => tx.type === 'income' || (tx.type === 'transfer' && tx.toCustodyId === c.id)).reduce((s, tx) => s + Number(tx.amount || 0), 0);
+              bal -= beforeTrans.filter(tx => tx.type === 'expense' || (tx.type === 'transfer' && tx.custodyId === c.id)).reduce((s, tx) => s + Number(tx.amount || 0), 0);
            }
            openingBalance += bal;
         });
@@ -411,13 +511,16 @@
         const filtered = (data.transactions || []).filter(tx => {
           if (reportFilter.startDate && tx.date < reportFilter.startDate) return false;
           if (reportFilter.endDate && tx.date > reportFilter.endDate) return false;
-          if ((reportFilter.custodyIds || []).length > 0 && !(reportFilter.custodyIds || []).includes(tx.custodyId)) return false;
+          if ((reportFilter.custodyIds || []).length > 0) {
+            const isMatch = reportFilter.custodyIds.includes(tx.custodyId) || reportFilter.custodyIds.includes(tx.toCustodyId);
+            if(!isMatch) return false;
+          }
           if ((reportFilter.buildingIds || []).length > 0 && !(reportFilter.buildingIds || []).includes(tx.buildingId)) return false;
           return true;
         }).sort((a,b) => new Date(a.date || 0) - new Date(b.date || 0));
 
-        const incomes = filtered.filter(tx => tx.type === 'income');
-        const expenses = filtered.filter(tx => tx.type === 'expense');
+        const incomes = filtered.filter(tx => tx.type === 'income' || tx.type === 'transfer');
+        const expenses = filtered.filter(tx => tx.type === 'expense' || tx.type === 'transfer');
         const totalIncomes = incomes.reduce((s,tx) => s + Number(tx.amount || 0), 0);
         const totalExpenses = expenses.reduce((s,tx) => s + Number(tx.amount || 0), 0);
         
@@ -578,6 +681,11 @@
       const handleSaveTransaction = (e) => {
         e.preventDefault();
         if(!newTransaction.amount) return;
+        if (newTransaction.type === 'transfer' && newTransaction.custodyId === newTransaction.toCustodyId) {
+          showMsg(lang === 'ar' ? 'لا يمكن التحويل لنفس العهدة' : 'Cannot transfer to same custody', true);
+          return;
+        }
+
         if (editingTxId) {
           setData(prev => ({ ...prev, transactions: prev.transactions.map(tx => tx.id === editingTxId ? { ...tx, ...newTransaction, amount: Number(newTransaction.amount) } : tx) }));
           setEditingTxId(null); showMsg(t.success);
@@ -585,7 +693,7 @@
           const item = { id: 't_' + Date.now(), ...newTransaction, amount: Number(newTransaction.amount) };
           setData(prev => ({ ...prev, transactions: [...(prev.transactions || []), item] })); showMsg(t.success);
         }
-        setNewTransaction(prev => ({ ...prev, amount: '', description: '', date: getTodayStr() })); 
+        setNewTransaction(prev => ({ ...prev, amount: '', description: '', date: getTodayStr(), toCustodyId: '' })); 
       };
 
       const handleResetFactory = () => { 
@@ -672,7 +780,7 @@
 
             if (dp > 0) {
                updatedTransactions.push({ 
-                  id: 't_dp_' + Date.now(), type: 'income', amount: dp, buildingId: unit.buildingId, custodyId: '',
+                  id: 't_dp_' + Date.now(), type: 'income', amount: dp, buildingId: unit.buildingId, custodyId: newContract.custodyId || '',
                   description: `مقدم تعاقد ${editingContractId ? '(معدل)' : ''}: ${newContract.clientName}`, date: todayDateStr 
                });
             }
@@ -689,7 +797,7 @@
             return { ...prev, contracts: updatedContracts, installments: updatedInstallments, transactions: updatedTransactions, units: updatedUnits };
          });
 
-         setNewContract({ clientName: '', unitId: '', totalAmount: '', downPayment: '', installmentsCount: '', firstInstallmentDate: '', interval: '1' }); 
+         setNewContract({ clientName: '', unitId: '', totalAmount: '', downPayment: '', custodyId: '', installmentsCount: '', firstInstallmentDate: '', interval: '1' }); 
          setEditingContractId(null);
          showMsg(t.success); 
       };
@@ -769,6 +877,10 @@
       const sortedBuildings = [...(data.buildings || [])].reverse();
       const sortedCategories = [...(data.categories || [])].reverse();
       const lastCustodyNet = sortedCustodies.length > 0 ? (custodyCalculations.find(c => c.id === sortedCustodies[0].id)?.remaining || 0) : 0;
+
+      const custodyOptions = [{ value: '', label: t.generalSafe }, ...sortedCustodies.map(c => ({ value: c.id, label: c.personName }))];
+      const buildingOptions = [{ value: '', label: t.allBuildings }, ...sortedBuildings.map(b => ({ value: b.id, label: b.name }))];
+      const categoryOptions = [{ value: '', label: t.selectCat }, ...sortedCategories.map(c => ({ value: c.id, label: c.name }))];
 
       const filteredContracts = (data.contracts || []).filter(c => c.status === 'active' && (!globalSearch || c.clientName.includes(globalSearch)));
 
@@ -948,19 +1060,21 @@
               {appModal.type === 'PROMPT_INST' && (
                 <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-slide-up" onClick={e=>e.stopPropagation()}>
                   <div className="bg-blue-800 text-white p-4 text-center font-bold">{appModal.props.title}</div>
-                  <form onSubmit={e => { e.preventDefault(); appModal.props.onConfirm(document.getElementById('promptAmtInput').value.replace(/[^0-9]/g, ''), e.target.date?.value, e.target.custody?.value); closeModal(); }} className="p-6 space-y-4">
-                    {appModal.props.showDate && <div><label className="text-xs font-bold text-slate-500 mb-1">{t.date}</label><input name="date" type="date" required defaultValue={appModal.props.defaultDate} className="w-full border-2 p-3 rounded-xl font-bold bg-slate-50 focus:border-blue-400 outline-none"/></div>}
+                  <form onSubmit={e => { e.preventDefault(); appModal.props.onConfirm(document.getElementById('promptAmtInput').value.replace(/[^0-9]/g, ''), appModal.props.promptDate || todayDateStr, appModal.props.promptCustodyVal || ''); closeModal(); }} className="p-6 space-y-4">
+                    {appModal.props.showDate && (
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 mb-1 block">{t.date}</label>
+                        <CustomDateInput value={appModal.props.promptDate || appModal.props.defaultDate || todayDateStr} onChange={(d) => setAppModal(p => ({ ...p, props: { ...p.props, promptDate: d } }))} />
+                      </div>
+                    )}
                     <div>
-                      <label className="text-xs font-bold text-slate-500 mb-1">{t.amount}</label>
+                      <label className="text-xs font-bold text-slate-500 mb-1 block">{t.amount}</label>
                       <input type="number" id="promptAmtInput" required defaultValue={appModal.props.defaultAmount} className="w-full border-2 border-blue-400 p-3 rounded-xl font-bold text-xl text-center outline-none focus:border-blue-600" />
                     </div>
                     {appModal.props.showCustody && (
                       <div>
-                        <label className="text-xs font-bold text-slate-500 mb-1">{t.promptCustody}</label>
-                        <select name="custody" className="w-full border-2 border-slate-300 p-3 rounded-xl font-bold text-blue-800 bg-white outline-none focus:border-blue-500 cursor-pointer">
-                          <option value="">{t.generalSafe}</option>
-                          {sortedCustodies.map(c => <option key={c.id} value={c.id} className="bg-white text-slate-800">{c.personName}</option>)}
-                        </select>
+                        <label className="text-xs font-bold text-slate-500 mb-1 block">{t.promptCustody}</label>
+                        <CustomSelect options={custodyOptions} value={appModal.props.promptCustodyVal || ''} onChange={(v) => setAppModal(p => ({ ...p, props: { ...p.props, promptCustodyVal: v } }))} placeholder={t.generalSafe} />
                       </div>
                     )}
                     <div className="flex gap-2 pt-2"><button type="submit" className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow hover:bg-blue-700">{t.save}</button><button type="button" onClick={closeModal} className="flex-1 bg-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-300">{t.no}</button></div>
@@ -978,7 +1092,7 @@
                     e.preventDefault(); 
                     const amt = Number(e.target.partnerAmt.value.replace(/[^0-9]/g, ''));
                     if(!amt || amt <= 0) return;
-                    appModal.props.onConfirm(amt, e.target.date.value, e.target.custody.value); 
+                    appModal.props.onConfirm(amt, appModal.props.partnerDateVal || todayDateStr, appModal.props.partnerCustodyVal || ''); 
                     closeModal(); 
                   }}>
                     <div className="mb-4">
@@ -988,14 +1102,11 @@
                     </div>
                     <div className="mb-4">
                       <label className="text-xs font-bold text-slate-500 mb-1 block">{t.date}</label>
-                      <input name="date" type="date" required defaultValue={todayDateStr} className="w-full border-2 border-slate-300 p-3 rounded-xl font-bold bg-slate-50 outline-none focus:border-purple-500 font-mono" />
+                      <CustomDateInput value={appModal.props.partnerDateVal || todayDateStr} onChange={(d) => setAppModal(p => ({ ...p, props: { ...p.props, partnerDateVal: d } }))} />
                     </div>
                     <div className="mb-6">
                       <label className="text-xs font-bold text-slate-500 mb-1 block">{t.deductFromSafe}</label>
-                      <select name="custody" className="w-full border-2 border-slate-300 p-3 rounded-xl font-bold text-purple-800 bg-white outline-none focus:border-purple-500 cursor-pointer">
-                        <option value="" className="bg-white text-slate-800">{t.generalSafe}</option>
-                        {sortedCustodies.map(c => <option key={c.id} value={c.id} className="bg-white text-slate-800">{c.personName}</option>)}
-                      </select>
+                      <CustomSelect options={custodyOptions} value={appModal.props.partnerCustodyVal || ''} onChange={(v) => setAppModal(p => ({ ...p, props: { ...p.props, partnerCustodyVal: v } }))} placeholder={t.generalSafe} />
                     </div>
                     <div className="flex gap-2">
                       <button type="submit" className="flex-1 bg-purple-600 text-white py-3 rounded-xl font-bold shadow hover:bg-purple-700">{t.save}</button>
@@ -1080,33 +1191,72 @@
             {activeTab === 'transactions' && (
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-lg mx-auto print-hide animate-fade-in">
                 <h3 className="font-bold text-2xl mb-6 text-center text-slate-800 border-b pb-3">{editingTxId ? t.edit : t.txTitle}</h3>
-                <form onSubmit={handleSaveTransaction} className="space-y-6">
-                  <div className="flex gap-4 p-2 bg-slate-50 rounded-xl border border-slate-200 shadow-inner">
-                    <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg cursor-pointer font-bold transition-all ${newTransaction.type === 'income' ? 'bg-emerald-100 text-emerald-800 shadow-sm border border-emerald-300' : 'text-slate-500 hover:bg-slate-200'}`}>
+                <form onSubmit={handleSaveTransaction} className="space-y-5">
+                  <div className="flex gap-2 p-1.5 bg-slate-100 rounded-xl border border-slate-200 shadow-inner">
+                    <label className={`flex-1 flex items-center justify-center p-2.5 rounded-lg cursor-pointer font-bold text-xs transition-all ${newTransaction.type === 'income' ? 'bg-emerald-500 text-white shadow' : 'text-slate-600 hover:bg-slate-200'}`}>
                       <input type="radio" className="hidden" checked={newTransaction.type === 'income'} onChange={()=>setNewTransaction({...newTransaction, type:'income'})}/> {t.addIncome}
                     </label>
-                    <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg cursor-pointer font-bold transition-all ${newTransaction.type === 'expense' ? 'bg-red-100 text-red-800 shadow-sm border border-red-300' : 'text-slate-500 hover:bg-slate-200'}`}>
+                    <label className={`flex-1 flex items-center justify-center p-2.5 rounded-lg cursor-pointer font-bold text-xs transition-all ${newTransaction.type === 'expense' ? 'bg-red-500 text-white shadow' : 'text-slate-600 hover:bg-slate-200'}`}>
                       <input type="radio" className="hidden" checked={newTransaction.type === 'expense'} onChange={()=>setNewTransaction({...newTransaction, type:'expense'})}/> {t.addExpense}
                     </label>
+                    <label className={`flex-1 flex items-center justify-center p-2.5 rounded-lg cursor-pointer font-bold text-xs transition-all ${newTransaction.type === 'transfer' ? 'bg-purple-600 text-white shadow' : 'text-slate-600 hover:bg-slate-200'}`}>
+                      <input type="radio" className="hidden" checked={newTransaction.type === 'transfer'} onChange={()=>setNewTransaction({...newTransaction, type:'transfer'})}/> {t.addTransfer}
+                    </label>
                   </div>
-                  <div><label className="text-sm font-bold text-slate-500 mb-1 block">{t.date}</label><input type="date" required className="w-full border-2 border-slate-200 p-3 text-md rounded-xl bg-slate-50 focus:border-blue-500 outline-none transition font-mono" value={newTransaction.date} onChange={e=>setNewTransaction({...newTransaction, date: e.target.value})}/></div>
-                  <div><label className="text-sm font-bold text-slate-500 mb-1 block">{t.amount}</label><NumberInput required value={newTransaction.amount} onChange={v=>setNewTransaction({...newTransaction, amount: v})} className="w-full border-2 border-slate-300 p-3 text-xl rounded-xl font-black text-slate-800 bg-white focus:border-blue-500 outline-none transition" /></div>
+
+                  <div>
+                    <label className="text-sm font-bold text-slate-500 mb-1 block">{t.date}</label>
+                    <CustomDateInput value={newTransaction.date} onChange={(d) => setNewTransaction({ ...newTransaction, date: d })} />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-bold text-slate-500 mb-1 block">{t.amount}</label>
+                    <NumberInput required value={newTransaction.amount} onChange={v=>setNewTransaction({...newTransaction, amount: v})} className="w-full border-2 border-slate-300 p-3 text-xl rounded-xl font-black text-slate-800 bg-white focus:border-blue-500 outline-none transition" />
+                  </div>
+
                   <div className="relative">
                     <label className="text-sm font-bold text-slate-500 mb-1 block">{t.desc}</label>
-                    <textarea rows="3" required placeholder="..." className="w-full border-2 border-slate-300 p-4 text-xl rounded-xl font-bold bg-white focus:border-blue-500 outline-none transition shadow-inner resize-none" value={newTransaction.description} onChange={e => setNewTransaction({...newTransaction, description: e.target.value})} onFocus={() => setDescFocus(true)} onBlur={() => setTimeout(() => setDescFocus(false), 200)}></textarea>
+                    <textarea rows="2" required placeholder="..." className="w-full border-2 border-slate-300 p-3 text-lg rounded-xl font-bold bg-white focus:border-blue-500 outline-none transition shadow-inner resize-none" value={newTransaction.description} onChange={e => setNewTransaction({...newTransaction, description: e.target.value})} onFocus={() => setDescFocus(true)} onBlur={() => setTimeout(() => setDescFocus(false), 200)}></textarea>
                     {descFocus && newTransaction.description && filteredDescs.length > 0 && (
                       <div className="absolute top-full left-0 right-0 bg-white border-2 border-slate-200 mt-1 shadow-2xl z-50 max-h-48 overflow-y-auto rounded-xl animate-fade-in">
-                        {filteredDescs.map((d, idx) => <div key={idx} className="p-4 text-md border-b hover:bg-blue-50 cursor-pointer font-bold text-slate-700" onMouseDown={() => setNewTransaction({...newTransaction, description: d})}>{d}</div>)}
+                        {filteredDescs.map((d, idx) => <div key={idx} className="p-3 text-sm border-b hover:bg-blue-50 cursor-pointer font-bold text-slate-700" onMouseDown={() => setNewTransaction({...newTransaction, description: d})}>{d}</div>)}
                       </div>
                     )}
                   </div>
-                  <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4">
-                    <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.custody}</label><select className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl font-bold text-blue-800 bg-white focus:border-blue-500 outline-none transition cursor-pointer" value={newTransaction.custodyId} onChange={e=>setNewTransaction({...newTransaction, custodyId: e.target.value})}><option value="" className="bg-white text-slate-800">{t.generalSafe}</option>{sortedCustodies.map(c=><option key={c.id} value={c.id} className="bg-white text-slate-800">{c.personName}</option>)}</select></div>
-                    <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.building}</label><select className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl font-bold bg-white focus:border-blue-500 outline-none transition cursor-pointer" value={newTransaction.buildingId} onChange={e=>setNewTransaction({...newTransaction, buildingId: e.target.value})}><option value="" className="bg-white text-slate-800">{t.allBuildings}</option>{sortedBuildings.map(b=><option key={b.id} value={b.id} className="bg-white text-slate-800">{b.name}</option>)}</select></div>
-                  </div>
-                  {newTransaction.type === 'expense' && <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.category}</label><select className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl font-bold bg-white focus:border-blue-500 outline-none transition cursor-pointer" required value={newTransaction.categoryId} onChange={e=>setNewTransaction({...newTransaction, categoryId: e.target.value})}><option value="" className="bg-white text-slate-800">{t.selectCat}</option>{sortedCategories.map(c=><option key={c.id} value={c.id} className="bg-white text-slate-800">{c.name}</option>)}</select></div>}
+
+                  {newTransaction.type === 'transfer' ? (
+                    <div className="grid grid-cols-2 gap-3 border-t border-slate-100 pt-3">
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 mb-1 block">من عهدة / الخزينة:</label>
+                        <CustomSelect options={custodyOptions} value={newTransaction.custodyId} onChange={(v) => setNewTransaction({ ...newTransaction, custodyId: v })} placeholder={t.generalSafe} />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 mb-1 block">إلى عهدة / الخزينة:</label>
+                        <CustomSelect options={custodyOptions} value={newTransaction.toCustodyId} onChange={(v) => setNewTransaction({ ...newTransaction, toCustodyId: v })} placeholder={t.generalSafe} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3 border-t border-slate-100 pt-3">
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 mb-1 block">{t.custody}</label>
+                        <CustomSelect options={custodyOptions} value={newTransaction.custodyId} onChange={(v) => setNewTransaction({ ...newTransaction, custodyId: v })} placeholder={t.generalSafe} />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 mb-1 block">{t.building}</label>
+                        <CustomSelect options={buildingOptions} value={newTransaction.buildingId} onChange={(v) => setNewTransaction({ ...newTransaction, buildingId: v })} placeholder={t.allBuildings} />
+                      </div>
+                    </div>
+                  )}
+
+                  {newTransaction.type === 'expense' && (
+                    <div>
+                      <label className="text-xs font-bold text-slate-500 mb-1 block">{t.category}</label>
+                      <CustomSelect options={categoryOptions} value={newTransaction.categoryId} onChange={(v) => setNewTransaction({ ...newTransaction, categoryId: v })} placeholder={t.selectCat} />
+                    </div>
+                  )}
+
                   <button className={`w-full text-white py-4 rounded-xl text-xl font-black shadow-lg transition hover:-translate-y-1 ${editingTxId ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-600 hover:bg-blue-700'}`}>{editingTxId ? t.updateTx : t.saveTx}</button>
-                  {editingTxId && <button type="button" onClick={()=>{setEditingTxId(null); setNewTransaction({ type: 'income', amount: '', categoryId: '', buildingId: '', custodyId: '', description: '', date: todayDateStr });}} className="w-full mt-2 text-slate-500 font-bold py-2 hover:bg-slate-100 rounded-xl transition">{t.cancel}</button>}
+                  {editingTxId && <button type="button" onClick={()=>{setEditingTxId(null); setNewTransaction({ type: 'income', amount: '', categoryId: '', buildingId: '', custodyId: '', toCustodyId: '', description: '', date: todayDateStr });}} className="w-full mt-2 text-slate-500 font-bold py-2 hover:bg-slate-100 rounded-xl transition">{t.cancel}</button>}
                 </form>
               </div>
             )}
@@ -1138,7 +1288,10 @@
                       )}
                       {filteredCustodyTrans.map(tx => (
                         <tr key={tx.id} className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer" onClick={() => handleTxClick(tx)}>
-                          <td className="p-3 font-bold text-slate-800">{tx.description}</td>
+                          <td className="p-3 font-bold text-slate-800">
+                            {tx.description}
+                            {tx.type === 'transfer' && <span className="mr-2 text-xs bg-purple-100 text-purple-800 font-bold px-2 py-0.5 rounded-md">تحويل</span>}
+                          </td>
                           <td className="p-3 text-left" style={{textAlign: lang==='en'?'right':'left'}}>
                             <div className="font-black text-slate-900 text-lg">{Number(tx.amount).toLocaleString()}</div>
                             <div className="text-slate-400 font-mono text-xs">{formatShortDate(tx.date)}</div>
@@ -1183,7 +1336,9 @@
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-md mx-auto">
                   <h3 className="font-bold mb-5 text-center text-lg text-slate-800">{t.addUnitTitle}</h3>
                   <form onSubmit={addUnit} className="flex flex-col gap-4">
-                    <div><select className="border-2 p-3 rounded-xl text-sm w-full font-bold focus:border-blue-400 outline-none bg-white cursor-pointer" required value={newUnit.buildingId} onChange={e => setNewUnit({...newUnit, buildingId: e.target.value})}><option value="" className="bg-white text-slate-800">{t.allBuildings}</option>{sortedBuildings.map(b => <option key={b.id} value={b.id} className="bg-white text-slate-800">{b.name}</option>)}</select></div>
+                    <div>
+                      <CustomSelect options={buildingOptions} value={newUnit.buildingId} onChange={(v) => setNewUnit({ ...newUnit, buildingId: v })} placeholder={t.allBuildings} />
+                    </div>
                     <div><input type="text" placeholder={t.unitName} className="border-2 p-3 rounded-xl text-sm w-full font-bold focus:border-blue-400 outline-none bg-slate-50" required value={newUnit.unitNumber} onChange={e => setNewUnit({...newUnit, unitNumber: e.target.value})} /></div>
                     <button className="bg-blue-600 text-white px-4 py-3 rounded-xl text-md font-bold w-full shadow hover:bg-blue-700">{t.saveUnit}</button>
                   </form>
@@ -1223,31 +1378,56 @@
                   )}
                   <form onSubmit={addContract} className="space-y-4">
                     <input type="text" placeholder={t.clientName} className="w-full border-2 p-3 rounded-xl text-sm font-bold bg-slate-50 focus:border-blue-400 outline-none" required value={newContract.clientName} onChange={e => setNewContract({...newContract, clientName: e.target.value})} />
-                    <select className="w-full border-2 p-3 rounded-xl text-sm font-bold bg-white focus:border-blue-400 outline-none cursor-pointer" required value={newContract.unitId} onChange={e => setNewContract({...newContract, unitId: e.target.value})}>
-                      <option value="" className="bg-white text-slate-800">{t.selectUnit}</option>
-                      {(data.units || []).filter(u => u.status === 'available' || (editingContractId && newContract.unitId === u.id)).map(u => <option key={u.id} value={u.id} className="bg-white text-slate-800">{(data.buildings || []).find(b=>b.id===u.buildingId)?.name} - {u.unitNumber}</option>)}
-                    </select>
+                    
+                    <div>
+                      <label className="text-xs font-bold text-slate-500 block mb-1">الوحدة العقارية:</label>
+                      <CustomSelect 
+                        options={(data.units || []).filter(u => u.status === 'available' || (editingContractId && newContract.unitId === u.id)).map(u => ({
+                          value: u.id,
+                          label: `${(data.buildings || []).find(b=>b.id===u.buildingId)?.name || ''} - ${u.unitNumber}`
+                        }))} 
+                        value={newContract.unitId} 
+                        onChange={(v) => setNewContract({ ...newContract, unitId: v })} 
+                        placeholder={t.selectUnit} 
+                      />
+                    </div>
+
                     <div><label className="text-xs font-bold text-slate-500 block mb-1">{t.totalAmount}</label><NumberInput required value={newContract.totalAmount} onChange={v => setNewContract({...newContract, totalAmount: v})} className="w-full border-2 p-3 rounded-xl text-lg font-bold bg-white focus:border-blue-400 outline-none" /></div>
+                    
                     <div><label className="text-xs font-bold text-slate-500 block mb-1">{t.downPayment}</label><NumberInput required value={newContract.downPayment} onChange={v => setNewContract({...newContract, downPayment: v})} className="w-full border-2 p-3 rounded-xl text-lg font-bold bg-white focus:border-blue-400 outline-none" /></div>
+
+                    {Number(newContract.downPayment) > 0 && (
+                      <div>
+                        <label className="text-xs font-bold text-blue-700 block mb-1">إيداع المقدم في عهدة / الخزينة:</label>
+                        <CustomSelect options={custodyOptions} value={newContract.custodyId} onChange={(v) => setNewContract({ ...newContract, custodyId: v })} placeholder={t.generalSafe} />
+                      </div>
+                    )}
+
                     <div><label className="text-xs font-bold text-slate-500 block mb-1">{t.instCount}</label><NumberInput required value={newContract.installmentsCount} onChange={v => setNewContract({...newContract, installmentsCount: v})} className="w-full border-2 p-3 rounded-xl text-lg font-bold bg-white focus:border-blue-400 outline-none text-center" /></div>
+                    
                     <div>
                       <label className="text-xs font-bold text-slate-500 block mb-1">{t.paySystem}</label>
-                      <select required className="w-full border-2 p-3 rounded-xl text-sm font-bold bg-white focus:border-blue-400 outline-none cursor-pointer" value={newContract.interval} onChange={e => setNewContract({...newContract, interval: e.target.value})}>
-                        <option value="1" className="bg-white text-slate-800">{t.sys1}</option>
-                        <option value="2" className="bg-white text-slate-800">{t.sys2}</option>
-                        <option value="3" className="bg-white text-slate-800">{t.sys3}</option>
-                        <option value="4" className="bg-white text-slate-800">{t.sys4}</option>
-                        <option value="6" className="bg-white text-slate-800">{t.sys6}</option>
-                        <option value="12" className="bg-white text-slate-800">{t.sys12}</option>
-                      </select>
+                      <CustomSelect 
+                        options={[
+                          { value: "1", label: t.sys1 }, { value: "2", label: t.sys2 },
+                          { value: "3", label: t.sys3 }, { value: "4", label: t.sys4 },
+                          { value: "6", label: t.sys6 }, { value: "12", label: t.sys12 }
+                        ]} 
+                        value={newContract.interval} 
+                        onChange={(v) => setNewContract({ ...newContract, interval: v })} 
+                      />
                     </div>
-                    <div><label className="text-xs font-bold text-slate-500 block mb-1">{t.firstInstDate}</label><input type="date" className="w-full border-2 p-3 rounded-xl text-sm font-bold bg-slate-50 focus:border-blue-400 outline-none font-mono" required value={newContract.firstInstallmentDate} onChange={e => setNewContract({...newContract, firstInstallmentDate: e.target.value})} /></div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-500 block mb-1">{t.firstInstDate}</label>
+                      <CustomDateInput value={newContract.firstInstallmentDate} onChange={(d) => setNewContract({ ...newContract, firstInstallmentDate: d })} />
+                    </div>
                     
                     <button className={`w-full text-white py-4 rounded-xl font-bold text-md shadow-lg transition mt-2 ${editingContractId ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-600 hover:bg-blue-700'}`}>
                        {editingContractId ? 'تحديث العقد وتعديل الأقساط' : t.saveContract}
                     </button>
                     {editingContractId && (
-                       <button type="button" onClick={() => { setEditingContractId(null); setNewContract({ clientName: '', unitId: '', totalAmount: '', downPayment: '', installmentsCount: '', firstInstallmentDate: '', interval: '1' }); }} className="w-full mt-2 text-slate-500 font-bold py-2 hover:bg-slate-100 rounded-xl transition">إلغاء التعديل</button>
+                       <button type="button" onClick={() => { setEditingContractId(null); setNewContract({ clientName: '', unitId: '', totalAmount: '', downPayment: '', custodyId: '', installmentsCount: '', firstInstallmentDate: '', interval: '1' }); }} className="w-full mt-2 text-slate-500 font-bold py-2 hover:bg-slate-100 rounded-xl transition">إلغاء التعديل</button>
                     )}
                   </form>
                 </div>
@@ -1322,6 +1502,7 @@
                                           unitId: c.unitId,
                                           totalAmount: c.totalAmount,
                                           downPayment: c.downPayment || '',
+                                          custodyId: '',
                                           installmentsCount: c.installmentsCount || cInsts.length,
                                           firstInstallmentDate: firstDate,
                                           interval: c.interval || '1'
@@ -1602,21 +1783,30 @@
                   {reportType === 'installments' && (
                     <div className="mb-4 flex items-center gap-3">
                       <label className="font-bold text-slate-700 text-sm">{t.sortBy}</label>
-                      <select className="border-2 p-2 rounded-lg text-sm outline-none focus:border-blue-400 font-bold cursor-pointer" value={reportSort} onChange={e=>setReportSort(e.target.value)}>
-                        <option value="date" className="bg-white text-slate-800">{t.sortDate}</option>
-                        <option value="client" className="bg-white text-slate-800">{t.sortClient}</option>
-                        <option value="building" className="bg-white text-slate-800">{t.sortBuilding}</option>
-                      </select>
+                      <CustomSelect 
+                        options={[
+                          { value: "date", label: t.sortDate },
+                          { value: "client", label: t.sortClient },
+                          { value: "building", label: t.sortBuilding }
+                        ]} 
+                        value={reportSort} 
+                        onChange={(v) => setReportSort(v)} 
+                        className="w-48"
+                      />
                     </div>
                   )}
 
                   {reportType === 'partners' ? (
                      <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner mb-6">
                         <label className="text-xs font-bold text-slate-500 mb-2 block">اختر اسم المستثمر / الشريك</label>
-                        <select className="w-full max-w-md border-2 p-3 text-sm rounded-xl font-bold focus:border-purple-400 outline-none bg-white mb-6 cursor-pointer" value={selectedPartnerR} onChange={e=>setSelectedPartnerR(e.target.value)}>
-                           <option value="" className="bg-white text-slate-800">-- اختر الشريك --</option>
-                           {uniquePartnersList.map((pn, i) => <option key={i} value={pn} className="bg-white text-slate-800">{pn}</option>)}
-                        </select>
+                        <div className="max-w-md mb-6">
+                          <CustomSelect 
+                            options={uniquePartnersList.map(pn => ({ value: pn, label: pn }))} 
+                            value={selectedPartnerR} 
+                            onChange={(v) => setSelectedPartnerR(v)} 
+                            placeholder="-- اختر الشريك --" 
+                          />
+                        </div>
 
                         {partnerReportData && (
                            <div className="animate-slide-up space-y-6">
@@ -1703,8 +1893,14 @@
                      </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6 bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner">
-                      <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.periodFrom}</label><input type="date" className="w-full border-2 p-3 text-sm rounded-xl font-bold focus:border-blue-400 outline-none bg-white font-mono" value={reportFilter.startDate} onChange={e=>setReportFilter({...reportFilter, startDate: e.target.value})}/></div>
-                      <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.periodTo}</label><input type="date" className="w-full border-2 p-3 text-sm rounded-xl font-bold focus:border-blue-400 outline-none bg-white font-mono" value={reportFilter.endDate} onChange={e=>setReportFilter({...reportFilter, endDate: e.target.value})}/></div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 mb-1 block">{t.periodFrom}</label>
+                        <CustomDateInput value={reportFilter.startDate} onChange={(d) => setReportFilter({ ...reportFilter, startDate: d })} />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 mb-1 block">{t.periodTo}</label>
+                        <CustomDateInput value={reportFilter.endDate} onChange={(d) => setReportFilter({ ...reportFilter, endDate: d })} />
+                      </div>
                       {reportType === 'transactions' && (
                         <div className="relative z-30">
                           <label className="text-xs font-bold text-slate-500 mb-1 block">{t.custody}</label>

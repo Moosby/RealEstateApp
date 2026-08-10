@@ -106,7 +106,7 @@
         addUnitTitle: "🔑 إضافة وحدة عقارية", unitName: "رقم أو اسم الوحدة", saveUnit: "حفظ الوحدة",
         newContractTitle: "إنشاء عقد جديد", clientName: "اسم العميل", selectUnit: "-- اختر الوحدة --",
         totalAmount: "الإجمالي (ج.م)", downPayment: "المقدم المدفوع", instCount: "عدد الأقساط", paySystem: "نظام الدفع", firstInstDate: "تاريخ أول قسط",
-        saveContract: "تسجيل العقد وإنشاء الأقساط", overdueTitle: "⚠️ أقساط متأخرة ومستحقة", cancelContract: "فسخ العقد", status: "الحالة", paid: "مدفوع", pending: "مستحق",
+        saveContract: "تسجيل العقد وإنشاء الأقساط", overdueTitle: "⚠️ أقساط متأخرة ومستحقة", cancelContract: "فسخ العقد", status: "الحالة", paid: "مدفوع", pending: "مستحق", suspended: "معلق (0)",
         addManualInst: "➕ إضافة قسط يدوي", addAttachment: "📎 إرفاق مستند (صورة)", attachments: "المرفقات", noContracts: "لا توجد عقود نشطة",
         repCustodyTitle: "تقرير كشف حساب", repSalesTitle: "بيان أقساط ومستحقات", periodFrom: "من", periodTo: "إلى", start: "البداية", now: "الآن",
         repOpBalance: "رصيد بداية المدة المُرَحَّل", incTable: "جدول الإيرادات", expTable: "جدول المصروفات",
@@ -122,6 +122,49 @@
         sys1: "شهري", sys2: "كل شهرين", sys3: "ربع سنوي", sys4: "كل 4 شهور", sys6: "نصف سنوي", sys12: "سنوي",
         promptCollect: "تحصيل قسط", promptEditInst: "تعديل قسط", promptManual: "قسط يدوي", promptCustody: "إيداع في عهدة (اختياري)",
         confirmCancel: "متأكد من فسخ العقد؟", confirmDelCat: "حذف التصنيف؟", confirmDelBuild: "حذف العمارة؟", confirmDelUnit: "حذف الوحدة؟", confirmDelTx: "حذف الحركة؟", success: "تم بنجاح"
+      },
+      en: {
+        appTitle: "RealStateApp",
+        tab_dash: "Dashboard", tab_tx: "In/Out", tab_cust: "Safes", tab_inv: "Units", tab_sales: "Sales", tab_rep: "Reports", tab_settings: "Settings",
+        income: "Income", expense: "Expense", transfer: "Transfer", addIncome: "➕ Income", addExpense: "➖ Expense", addTransfer: "🔄 Transfer",
+        date: "Date", amount: "Amount", desc: "Description",
+        custody: "Safe/Custody", building: "Building", unit: "Unit", category: "Category",
+        save: "Save", update: "Update", cancel: "Cancel", edit: "Edit", delete: "Delete",
+        allCustodies: "-- All Safes --", generalSafe: "-- General Safe --", allBuildings: "-- All Buildings --", selectCat: "-- Select Category --",
+        monthDues: "Current Month Dues", activeCustody: "Safes Balances", net: "Net",
+        addCat: "Add Category", newCustody: "Assign New Safe", settings: "Settings & Security",
+        backup: "Backup", reset: "Factory Reset",
+        lang: "Language / لغة البرنامج", yes: "Yes", no: "Cancel", txTitle: "Record Transaction",
+        showDetails: "Details ▼", hideDetails: "Hide ▲", opBalance: "Opening Balance",
+        hasPartner: "Has Partner?", partnerPercent: "Partner %", partnerNameInput: "Partner Name (Optional)", myShare: "My Share", partnerShare: "Partner",
+        payPartnerBtn: "Pay Partner", payPartnerTitle: "Pay Partner's Share", payPartnerDesc: "Deducted from selected safe as expense.",
+        deductFromSafe: "Deduct From Safe", selectSafe: "-- Select Safe --",
+        sortBy: "Sort By:", sortDate: "Date", sortClient: "Client", sortBuilding: "Building",
+        detailsMonthDues: "Month Dues Details", client: "Client", dueDate: "Due Date", action: "Action",
+        noDues: "No pending dues this month", collect: "Collect",
+        saveTx: "💾 Save", updateTx: "🔄 Update",
+        searchDesc: "🔍 Search...", incomes: "Incomes ⬇", expenses: "Expenses ⬆",
+        total: "Total", noMatches: "No matches found",
+        addBuildingTitle: "🏢 Add Building", buildingName: "Building Name...", saveBuilding: "Save Building",
+        addUnitTitle: "🔑 Add Unit", unitName: "Unit Number/Name", saveUnit: "Save Unit",
+        newContractTitle: "New Contract", clientName: "Client Name", selectUnit: "-- Select Unit --",
+        totalAmount: "Total Amount", downPayment: "Down Payment", instCount: "Installments", paySystem: "Payment Plan", firstInstDate: "First Due Date",
+        saveContract: "Save Contract", overdueTitle: "⚠️ Overdue Installments", cancelContract: "Cancel Contract", status: "Status", paid: "Paid", pending: "Pending", suspended: "Suspended (0)",
+        addManualInst: "➕ Manual Installment", addAttachment: "📎 Add Attachment", attachments: "Attachments", noContracts: "No active contracts",
+        repCustodyTitle: "Account Statement", repSalesTitle: "Installments Statement", periodFrom: "From", periodTo: "To", start: "Start", now: "Now",
+        repOpBalance: "Carried Forward Balance", incTable: "Incomes", expTable: "Expenses",
+        totalIncomes: "Total Incomes", totalExpenses: "Total Expenses", currentNet: "Current Net Balance",
+        repInstTitle: "Installments Report", repCustodyBtn: "Safes Statement", repSalesBtn: "Sales Report", repContractsBtn: "Clients & Units Status", repPartnersBtn: "Partners Accounts",
+        repContractsTitle: "Clients & Units Status Report", partnerReportTitle: "Partner/Investor Statement", totalUnit: "Total Unit", paidAmt: "Paid", remAmt: "Remaining", nextDue: "Next Due",
+        partnerDue: "Partner Due", partnerPaidStatus: "Partner Paid", totalExpected: "Total Expected Profit", totalCollectedNotPaid: "Due for Payment (Collected)", totalPaidToPartner: "Paid to Partner", totalPending: "Pending in Market",
+        printPdf: "🖨️ Print PDF", exportExcel: "📊 Export Excel",
+        langTitle: "Language / لغة البرنامج", addCatTitle: "🏷️ Add Category", catName: "Category Name...", addCatBtn: "Add",
+        newCustodyTitle: "👤 Add Safe", respName: "Responsible Name...", initAmount: "Initial Balance", saveCustody: "Save Safe", suggestedNet: "Suggested: Last Safe Net",
+        backupTitle: "💾 Backup & Restore", backupDesc: "Keep your data safe", exportBtn: "⬇️ Export Backup", importBtn: "⬆️ Restore Backup",
+        dangerZone: "⚠️ Danger Zone", resetDesc: "All data will be wiped. Are you sure?", resetBtn: "🗑️ Factory Reset",
+        sys1: "Monthly", sys2: "Every 2 Months", sys3: "Quarterly", sys4: "Every 4 Months", sys6: "Semi-Annually", sys12: "Annually",
+        promptCollect: "Collect Installment", promptEditInst: "Edit Installment", promptManual: "Manual Installment", promptCustody: "Deposit to Safe (Optional)",
+        confirmCancel: "Cancel contract?", confirmDelCat: "Delete Category?", confirmDelBuild: "Delete Building?", confirmDelUnit: "Delete Unit?", confirmDelTx: "Delete Transaction?", success: "Success"
       }
     };
 
@@ -165,7 +208,7 @@
       );
     }
 
-    // Custom Select Component (Replaces Native Dropdowns)
+    // Custom Select Component with Dynamic Z-Index to Prevent Overlap
     function CustomSelect({ options, value, onChange, placeholder, className }) {
       const [isOpen, setIsOpen] = useState(false);
       const ref = useRef(null);
@@ -176,11 +219,16 @@
         return () => document.removeEventListener('mousedown', handleClickOutside);
       }, []);
 
+      const hasEmptyOption = options.some(o => o.value === '');
+      const displayOptions = placeholder && hasEmptyOption 
+        ? options.filter(o => o.value !== '') 
+        : options;
+
       const selectedOpt = options.find(o => String(o.value) === String(value));
       const displayLabel = selectedOpt ? selectedOpt.label : (placeholder || 'اختر...');
 
       return (
-        <div className={`relative z-20 w-full ${className || ''}`} ref={ref}>
+        <div className={`relative w-full ${isOpen ? 'z-50' : 'z-10'} ${className || ''}`} ref={ref}>
           <div 
             className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl bg-white cursor-pointer font-bold flex justify-between items-center shadow-sm hover:border-blue-400 transition text-slate-800"
             onClick={() => setIsOpen(!isOpen)}
@@ -198,7 +246,7 @@
                   {placeholder}
                 </div>
               )}
-              {options.map((opt, idx) => (
+              {displayOptions.map((opt, idx) => (
                 <div 
                   key={idx} 
                   className={`p-2.5 text-sm font-bold rounded-lg cursor-pointer transition ${String(value) === String(opt.value) ? 'bg-blue-600 text-white font-black' : 'hover:bg-slate-100 text-slate-800'}`}
@@ -213,7 +261,7 @@
       );
     }
 
-    // Custom Date Picker Component (Single-click Selection)
+    // Custom Date Input Component (Single-Click Select, Responsive Popover)
     function CustomDateInput({ value, onChange, className }) {
       const [isOpen, setIsOpen] = useState(false);
       const dateObj = value ? new Date(value) : new Date();
@@ -257,7 +305,7 @@
       };
 
       return (
-        <div className="relative w-full" ref={ref}>
+        <div className={`relative w-full ${isOpen ? 'z-50' : 'z-10'}`} ref={ref}>
           <div 
             onClick={() => setIsOpen(!isOpen)}
             className={`cursor-pointer font-mono font-bold flex justify-between items-center ${className || 'w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 text-slate-800'}`}
@@ -267,7 +315,7 @@
           </div>
 
           {isOpen && (
-            <div className="absolute top-full right-0 w-72 bg-white border-2 border-slate-200 mt-1 p-3 shadow-2xl z-50 rounded-2xl animate-fade-in text-slate-800" onClick={e=>e.stopPropagation()}>
+            <div className="absolute top-full right-0 w-full max-w-xs bg-white border-2 border-slate-200 mt-1 p-3 shadow-2xl z-50 rounded-2xl animate-fade-in text-slate-800" onClick={e=>e.stopPropagation()}>
               <div className="flex justify-between items-center mb-3">
                 <button type="button" onClick={() => { if(viewMonth === 0) { setViewMonth(11); setViewYear(viewYear-1); } else setViewMonth(viewMonth-1); }} className="p-1 px-2.5 bg-slate-100 rounded-lg text-slate-700 font-bold hover:bg-slate-200">▶</button>
                 <span className="font-bold text-sm text-slate-800">{monthsNames[viewMonth]} {viewYear}</span>
@@ -319,7 +367,7 @@
       const displayTxt = selectedLabels.length === 0 ? placeholder : (selectedLabels.length <= 2 ? selectedLabels.join(' + ') : `(${selectedLabels.length})`);
 
       return (
-        <div className="relative z-20 w-full" ref={dropdownRef}>
+        <div className={`relative w-full ${isOpen ? 'z-50' : 'z-20'}`} ref={dropdownRef}>
           <div className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl bg-white cursor-pointer font-bold flex justify-between items-center shadow-sm hover:border-blue-400 transition text-slate-800" onClick={() => setIsOpen(!isOpen)}>
             <span className="truncate">{displayTxt}</span><span className="text-xs text-blue-600">▼</span>
           </div>
@@ -450,6 +498,25 @@
         return names;
       }, [data.buildings]);
 
+      const sortedCustodies = useMemo(() => [...(data.custodies || [])].reverse(), [data.custodies]);
+      const sortedBuildings = useMemo(() => [...(data.buildings || [])].reverse(), [data.buildings]);
+      const sortedCategories = useMemo(() => [...(data.categories || [])].reverse(), [data.categories]);
+
+      const custodyOptions = useMemo(() => [
+        { value: '', label: t.generalSafe },
+        ...sortedCustodies.map(c => ({ value: c.id, label: c.personName }))
+      ], [sortedCustodies, t.generalSafe]);
+
+      const buildingOptions = useMemo(() => [
+        { value: '', label: t.allBuildings },
+        ...sortedBuildings.map(b => ({ value: b.id, label: b.name }))
+      ], [sortedBuildings, t.allBuildings]);
+
+      const categoryOptions = useMemo(() => [
+        { value: '', label: t.selectCat },
+        ...sortedCategories.map(c => ({ value: c.id, label: c.name }))
+      ], [sortedCategories, t.selectCat]);
+
       const custodyCalculations = useMemo(() => {
         return (data.custodies || []).map(c => {
           const expenses = (data.transactions || []).filter(tx => (tx.type === 'expense' && tx.custodyId === c.id) || (tx.type === 'transfer' && tx.custodyId === c.id)).reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
@@ -529,6 +596,7 @@
 
       const reportInstallments = useMemo(() => {
         let insts = (data.installments || []).filter(i => {
+           if (i.status === 'suspended' || Number(i.amount) === 0) return false;
            if (reportFilter.startDate && i.dueDate < reportFilter.startDate) return false;
            if (reportFilter.endDate && i.dueDate > reportFilter.endDate) return false;
            const contract = (data.contracts || []).find(c => c.id === i.contractId);
@@ -551,7 +619,7 @@
            const insts = (data.installments||[]).filter(i=>i.contractId===c.id);
            const totalPaid = insts.filter(i=>i.status==='paid').reduce((s,i)=>s+Number(i.amount), 0);
            const remaining = Number(c.totalAmount) - totalPaid;
-           const pendingInsts = insts.filter(i=>i.status==='pending').sort((a,b)=>new Date(a.dueDate||0)-new Date(b.dueDate||0));
+           const pendingInsts = insts.filter(i=>i.status==='pending' && Number(i.amount) > 0).sort((a,b)=>new Date(a.dueDate||0)-new Date(b.dueDate||0));
            const nextDate = pendingInsts.length > 0 ? pendingInsts[0].dueDate : '--';
            return { id: c.id, clientName: c.clientName, buildingName: b?.name, unitNumber: u?.unitNumber, totalAmount: Number(c.totalAmount), paidAmount: totalPaid, remainingAmount: remaining, nextDate };
         });
@@ -570,7 +638,7 @@
           const allPartnerInsts = [];
 
           (data.installments||[]).forEach(inst => {
-             if (activeContractIds.includes(inst.contractId)) {
+             if (activeContractIds.includes(inst.contractId) && inst.status !== 'suspended' && Number(inst.amount) > 0) {
                  const c = activeContracts.find(ct => ct.id === inst.contractId);
                  const b = bds.find(bd => bd.id === c.buildingId);
                  const u = (data.units||[]).find(un => un.id === c.unitId);
@@ -810,15 +878,23 @@
           if(instIndex > -1) {
               const instToUpdate = updatedInsts[instIndex];
               const fullAmount = Number(instToUpdate.amount);
-              if (paid >= fullAmount) {
+              
+              if (paid <= 0) {
+                updatedInsts[instIndex] = { ...instToUpdate, amount: 0, status: 'suspended' };
+              } else if (paid >= fullAmount) {
                 updatedInsts[instIndex] = { ...instToUpdate, status: 'paid', amount: paid };
               } else {
                 const remaining = fullAmount - paid;
                 updatedInsts[instIndex] = { ...instToUpdate, status: 'paid', amount: paid };
                 updatedInsts.push({ id: 'inst_rem_' + Date.now(), contractId: instToUpdate.contractId, amount: remaining, dueDate: instToUpdate.dueDate, status: 'pending', partnerPaid: false, partnerPaidAmount: 0 });
               }
-              const trans = { id: 't_' + Date.now(), type: 'income', amount: paid, buildingId, custodyId: custodyId || '', description: (lang==='ar'?`تحصيل قسط ${paid < fullAmount ? '(جزئي)' : ''}: ${clientName}`:`Installment Collection ${paid < fullAmount ? '(Partial)' : ''}: ${clientName}`), date: date || todayDateStr };
-              return { ...prev, installments: updatedInsts, transactions: [...(prev.transactions || []), trans] };
+
+              let updatedTrans = [...(prev.transactions || [])];
+              if (paid > 0) {
+                updatedTrans.push({ id: 't_' + Date.now(), type: 'income', amount: paid, buildingId, custodyId: custodyId || '', description: (lang==='ar'?`تحصيل قسط ${paid < fullAmount ? '(جزئي)' : ''}: ${clientName}`:`Installment Collection ${paid < fullAmount ? '(Partial)' : ''}: ${clientName}`), date: date || todayDateStr });
+              }
+              
+              return { ...prev, installments: updatedInsts, transactions: updatedTrans };
           }
           return prev;
         });
@@ -864,8 +940,8 @@
       };
 
       const thisMonth = new Date().toISOString().substring(0, 7);
-      const monthInstallments = (data.installments || []).filter(i => i.status === 'pending' && i.dueDate?.startsWith(thisMonth)).sort((a,b)=>new Date(a.dueDate||0)-new Date(b.dueDate||0));
-      const overdueInstallments = (data.installments || []).filter(i => i.status === 'pending' && i.dueDate < todayDateStr).sort((a,b)=>new Date(a.dueDate||0)-new Date(b.dueDate||0));
+      const monthInstallments = (data.installments || []).filter(i => i.status === 'pending' && Number(i.amount) > 0 && i.dueDate?.startsWith(thisMonth)).sort((a,b)=>new Date(a.dueDate||0)-new Date(b.dueDate||0));
+      const overdueInstallments = (data.installments || []).filter(i => i.status === 'pending' && Number(i.amount) > 0 && i.dueDate < todayDateStr).sort((a,b)=>new Date(a.dueDate||0)-new Date(b.dueDate||0));
 
       const tabs = [
         { id: 'dashboard', label: t.tab_dash }, { id: 'transactions', label: t.tab_tx },
@@ -873,14 +949,7 @@
         { id: 'sales', label: t.tab_sales }, { id: 'reports', label: t.tab_rep }
       ];
 
-      const sortedCustodies = [...(data.custodies || [])].reverse();
-      const sortedBuildings = [...(data.buildings || [])].reverse();
-      const sortedCategories = [...(data.categories || [])].reverse();
       const lastCustodyNet = sortedCustodies.length > 0 ? (custodyCalculations.find(c => c.id === sortedCustodies[0].id)?.remaining || 0) : 0;
-
-      const custodyOptions = [{ value: '', label: t.generalSafe }, ...sortedCustodies.map(c => ({ value: c.id, label: c.personName }))];
-      const buildingOptions = [{ value: '', label: t.allBuildings }, ...sortedBuildings.map(b => ({ value: b.id, label: b.name }))];
-      const categoryOptions = [{ value: '', label: t.selectCat }, ...sortedCategories.map(c => ({ value: c.id, label: c.name }))];
 
       const filteredContracts = (data.contracts || []).filter(c => c.status === 'active' && (!globalSearch || c.clientName.includes(globalSearch)));
 
@@ -1058,9 +1127,9 @@
               )}
               
               {appModal.type === 'PROMPT_INST' && (
-                <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-slide-up" onClick={e=>e.stopPropagation()}>
-                  <div className="bg-blue-800 text-white p-4 text-center font-bold">{appModal.props.title}</div>
-                  <form onSubmit={e => { e.preventDefault(); appModal.props.onConfirm(document.getElementById('promptAmtInput').value.replace(/[^0-9]/g, ''), appModal.props.promptDate || todayDateStr, appModal.props.promptCustodyVal || ''); closeModal(); }} className="p-6 space-y-4">
+                <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl animate-slide-up p-6 relative" onClick={e=>e.stopPropagation()}>
+                  <div className="bg-blue-800 text-white p-3 -mx-6 -mt-6 mb-4 text-center font-bold rounded-t-2xl">{appModal.props.title}</div>
+                  <form onSubmit={e => { e.preventDefault(); appModal.props.onConfirm(document.getElementById('promptAmtInput').value.replace(/[^0-9]/g, ''), appModal.props.promptDate || todayDateStr, appModal.props.promptCustodyVal || ''); closeModal(); }} className="space-y-4">
                     {appModal.props.showDate && (
                       <div>
                         <label className="text-xs font-bold text-slate-500 mb-1 block">{t.date}</label>
@@ -1083,8 +1152,7 @@
               )}
 
               {appModal.type === 'PAY_PARTNER' && (
-                <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}>
-                  <div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div>
+                <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl relative" onClick={e=>e.stopPropagation()}>
                   <h3 className="font-bold text-lg mb-2 text-center text-purple-800 border-b pb-2">{t.payPartnerTitle}</h3>
                   <p className="text-center text-sm text-slate-500 mb-2">{t.payPartnerDesc}</p>
                   
@@ -1094,21 +1162,21 @@
                     if(!amt || amt <= 0) return;
                     appModal.props.onConfirm(amt, appModal.props.partnerDateVal || todayDateStr, appModal.props.partnerCustodyVal || ''); 
                     closeModal(); 
-                  }}>
-                    <div className="mb-4">
+                  }} className="space-y-4">
+                    <div>
                       <label className="text-xs font-bold text-slate-500 mb-1 block text-center">المبلغ المراد توريده للشريك (ج.م):</label>
                       <NumberInput name="partnerAmt" required defaultValue={appModal.props.partnerAmt} className="w-full border-2 border-purple-300 p-3 text-2xl font-black text-center text-purple-800 rounded-xl outline-none focus:border-purple-600 bg-purple-50" />
                       <span className="text-[11px] text-slate-400 block text-center mt-1">المستحق الحالي لهذا القسط: {Number(appModal.props.partnerAmt).toLocaleString()} ج.م</span>
                     </div>
-                    <div className="mb-4">
+                    <div>
                       <label className="text-xs font-bold text-slate-500 mb-1 block">{t.date}</label>
                       <CustomDateInput value={appModal.props.partnerDateVal || todayDateStr} onChange={(d) => setAppModal(p => ({ ...p, props: { ...p.props, partnerDateVal: d } }))} />
                     </div>
-                    <div className="mb-6">
+                    <div>
                       <label className="text-xs font-bold text-slate-500 mb-1 block">{t.deductFromSafe}</label>
                       <CustomSelect options={custodyOptions} value={appModal.props.partnerCustodyVal || ''} onChange={(v) => setAppModal(p => ({ ...p, props: { ...p.props, partnerCustodyVal: v } }))} placeholder={t.generalSafe} />
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 pt-2">
                       <button type="submit" className="flex-1 bg-purple-600 text-white py-3 rounded-xl font-bold shadow hover:bg-purple-700">{t.save}</button>
                       <button type="button" onClick={closeModal} className="flex-1 bg-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-300">{t.no}</button>
                     </div>
@@ -1173,7 +1241,7 @@
                                 </td>
                                 <td className="p-3 flex flex-col gap-2">
                                   <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptCollect, defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId)=>payInstallment(inst.id, c?.clientName, c?.buildingId, amt, dt, custId) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">{t.collect}</button>
-                                  <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptEditInst, showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>{ setData(p=>({...p, installments: p.installments.map(i=>i.id===inst.id?{...i, amount:Number(amt), dueDate:dt}:i)})); showMsg(t.success); } }})} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">{t.edit}</button>
+                                  <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptEditInst, showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>{ setData(p=>({...p, installments: p.installments.map(i=>i.id===inst.id?{...i, amount:Number(amt), dueDate:dt, status: Number(amt)===0?'suspended':i.status }:i)})); showMsg(t.success); } }})} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">{t.edit}</button>
                                 </td>
                               </tr>
                             )
@@ -1462,7 +1530,7 @@
                                     </td>
                                     <td className="p-2 flex flex-col gap-2">
                                       <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptCollect, defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId)=>payInstallment(inst.id, c.clientName, c.buildingId, amt, dt, custId) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">{t.collect}</button>
-                                      <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptEditInst, showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>{ setData(p=>({...p, installments: p.installments.map(i=>i.id===inst.id?{...i, amount:Number(amt), dueDate:dt}:i)})); showMsg(t.success); } }})} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">{t.edit}</button>
+                                      <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptEditInst, showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>{ setData(p=>({...p, installments: p.installments.map(i=>i.id===inst.id?{...i, amount:Number(amt), dueDate:dt, status: Number(amt)===0?'suspended':i.status }:i)})); showMsg(t.success); } }})} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">{t.edit}</button>
                                     </td>
                                   </tr>
                                 )
@@ -1539,10 +1607,21 @@
                                             </div>
                                           )}
                                         </td>
-                                        <td className="p-2">{inst.status === 'paid' ? <span className="text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-lg text-xs border border-emerald-100">{t.paid}</span> : <span className="text-amber-500 font-bold text-xs bg-amber-50 px-3 py-1 rounded-lg border border-amber-100">{t.pending}</span>}</td>
+                                        <td className="p-2">
+                                          {inst.status === 'suspended' || Number(inst.amount) === 0 ? (
+                                            <span className="text-slate-500 font-bold text-xs bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">{t.suspended}</span>
+                                          ) : inst.status === 'paid' ? (
+                                            <span className="text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-lg text-xs border border-emerald-100">{t.paid}</span>
+                                          ) : (
+                                            <span className="text-amber-500 font-bold text-xs bg-amber-50 px-3 py-1 rounded-lg border border-amber-100">{t.pending}</span>
+                                          )}
+                                        </td>
                                         <td className="p-2 flex flex-col gap-2">
-                                          {inst.status === 'pending' && <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptCollect, defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId)=>payInstallment(inst.id, c.clientName, b?.id, amt, dt, custId) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">{t.collect}</button>}
-                                          {inst.status === 'pending' && <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptEditInst, showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>{ setData(p=>({...p, installments: p.installments.map(i=>i.id===inst.id?{...i, amount:Number(amt), dueDate:dt}:i)})); showMsg(t.success); } }})} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">{t.edit}</button>}
+                                          {inst.status === 'pending' && Number(inst.amount) > 0 && (
+                                            <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptCollect, defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId)=>payInstallment(inst.id, c.clientName, b?.id, amt, dt, custId) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">{t.collect}</button>
+                                          )}
+                                          <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptEditInst, showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>{ setData(p=>({...p, installments: p.installments.map(i=>i.id===inst.id?{...i, amount:Number(amt), dueDate:dt, status: Number(amt)===0?'suspended':i.status }:i)})); showMsg(t.success); } }})} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">{t.edit}</button>
+                                          
                                           {inst.status === 'paid' && remainingToPartner > 0 && b?.hasPartner && b.partnerPercent > 0 && (
                                             <button onClick={() => setAppModal({
                                               show:true, 
@@ -1586,7 +1665,7 @@
                             </div>
                             
                             <div className="flex gap-2 justify-start mb-4">
-                              <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptManual, showDate:true, defaultDate: todayDateStr, onConfirm:(amt,dt)=>{ setData(p=>({...p, installments: [...(p.installments||[]), {id:'inst_man_'+Date.now(), contractId:c.id, amount:Number(amt), dueDate:dt, status:'pending', partnerPaid: false, partnerPaidAmount: 0}]})); showMsg(t.success); } }})} className="bg-blue-50 text-blue-700 border border-blue-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-blue-100 transition">{t.addManualInst}</button>
+                              <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptManual, showDate:true, defaultDate: todayDateStr, onConfirm:(amt,dt)=>{ setData(p=>({...p, installments: [...(p.installments||[]), {id:'inst_man_'+Date.now(), contractId:c.id, amount:Number(amt), dueDate:dt, status: Number(amt)===0?'suspended':'pending', partnerPaid: false, partnerPaidAmount: 0}]})); showMsg(t.success); } }})} className="bg-blue-50 text-blue-700 border border-blue-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-blue-100 transition">{t.addManualInst}</button>
                               
                               <label className="bg-slate-50 text-slate-700 border border-slate-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-slate-100 transition cursor-pointer flex items-center justify-center">
                                 {t.addAttachment}

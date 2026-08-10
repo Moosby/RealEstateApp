@@ -44,7 +44,6 @@
     const getTodayStr = () => new Date().toISOString().substring(0, 10);
     const todayDateStr = getTodayStr();
 
-    // دالة لضغط الصور قبل حفظها في الذاكرة لتوفير المساحة
     const compressImage = (file, callback) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
@@ -53,7 +52,7 @@
         img.src = event.target.result;
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 800; // تصغير العرض الأقصى
+          const MAX_WIDTH = 800; 
           let width = img.width;
           let height = img.height;
           
@@ -65,7 +64,7 @@
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6); // ضغط الجودة لـ 60%
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6); 
           callback(compressedBase64);
         }
       }
@@ -253,7 +252,7 @@
       const [reportType, setReportType] = useState('transactions'); 
       const [reportFilter, setReportFilter] = useState({ startDate: '', endDate: '', custodyIds: [], buildingIds: [] });
       const [reportSort, setReportSort] = useState('date');
-      const [selectedPartnerR, setSelectedPartnerR] = useState(''); // للمستثمرين في التقارير
+      const [selectedPartnerR, setSelectedPartnerR] = useState(''); 
 
       const [dashboardCustodyFilter, setDashboardCustodyFilter] = useState(() => { try { const s=localStorage.getItem('real_estate_last_custody'); if(!s) return []; const p = JSON.parse(s); return Array.isArray(p) ? p : [p].filter(Boolean); }catch(e){return [];} });
       
@@ -284,7 +283,6 @@
       const uniqueCustodyNames = useMemo(() => [...new Set((data.custodies||[]).map(c=>c.personName))], [data.custodies]);
       const filteredCustodyNames = newCustody.personName ? uniqueCustodyNames.filter(n => n.includes(newCustody.personName) && n !== newCustody.personName) : [];
 
-      // تجهيز قائمة المستثمرين/الشركاء المتاحة للتقارير
       const uniquePartnersList = useMemo(() => {
         const names = [];
         (data.buildings||[]).forEach(b => {
@@ -393,7 +391,6 @@
         });
       }, [data, reportFilter, reportType]);
 
-      // حسابات محفظة الشريك المجمعة
       const partnerReportData = useMemo(() => {
           if (reportType !== 'partners' || !selectedPartnerR) return null;
           let expected = 0; let paid = 0; let unpaid = 0; let pending = 0;
@@ -517,7 +514,7 @@
       const addBuilding = (e) => { 
         e.preventDefault(); 
         const pPercent = newBuildingPartner ? Number(newBuildingPartnerPercent) : 0;
-        const pName = newBuildingPartnerName || ('شريك ' + newBuilding); // اسم افتراضي لو مدخلش اسم
+        const pName = newBuildingPartnerName || ('شريك ' + newBuilding); 
         setData(p=>({...p, buildings: [...(p.buildings||[]), {id: 'b_'+Date.now(), name: newBuilding, hasPartner: newBuildingPartner, partnerPercent: pPercent, partnerName: pName}]})); 
         setNewBuilding(''); setNewBuildingPartner(false); setNewBuildingPartnerPercent(''); setNewBuildingPartnerName(''); showMsg(t.success); 
       };
@@ -729,7 +726,6 @@
                 </div>
               )}
 
-              {/* عارض الصور للمرفقات */}
               {appModal.type === 'IMAGE_VIEW' && (
                 <div className="bg-black p-2 rounded-2xl w-full max-w-2xl relative shadow-2xl animate-fade-in flex flex-col items-center justify-center" onClick={e=>e.stopPropagation()}>
                   <button onClick={closeModal} className="absolute top-4 right-4 bg-red-600 text-white w-10 h-10 rounded-full font-black text-xl hover:bg-red-700 shadow z-50">X</button>
@@ -1006,12 +1002,18 @@
                       <input type="checkbox" className="w-5 h-5" checked={newBuildingPartner} onChange={e => setNewBuildingPartner(e.target.checked)} /> {t.hasPartner}
                     </label>
                     {newBuildingPartner && (
-                       <div className="flex gap-2">
-                         <input type="text" placeholder={t.partnerNameInput} className="border-2 p-3 rounded-xl text-sm font-bold focus:border-blue-400 outline-none bg-slate-50 flex-1" value={newBuildingPartnerName} onChange={e=>setNewBuildingPartnerName(e.target.value)}/>
-                         <NumberInput required placeholder={t.partnerPercent} className="border-2 p-3 rounded-xl text-md w-24 font-bold focus:border-blue-400 outline-none bg-slate-50 text-center" value={newBuildingPartnerPercent} onChange={v=>setNewBuildingPartnerPercent(v)}/>
+                       <div className="flex flex-col gap-3 border-t border-slate-100 pt-3 mt-1">
+                         <div>
+                            <label className="text-xs font-bold text-slate-500 mb-1 block">اسم الشريك (اختياري)</label>
+                            <input type="text" placeholder={t.partnerNameInput} className="border-2 p-3 rounded-xl text-sm w-full font-bold focus:border-blue-400 outline-none bg-slate-50" value={newBuildingPartnerName} onChange={e=>setNewBuildingPartnerName(e.target.value)}/>
+                         </div>
+                         <div>
+                            <label className="text-xs font-bold text-slate-500 mb-1 block">نسبة الشريك (%)</label>
+                            <NumberInput required placeholder={t.partnerPercent} className="border-2 p-3 rounded-xl text-md w-full font-bold focus:border-blue-400 outline-none bg-slate-50 text-center" value={newBuildingPartnerPercent} onChange={v=>setNewBuildingPartnerPercent(v)}/>
+                         </div>
                        </div>
                     )}
-                    <button className="bg-slate-800 text-white px-4 py-3 rounded-xl text-md font-bold w-full shadow hover:bg-slate-900">{t.saveBuilding}</button>
+                    <button className="bg-slate-800 text-white px-4 py-3 rounded-xl text-md font-bold w-full shadow hover:bg-slate-900 mt-2">{t.saveBuilding}</button>
                   </form>
                 </div>
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-md mx-auto">
@@ -1060,7 +1062,6 @@
                     <input type="text" placeholder={t.clientName} className="w-full border-2 p-3 rounded-xl text-sm font-bold bg-slate-50 focus:border-blue-400 outline-none" required value={newContract.clientName} onChange={e => setNewContract({...newContract, clientName: e.target.value})} />
                     <select className="w-full border-2 p-3 rounded-xl text-sm font-bold bg-slate-50 focus:border-blue-400 outline-none" required value={newContract.unitId} onChange={e => setNewContract({...newContract, unitId: e.target.value})}>
                       <option value="">{t.selectUnit}</option>
-                      {/* عرض الوحدة الحالية للعقد عشان يقدر يختارها تاني لو بيعدل، بجانب الوحدات المتاحة */}
                       {(data.units || []).filter(u => u.status === 'available' || (editingContractId && newContract.unitId === u.id)).map(u => <option key={u.id} value={u.id}>{(data.buildings || []).find(b=>b.id===u.buildingId)?.name} - {u.unitNumber}</option>)}
                     </select>
                     <div><label className="text-xs font-bold text-slate-500 block mb-1">{t.totalAmount}</label><NumberInput required value={newContract.totalAmount} onChange={v => setNewContract({...newContract, totalAmount: v})} className="w-full border-2 p-3 rounded-xl text-lg font-bold bg-white focus:border-blue-400 outline-none" /></div>
@@ -1209,7 +1210,6 @@
                             <div className="flex gap-2 justify-start mb-4">
                               <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptManual, showDate:true, defaultDate: todayDateStr, onConfirm:(amt,dt)=>{ setData(p=>({...p, installments: [...(p.installments||[]), {id:'inst_man_'+Date.now(), contractId:c.id, amount:Number(amt), dueDate:dt, status:'pending'}]})); showMsg(t.success); } }})} className="bg-blue-50 text-blue-700 border border-blue-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-blue-100 transition">{t.addManualInst}</button>
                               
-                              {/* زرار رفع المرفقات */}
                               <label className="bg-slate-50 text-slate-700 border border-slate-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-slate-100 transition cursor-pointer flex items-center justify-center">
                                 {t.addAttachment}
                                 <input type="file" accept="image/*" className="hidden" onChange={e => {
@@ -1223,13 +1223,25 @@
                               </label>
                             </div>
 
-                            {/* عارض المرفقات المصغرة */}
+                            {/* عارض المرفقات مع زر الحذف */}
                             {(c.attachments || []).length > 0 && (
                                 <div className="mt-4">
                                   <span className="text-xs font-bold text-slate-500 mb-2 block">{t.attachments}:</span>
                                   <div className="flex gap-3 overflow-x-auto p-3 bg-slate-50 rounded-xl border border-slate-200 shadow-inner">
                                       {c.attachments.map((att, idx) => (
-                                          <img key={idx} src={att} className="h-20 w-20 object-cover rounded-lg cursor-pointer border-2 border-slate-300 shadow hover:scale-105 hover:border-blue-400 transition" onClick={(e) => { e.stopPropagation(); setAppModal({show: true, type: 'IMAGE_VIEW', props: { src: att }}); }} />
+                                          <div key={idx} className="relative inline-block flex-shrink-0">
+                                            <img src={att} className="h-20 w-20 object-cover rounded-lg cursor-pointer border-2 border-slate-300 shadow hover:scale-105 hover:border-blue-400 transition" onClick={(e) => { e.stopPropagation(); setAppModal({show: true, type: 'IMAGE_VIEW', props: { src: att }}); }} />
+                                            <button onClick={(e) => {
+                                              e.stopPropagation();
+                                              requirePin(() => {
+                                                setData(p => ({
+                                                  ...p,
+                                                  contracts: p.contracts.map(ct => ct.id === c.id ? { ...ct, attachments: ct.attachments.filter((_, i) => i !== idx) } : ct)
+                                                }));
+                                                showMsg(t.success);
+                                              });
+                                            }} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-md hover:bg-red-700 transition">X</button>
+                                          </div>
                                       ))}
                                   </div>
                                 </div>
@@ -1317,13 +1329,16 @@
                     <>
                       <h2 className="text-3xl font-black text-center mb-2">{t.partnerReportTitle}</h2>
                       <h3 className="text-2xl font-bold text-center mb-6">{selectedPartnerR}</h3>
-                      <div className="flex justify-around mb-8 border-b-4 border-black pb-4 text-center">
-                        <div><p className="font-bold text-gray-500 mb-1">{t.totalExpected}</p><p className="text-2xl font-black">{partnerReportData.expected.toLocaleString()}</p></div>
-                        <div><p className="font-bold text-gray-500 mb-1">{t.totalPaidToPartner}</p><p className="text-2xl font-black text-emerald-600">{partnerReportData.paid.toLocaleString()}</p></div>
-                        <div><p className="font-bold text-gray-500 mb-1">{t.totalCollectedNotPaid}</p><p className="text-2xl font-black text-red-600">{partnerReportData.unpaid.toLocaleString()}</p></div>
+                      
+                      <div className="flex justify-around mb-8 border-b-4 border-black pb-4 text-center mt-6">
+                        <div><p className="font-bold text-gray-600 mb-1">{t.totalExpected}</p><p className="text-2xl font-black">{partnerReportData.expected.toLocaleString()}</p></div>
+                        <div><p className="font-bold text-gray-600 mb-1">{t.totalPaidToPartner}</p><p className="text-2xl font-black text-emerald-600">{partnerReportData.paid.toLocaleString()}</p></div>
+                        <div><p className="font-bold text-gray-600 mb-1">{t.totalCollectedNotPaid}</p><p className="text-2xl font-black text-red-600">{partnerReportData.unpaid.toLocaleString()}</p></div>
                       </div>
+
+                      <h4 className="text-xl font-black mt-4 mb-2">{t.detailsMonthDues}</h4>
                       <table>
-                        <thead className="bg-gray-100 text-lg"><tr><th className="text-center">{t.dueDate}</th><th className="text-center">{t.client}</th><th className="text-center">{t.building}</th><th className="text-center">نصيب الشريك (مستحق)</th></tr></thead>
+                        <thead className="bg-gray-100 text-lg"><tr><th className="text-center">{t.dueDate}</th><th className="text-center">{t.client}</th><th className="text-center">{t.building}</th><th className="text-center">{t.partnerDue}</th></tr></thead>
                         <tbody>
                            {partnerReportData.instsDetails.map((d, i) => (
                              <tr key={i}><td dir="ltr" className="text-center font-mono print-row-text">{formatShortDate(d.date)}</td><td className="font-bold text-lg">{d.client}</td><td className="text-center font-bold text-lg">{d.building}</td><td className="text-center font-black text-xl text-red-600">{d.share.toLocaleString()}</td></tr>
@@ -1356,7 +1371,6 @@
                     <button onClick={()=>setReportType('transactions')} className={`flex-1 min-w-[120px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='transactions'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repCustodyBtn}</button>
                     <button onClick={()=>setReportType('installments')} className={`flex-1 min-w-[120px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='installments'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repSalesBtn}</button>
                     <button onClick={()=>setReportType('contracts')} className={`flex-1 min-w-[120px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='contracts'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repContractsBtn}</button>
-                    {/* التحديث: زر حسابات الشركاء */}
                     <button onClick={()=>setReportType('partners')} className={`flex-1 min-w-[120px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='partners'?'bg-white text-purple-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repPartnersBtn}</button>
                   </div>
                   
@@ -1381,13 +1395,25 @@
 
                         {partnerReportData && (
                            <div className="animate-slide-up space-y-6">
-                              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                                <div className="bg-white p-4 rounded-xl border-l-4 border-slate-400 shadow-sm"><p className="text-xs font-bold text-slate-500 mb-1">{t.totalExpected}</p><p className="text-xl font-black text-slate-800">{partnerReportData.expected.toLocaleString()}</p></div>
-                                <div className="bg-white p-4 rounded-xl border-l-4 border-emerald-400 shadow-sm"><p className="text-xs font-bold text-slate-500 mb-1">{t.totalPaidToPartner}</p><p className="text-xl font-black text-emerald-600">{partnerReportData.paid.toLocaleString()}</p></div>
-                                <div className="bg-white p-4 rounded-xl border-l-4 border-red-400 shadow-sm relative"><p className="text-xs font-bold text-slate-500 mb-1">{t.totalCollectedNotPaid}</p><p className="text-xl font-black text-red-600">{partnerReportData.unpaid.toLocaleString()}</p>
-                                  {partnerReportData.unpaid > 0 && <span className="absolute top-2 left-2 flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span></span>}
+                              {/* تعديل المربعات لتكون فوق بعضها عند اللزوم لمنع خروج الأرقام وتوسيطها */}
+                              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                <div className="bg-white p-4 rounded-xl border-t-4 border-slate-400 shadow-sm flex flex-col items-center justify-center text-center">
+                                   <p className="text-xs font-bold text-slate-500 mb-2">{t.totalExpected}</p>
+                                   <p className="text-xl md:text-2xl font-black text-slate-800 break-words w-full">{partnerReportData.expected.toLocaleString()}</p>
                                 </div>
-                                <div className="bg-white p-4 rounded-xl border-l-4 border-amber-400 shadow-sm"><p className="text-xs font-bold text-slate-500 mb-1">{t.totalPending}</p><p className="text-xl font-black text-amber-600">{partnerReportData.pending.toLocaleString()}</p></div>
+                                <div className="bg-white p-4 rounded-xl border-t-4 border-emerald-400 shadow-sm flex flex-col items-center justify-center text-center">
+                                   <p className="text-xs font-bold text-slate-500 mb-2">{t.totalPaidToPartner}</p>
+                                   <p className="text-xl md:text-2xl font-black text-emerald-600 break-words w-full">{partnerReportData.paid.toLocaleString()}</p>
+                                </div>
+                                <div className="bg-white p-4 rounded-xl border-t-4 border-red-400 shadow-sm relative flex flex-col items-center justify-center text-center">
+                                   <p className="text-xs font-bold text-slate-500 mb-2">{t.totalCollectedNotPaid}</p>
+                                   <p className="text-xl md:text-2xl font-black text-red-600 break-words w-full">{partnerReportData.unpaid.toLocaleString()}</p>
+                                   {partnerReportData.unpaid > 0 && <span className="absolute top-2 right-2 flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span></span>}
+                                </div>
+                                <div className="bg-white p-4 rounded-xl border-t-4 border-amber-400 shadow-sm flex flex-col items-center justify-center text-center">
+                                   <p className="text-xs font-bold text-slate-500 mb-2">{t.totalPending}</p>
+                                   <p className="text-xl md:text-2xl font-black text-amber-600 break-words w-full">{partnerReportData.pending.toLocaleString()}</p>
+                                </div>
                               </div>
 
                               {partnerReportData.unpaid > 0 && (

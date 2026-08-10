@@ -14,19 +14,22 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     @media print {
-      body * { visibility: hidden; }
-      .print-show, .print-show * { visibility: visible; }
-      .print-show { position: absolute; left: 0; top: 0; width: 100%; }
-      .receipt-print-area, .receipt-print-area * { visibility: visible; }
-      .receipt-print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; }
+      html, body, #root, .min-h-screen { height: auto !important; min-height: auto !important; overflow: visible !important; position: static !important; background: white !important; }
+      header, nav, .print-hide { display: none !important; }
       
-      @page { size: landscape; margin: 10mm; }
-      .receipt-print-area @page { size: portrait; margin: 5mm; }
+      main { height: auto !important; overflow: visible !important; position: static !important; }
+      main > div:not(.print-show) { display: none !important; }
+      .print-show { display: block !important; position: static !important; width: 100% !important; }
       
-      body { background: white !important; font-weight: bold !important; font-size: 1.1rem !important; }
-      .print-hide { display: none !important; }
-      table { width: 100%; border-collapse: collapse; margin: 15px auto; }
-      th, td { border: 2px solid black !important; padding: 6px 8px !important; text-align: center; }
+      .print-receipt-wrapper { position: static !important; display: block !important; background: transparent !important; padding: 0 !important; }
+      .print-receipt-wrapper > div { position: static !important; box-shadow: none !important; max-width: 100% !important; width: 100% !important; margin: 0 !important; border: none !important; border-radius: 0 !important; }
+      .print-receipt-wrapper .flex.gap-2 { display: none !important; }
+      .receipt-print-area { padding: 0 !important; border: none !important; }
+      
+      @page { margin: 5mm; }
+      table { width: 100%; border-collapse: collapse; margin: 15px auto; page-break-inside: auto; }
+      tr { page-break-inside: avoid; page-break-after: auto; }
+      th, td { border: 2px solid black !important; padding: 6px 8px !important; text-align: center; color: black !important; }
       .print-row-text { font-size: 1rem !important; }
     }
     @keyframes slideUp { from { transform: translateY(10%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -229,6 +232,34 @@
         return initialData;
       });
 
+      // Data Migration for DownPayments (Retroactively creates Paid Installment for Down Payment)
+      useEffect(() => {
+        let needsUpdate = false;
+        let updatedInsts = [...(data.installments || [])];
+        
+        (data.contracts || []).forEach(c => {
+            if (Number(c.downPayment) > 0) {
+                const hasDpInst = updatedInsts.some(i => i.contractId === c.id && i.isDownPayment);
+                if (!hasDpInst) {
+                    updatedInsts.push({
+                        id: 'inst_dp_mig_' + c.id,
+                        contractId: c.id,
+                        amount: Number(c.downPayment),
+                        dueDate: c.date || todayDateStr,
+                        status: 'paid',
+                        partnerPaid: false,
+                        isDownPayment: true
+                    });
+                    needsUpdate = true;
+                }
+            }
+        });
+        
+        if (needsUpdate) {
+            setData(prev => ({ ...prev, installments: updatedInsts }));
+        }
+      }, []);
+
       const [activeTab, setActiveTab] = useState('dashboard');
       const [toast, setToast] = useState({ show: false, msg: '', isError: false });
       const [appModal, setAppModal] = useState({ show: false, type: '', props: {} });
@@ -286,8 +317,9 @@
       const uniquePartnersList = useMemo(() => {
         const names = [];
         (data.buildings||[]).forEach(b => {
-            if (b.hasPartner && b.partnerPercent > 0 && b.partnerName && !names.includes(b.partnerName)) {
-                names.push(b.partnerName);
+            if (b.hasPartner && b.partnerPercent > 0 && b.partnerName) {
+                const tName = b.partnerName.trim();
+                if (!names.includes(tName)) names.push(tName);
             }
         });
         return names;
@@ -382,8 +414,7 @@
            const b = (data.buildings||[]).find(bd=>bd.id===c.buildingId);
            const u = (data.units||[]).find(un=>un.id===c.unitId);
            const insts = (data.installments||[]).filter(i=>i.contractId===c.id);
-           const paidInsts = insts.filter(i=>i.status==='paid').reduce((s,i)=>s+Number(i.amount), 0);
-           const totalPaid = Number(c.downPayment) + paidInsts;
+           const totalPaid = insts.filter(i=>i.status==='paid').reduce((s,i)=>s+Number(i.amount), 0);
            const remaining = Number(c.totalAmount) - totalPaid;
            const pendingInsts = insts.filter(i=>i.status==='pending').sort((a,b)=>new Date(a.dueDate||0)-new Date(b.dueDate||0));
            const nextDate = pendingInsts.length > 0 ? pendingInsts[0].dueDate : '--';
@@ -395,7 +426,8 @@
           if (reportType !== 'partners' || !selectedPartnerR) return null;
           let expected = 0; let paid = 0; let unpaid = 0; let pending = 0;
           
-          const bds = (data.buildings||[]).filter(b => b.hasPartner && b.partnerName === selectedPartnerR);
+          const targetPartner = selectedPartnerR.trim();
+          const bds = (data.buildings||[]).filter(b => b.hasPartner && (b.partnerName||'').trim() === targetPartner);
           const bdsIds = bds.map(b => b.id);
           const activeContracts = (data.contracts||[]).filter(c => c.status === 'active' && bdsIds.includes(c.buildingId));
           const activeContractIds = activeContracts.map(c => c.id);
@@ -406,14 +438,16 @@
              if (activeContractIds.includes(inst.contractId)) {
                  const c = activeContracts.find(ct => ct.id === inst.contractId);
                  const b = bds.find(bd => bd.id === c.buildingId);
-                 const pShare = Math.round(Number(inst.amount) * (b.partnerPercent/100));
+                 const pShare = Math.round(Number(inst.amount) * (Number(b.partnerPercent)/100));
 
                  expected += pShare;
                  if (inst.status === 'paid') {
-                     if (inst.partnerPaid) paid += pShare;
-                     else {
-                        unpaid += pShare;
-                        instsDetails.push({ client: c.clientName, building: b.name, share: pShare, date: inst.dueDate });
+                     if (inst.partnerPaid) {
+                         paid += pShare;
+                     } else {
+                         unpaid += pShare;
+                         const clientName = inst.isDownPayment ? `${c.clientName} (مقدم)` : c.clientName;
+                         instsDetails.push({ client: clientName, building: b.name, share: pShare, date: inst.dueDate });
                      }
                  } else {
                      pending += pShare;
@@ -536,8 +570,7 @@
                const oldContract = updatedContracts.find(c => c.id === contractId);
                
                const oldInsts = updatedInstallments.filter(i => i.contractId === contractId);
-               const oldPaidInstsSum = oldInsts.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.amount), 0);
-               const totalOldPaid = Number(oldContract.downPayment || 0) + oldPaidInstsSum;
+               const totalOldPaid = oldInsts.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.amount), 0);
 
                updatedInstallments = updatedInstallments.filter(i => i.contractId !== contractId);
 
@@ -564,6 +597,10 @@
             }
 
             const newInsts = []; 
+            if (dp > 0) {
+               newInsts.push({ id: 'inst_dp_' + Date.now(), contractId, amount: dp, dueDate: todayDateStr, status: 'paid', partnerPaid: false, isDownPayment: true });
+            }
+
             let curDate = new Date(newContract.firstInstallmentDate); 
             const baseInstAmount = count > 0 ? Math.floor((total - dp) / count) : 0; 
             let remainder = (total - dp) - (baseInstAmount * count);
@@ -684,7 +721,7 @@
           )}
 
           {appModal.show && (
-            <div className="fixed inset-0 bg-slate-900 bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-[100] animate-fade-in p-4 print-hide" onClick={closeModal}>
+            <div className={`fixed inset-0 bg-slate-900 bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-[100] animate-fade-in p-4 ${appModal.type !== 'RECEIPT' ? 'print-hide' : 'print-receipt-wrapper'}`} onClick={closeModal}>
               
               {appModal.type === 'TX_ACTION' && appModal.props.tx && (
                 <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}>
@@ -762,9 +799,8 @@
               )}
               
               {appModal.type === 'RECEIPT' && (
-                <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-slide-up" onClick={e=>e.stopPropagation()}>
+                <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-slide-up print-show" onClick={e=>e.stopPropagation()}>
                   <div id="receipt-area" className="p-6 bg-white text-black text-center border-b-4 border-dashed receipt-print-area">
-                    <h2 className="text-2xl font-black mb-1">{t.appTitle}</h2>
                     <p className="text-sm font-bold mb-6 text-gray-500">إيصال استلام نقدية</p>
                     <div className="text-right space-y-3 mb-6 bg-gray-50 p-4 rounded-xl border" dir="rtl">
                       <p className="border-b pb-2"><strong className="text-gray-600">التاريخ:</strong> <span className="font-mono ml-2 font-bold">{appModal.props.date}</span></p>
@@ -843,7 +879,7 @@
             </div>
           )}
 
-          <main className="flex-grow p-4 mx-auto w-full max-w-7xl relative z-10">
+          <main className={`flex-grow p-4 mx-auto w-full max-w-7xl relative z-10 ${appModal.type === 'RECEIPT' ? 'print-hide' : ''}`}>
             {/* Dashboard */}
             {activeTab === 'dashboard' && (
               <div className="space-y-6 print-hide animate-fade-in">
@@ -886,7 +922,7 @@
                             const b = (data.buildings || []).find(bd => bd.id === c?.buildingId);
                             return (
                               <tr key={inst.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                                <td className="p-3 font-bold text-slate-700">{c?.clientName}</td><td className="p-3 font-mono text-slate-500" dir="ltr">{formatShortDate(inst.dueDate)}</td>
+                                <td className="p-3 font-bold text-slate-700">{c?.clientName} {inst.isDownPayment && <span className="text-[10px] bg-blue-100 text-blue-800 px-1 rounded ml-1">مقدم</span>}</td><td className="p-3 font-mono text-slate-500" dir="ltr">{formatShortDate(inst.dueDate)}</td>
                                 <td className="p-3">
                                   <div className="font-black text-red-600 text-lg">{Number(inst.amount).toLocaleString()}</div>
                                   {b?.hasPartner && b.partnerPercent > 0 && (
@@ -1050,7 +1086,6 @@
             {activeTab === 'sales' && (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print-hide animate-fade-in">
                 
-                {/* الفورم الرئيسي لتسجيل أو تعديل العقود */}
                 <div className={`bg-white p-6 rounded-2xl shadow-sm border-2 h-fit transition-colors ${editingContractId ? 'border-amber-400 shadow-md' : 'border-slate-200'}`}>
                   <h3 className="font-bold mb-5 border-b pb-2 text-lg text-slate-800">{editingContractId ? 'تعديل بيانات العقد الشامل' : t.newContractTitle}</h3>
                   {editingContractId && (
@@ -1107,7 +1142,7 @@
                                 const b = (data.buildings || []).find(bd => bd.id === c?.buildingId);
                                 return (
                                   <tr key={inst.id} className="border-b border-red-100 hover:bg-white transition-colors">
-                                    <td className="p-2 font-bold text-slate-800">{c?.clientName}</td><td className="p-2 font-mono text-xs text-red-600" dir="ltr">{formatShortDate(inst.dueDate)}</td>
+                                    <td className="p-2 font-bold text-slate-800">{c?.clientName} {inst.isDownPayment && <span className="text-[10px] bg-blue-100 text-blue-800 px-1 rounded ml-1">مقدم</span>}</td><td className="p-2 font-mono text-xs text-red-600" dir="ltr">{formatShortDate(inst.dueDate)}</td>
                                     <td className="p-2">
                                       <div className="font-black text-slate-900 text-base">{Number(inst.amount).toLocaleString()}</div>
                                       {b?.hasPartner && b.partnerPercent > 0 && (
@@ -1182,7 +1217,7 @@
                                     <tr key={inst.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
                                       <td className="p-2 font-mono text-xs text-slate-500 whitespace-nowrap" dir="ltr">{formatShortDate(inst.dueDate)}</td>
                                       <td className="p-2">
-                                        <div className="font-bold text-slate-800 text-base">{Number(inst.amount).toLocaleString()}</div>
+                                        <div className="font-bold text-slate-800 text-base">{Number(inst.amount).toLocaleString()} {inst.isDownPayment && <span className="text-[10px] bg-blue-100 text-blue-800 px-1 rounded ml-1">مقدم</span>}</div>
                                         {b?.hasPartner && b.partnerPercent > 0 && (
                                           <div className="text-[10px] text-slate-500 mt-1 space-y-0.5">
                                             <span className="bg-blue-50 text-blue-700 px-1 rounded block">{t.myShare}: {Math.round(inst.amount * ((100 - b.partnerPercent)/100)).toLocaleString()}</span>
@@ -1198,7 +1233,7 @@
                                           <button onClick={() => setAppModal({show:true, type:'PAY_PARTNER', props:{partnerAmt: Math.round(inst.amount * (b.partnerPercent/100)), onConfirm:(dt, custId)=>payPartnerShare(inst.id, Math.round(inst.amount * (b.partnerPercent/100)), c.clientName, b.name, custId, dt)}})} className="bg-purple-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-purple-600 transition">{t.payPartnerBtn}</button>
                                         )}
                                         {inst.status === 'paid' && (
-                                          <button onClick={() => setAppModal({show: true, type:'RECEIPT', props:{ date: formatShortDate(inst.dueDate), clientName: c.clientName, buildingName: `${b?.name} - الوحدة ${u?.unitNumber}`, amount: inst.amount }})} className="bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-slate-900 transition flex justify-center items-center gap-1">🖨️ إيصال</button>
+                                          <button onClick={() => setAppModal({show: true, type:'RECEIPT', props:{ date: formatShortDate(inst.dueDate), clientName: inst.isDownPayment ? `${c.clientName} (مقدم)` : c.clientName, buildingName: `${b?.name} - الوحدة ${u?.unitNumber}`, amount: inst.amount }})} className="bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-slate-900 transition flex justify-center items-center gap-1">🖨️ إيصال</button>
                                         )}
                                       </td>
                                     </tr>
@@ -1317,7 +1352,7 @@
                             const partnerDue = (hasPartner && !i.partnerPaid) ? partnerShare : 0;
                             const partnerPaidStat = (hasPartner && i.partnerPaid) ? partnerShare : 0;
 
-                            return <tr key={i.id}><td dir="ltr" className="text-center font-mono print-row-text">{formatShortDate(i.dueDate)}</td><td className="font-bold text-lg">{c?.clientName}</td><td className="text-center font-bold text-lg">{b?.name}</td><td className="text-center font-black text-xl">{totalAmt.toLocaleString()}</td><td className="text-center font-bold text-lg">{myShare > 0 ? myShare.toLocaleString() : '--'}</td><td className="text-center font-bold text-lg text-red-600">{partnerDue > 0 ? partnerDue.toLocaleString() : '--'}</td><td className="text-center font-bold text-lg text-emerald-600">{partnerPaidStat > 0 ? partnerPaidStat.toLocaleString() : '--'}</td><td className="text-center font-bold text-lg">{i.status==='paid'?t.paid:t.pending}</td></tr>
+                            return <tr key={i.id}><td dir="ltr" className="text-center font-mono print-row-text">{formatShortDate(i.dueDate)}</td><td className="font-bold text-lg">{i.isDownPayment ? `${c?.clientName} (مقدم)` : c?.clientName}</td><td className="text-center font-bold text-lg">{b?.name}</td><td className="text-center font-black text-xl">{totalAmt.toLocaleString()}</td><td className="text-center font-bold text-lg">{myShare > 0 ? myShare.toLocaleString() : '--'}</td><td className="text-center font-bold text-lg text-red-600">{partnerDue > 0 ? partnerDue.toLocaleString() : '--'}</td><td className="text-center font-bold text-lg text-emerald-600">{partnerPaidStat > 0 ? partnerPaidStat.toLocaleString() : '--'}</td><td className="text-center font-bold text-lg">{i.status==='paid'?t.paid:t.pending}</td></tr>
                           })}
                           {reportInstallments.length > 0 && (
                             <tr className="bg-gray-200"><td colSpan="3" className="text-left font-black text-xl" style={{textAlign: lang==='ar'?'left':'right'}}>{t.total}:</td><td className="text-center font-black text-2xl">{reportInstallments.reduce((s,i)=>s+Math.round(Number(i.amount)),0).toLocaleString()}</td><td className="text-center font-black text-xl">{reportInstallments.reduce((s,i)=>{ const c=(data.contracts||[]).find(ct=>ct.id===i.contractId); const b=(data.buildings||[]).find(bd=>bd.id===c?.buildingId); const hasP=b?.hasPartner&&b.partnerPercent>0; const pS=hasP?Math.round(Number(i.amount)*(b.partnerPercent/100)):0; return s+(Math.round(Number(i.amount))-pS); },0).toLocaleString()}</td><td className="text-center font-black text-xl text-red-600">{reportInstallments.reduce((s,i)=>{ const c=(data.contracts||[]).find(ct=>ct.id===i.contractId); const b=(data.buildings||[]).find(bd=>bd.id===c?.buildingId); const hasP=b?.hasPartner&&b.partnerPercent>0; return s+((hasP&&!i.partnerPaid)?Math.round(Number(i.amount)*(b.partnerPercent/100)):0); },0).toLocaleString()}</td><td className="text-center font-black text-xl text-emerald-600">{reportInstallments.reduce((s,i)=>{ const c=(data.contracts||[]).find(ct=>ct.id===i.contractId); const b=(data.buildings||[]).find(bd=>bd.id===c?.buildingId); const hasP=b?.hasPartner&&b.partnerPercent>0; return s+((hasP&&i.partnerPaid)?Math.round(Number(i.amount)*(b.partnerPercent/100)):0); },0).toLocaleString()}</td><td></td></tr>
@@ -1395,7 +1430,6 @@
 
                         {partnerReportData && (
                            <div className="animate-slide-up space-y-6">
-                              {/* تعديل المربعات لتكون فوق بعضها عند اللزوم لمنع خروج الأرقام وتوسيطها */}
                               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                                 <div className="bg-white p-4 rounded-xl border-t-4 border-slate-400 shadow-sm flex flex-col items-center justify-center text-center">
                                    <p className="text-xs font-bold text-slate-500 mb-2">{t.totalExpected}</p>

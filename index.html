@@ -32,7 +32,6 @@
     const auth = firebase.auth();
     const db = firebase.database();
 
-    // دالة إنشاء المستخدمين بدون تسجيل خروج المدير
     const getSecondaryApp = () => {
       const apps = firebase.apps;
       const secondary = apps.find(app => app.name === 'SecondaryApp');
@@ -62,9 +61,8 @@
       );
     }
 
-    // --- هنا المكونات المضغوطة زي ما هي لتوفير المساحة ---
     const compressImage = (file, callback) => { const reader = new FileReader(); reader.readAsDataURL(file); reader.onload = event => { const img = new Image(); img.src = event.target.result; img.onload = () => { const canvas = document.createElement('canvas'); const MAX_WIDTH = 800; let width = img.width; let height = img.height; if (width > MAX_WIDTH) { height = height * (MAX_WIDTH / width); width = MAX_WIDTH; } canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height); callback(canvas.toDataURL('image/jpeg', 0.6)); } } };
-    const dict = { ar: { appTitle: "RealStateApp", tab_dash: "الرئيسية", tab_tx: "إيراد/مصروف", tab_cust: "العهد", tab_inv: "الوحدات", tab_sales: "المبيعات", tab_rep: "التقارير", tab_settings: "الإعدادات", income: "إيراد", expense: "مصروف", transfer: "تحويل", addIncome: "➕ إيراد", addExpense: "➖ مصروف", addTransfer: "🔄 تحويل عهد", date: "التاريخ", amount: "المبلغ (ج.م)", desc: "البيان (التفاصيل)", custody: "العهدة / الخزينة", building: "العمارة", unit: "الوحدة", category: "تصنيف المصروف", save: "حفظ", update: "تحديث", cancel: "إلغاء", edit: "تعديل", delete: "حذف", allCustodies: "-- جميع العهد والخزينة --", generalSafe: "-- الخزينة العامة --", allBuildings: "-- جميع العمارات --", selectCat: "-- اختر التصنيف --", monthDues: "مستحق هذا الشهر", activeCustody: "أرصدة العهد", net: "الصافي", addCat: "إضافة تصنيف مصروفات", newCustody: "تسليم عهدة لمسؤول جديد", settings: "الإعدادات والأمان", backup: "النسخ الاحتياطي", reset: "إعادة ضبط المصنع", lang: "لغة البرنامج / Language", yes: "نعم متأكد", no: "إلغاء", txTitle: "تسجيل حركة نقدية", showDetails: "التفاصيل ▼", hideDetails: "إخفاء ▲", opBalance: "رصيد أول المدة", hasPartner: "يوجد شريك؟", partnerPercent: "نسبة الشريك (%)", partnerNameInput: "اسم الشريك (اختياري)", myShare: "نسبتي", partnerShare: "للشريك", payPartnerBtn: "توريد للشريك", payPartnerTitle: "تأكيد توريد مبلغ الشريك", payPartnerDesc: "يمكنك توريد المبلغ كاملاً أو جزء منه وخصمه كـ (مصروف)", deductFromSafe: "خصم من عهدة / الخزينة", selectSafe: "-- اختر العهدة --", sortBy: "ترتيب حسب:", sortDate: "التاريخ", sortClient: "العميل", sortBuilding: "العمارة", detailsMonthDues: "تفاصيل أقساط الشهر", client: "العميل", dueDate: "الاستحقاق", action: "إجراء", noDues: "لا توجد أقساط مستحقة هذا الشهر", collect: "تحصيل", saveTx: "💾 حفظ الحركة", updateTx: "🔄 تحديث الحركة", searchDesc: "🔍 ابحث في البيان...", incomes: "الإيرادات ⬇", expenses: "المصروفات ⬆", total: "الإجمالي", noMatches: "لا توجد حركات مطابقة", addBuildingTitle: "🏢 إضافة عمارة/مشروع", buildingName: "اسم العمارة...", saveBuilding: "حفظ العمارة", addUnitTitle: "🔑 إضافة وحدة عقارية", unitName: "رقم أو اسم الوحدة", saveUnit: "حفظ الوحدة", newContractTitle: "إنشاء عقد جديد", clientName: "اسم العميل", selectUnit: "-- اختر الوحدة --", totalAmount: "الإجمالي (ج.م)", downPayment: "المقدم المدفوع", instCount: "عدد الأقساط", paySystem: "نظام الدفع", firstInstDate: "تاريخ أول قسط", saveContract: "تسجيل العقد وإنشاء الأقساط", overdueTitle: "⚠️ أقساط متأخرة ومستحقة", cancelContract: "فسخ العقد", status: "الحالة", paid: "مدفوع", pending: "مستحق", suspended: "معلق (0)", addManualInst: "➕ إضافة قسط يدوي", addAttachment: "📎 إرفاق مستند (صورة)", attachments: "المرفقات", noContracts: "لا توجد عقود نشطة", repCustodyTitle: "تقرير كشف حساب", repSalesTitle: "بيان أقساط ومستحقات", periodFrom: "من", periodTo: "إلى", start: "البداية", now: "الآن", repOpBalance: "رصيد بداية المدة المُرَحَّل", incTable: "جدول الإيرادات", expTable: "جدول المصروفات", totalIncomes: "إجمالي الإيرادات", totalExpenses: "إجمالي المصروفات", currentNet: "صافي العهدة الحالي", repInstTitle: "تقرير الأقساط", repCustodyBtn: "كشف حساب العهد", repSalesBtn: "تقرير الأقساط", repContractsBtn: "موقف العملاء والوحدات", repPartnersBtn: "حسابات الشركاء", repContractsTitle: "تقرير موقف العملاء والوحدات", partnerReportTitle: "كشف حساب المستثمر / الشريك", totalUnit: "إجمالي الوحدة", paidAmt: "المدفوع", remAmt: "المتبقي", nextDue: "القسط القادم", partnerDue: "مستحق للشريك", partnerPaidStatus: "مدفوع للشريك", totalExpected: "إجمالي الأرباح المتوقعة", totalCollectedNotPaid: "مستحق للتوريد (مُحصل)", totalPaidToPartner: "تم توريده للشريك", totalPending: "باقي في السوق (لم يُحصل)", printPdf: "🖨️ طباعة PDF", exportExcel: "📊 تصدير Excel", langTitle: "اللغة / Language", addCatTitle: "🏷️ إضافة تصنيف", catName: "اسم التصنيف...", addCatBtn: "إضافة", newCustodyTitle: "👤 إضافة عهدة جديدة", respName: "اسم المسؤول...", initAmount: "الرصيد الافتتاحي", saveCustody: "حفظ العهدة", suggestedNet: "مقترح: صافي آخر عهدة", backupTitle: "💾 النسخ الاحتياطي", backupDesc: "احتفظ بنسخة من بياناتك بانتظام", exportBtn: "⬇️ تحميل نسخة", importBtn: "⬆️ استرجاع نسخة", dangerZone: "⚠️ منطقة الخطر", resetDesc: "سيتم مسح كافة البيانات نهائياً. هل أنت متأكد؟", resetBtn: "🗑️ ضبط المصنع", sys1: "شهري", sys2: "كل شهرين", sys3: "ربع سنوي", sys4: "كل 4 شهور", sys6: "نصف سنوي", sys12: "سنوي", promptCollect: "تحصيل قسط", promptEditInst: "تعديل قسط", promptManual: "قسط يدوي", promptCustody: "إيداع في عهدة (اختياري)", confirmCancel: "متأكد من فسخ العقد؟", confirmDelCat: "حذف التصنيف؟", confirmDelBuild: "حذف العمارة؟", confirmDelUnit: "حذف الوحدة؟", confirmDelTx: "حذف الحركة؟", success: "تم بنجاح" } };
+    const dict = { ar: { appTitle: "RealStateApp", tab_dash: "الرئيسية", tab_tx: "إيراد/مصروف", tab_cust: "العهد", tab_inv: "الوحدات", tab_sales: "المبيعات", tab_rep: "التقارير", income: "إيراد", expense: "مصروف", transfer: "تحويل", addIncome: "➕ إيراد", addExpense: "➖ مصروف", addTransfer: "🔄 تحويل عهد", date: "التاريخ", amount: "المبلغ (ج.م)", desc: "البيان (التفاصيل)", custody: "العهدة / الخزينة", building: "العمارة", unit: "الوحدة", category: "تصنيف المصروف", save: "حفظ", update: "تحديث", cancel: "إلغاء", edit: "تعديل", delete: "حذف", allCustodies: "-- جميع العهد والخزينة --", generalSafe: "-- الخزينة العامة --", allBuildings: "-- جميع العمارات --", selectCat: "-- اختر التصنيف --", monthDues: "مستحق هذا الشهر", activeCustody: "أرصدة العهد", net: "الصافي", addCat: "إضافة تصنيف مصروفات", newCustody: "👤 فتح عهدة لمسؤول جديد", backup: "النسخ الاحتياطي", reset: "إعادة ضبط المصنع", lang: "لغة البرنامج / Language", yes: "نعم متأكد", no: "إلغاء", txTitle: "تسجيل حركة نقدية", showDetails: "التفاصيل ▼", hideDetails: "إخفاء ▲", opBalance: "رصيد أول المدة", hasPartner: "يوجد شريك؟", partnerPercent: "نسبة الشريك (%)", partnerNameInput: "اسم الشريك (اختياري)", myShare: "نسبتي", partnerShare: "للشريك", payPartnerBtn: "توريد للشريك", payPartnerTitle: "تأكيد توريد مبلغ الشريك", payPartnerDesc: "يمكنك توريد المبلغ كاملاً أو جزء منه وخصمه كـ (مصروف)", deductFromSafe: "خصم من عهدة / الخزينة", selectSafe: "-- اختر العهدة --", sortBy: "ترتيب حسب:", sortDate: "التاريخ", sortClient: "العميل", sortBuilding: "العمارة", detailsMonthDues: "تفاصيل أقساط الشهر", client: "العميل", dueDate: "الاستحقاق", action: "إجراء", noDues: "لا توجد أقساط مستحقة هذا الشهر", collect: "تحصيل", saveTx: "💾 حفظ الحركة", updateTx: "🔄 تحديث الحركة", searchDesc: "🔍 ابحث في البيان...", incomes: "الإيرادات ⬇", expenses: "المصروفات ⬆", total: "الإجمالي", noMatches: "لا توجد حركات مطابقة", addBuildingTitle: "🏢 إضافة عمارة/مشروع", buildingName: "اسم العمارة...", saveBuilding: "حفظ العمارة", addUnitTitle: "🔑 إضافة وحدة عقارية", unitName: "رقم أو اسم الوحدة", saveUnit: "حفظ الوحدة", newContractTitle: "إنشاء عقد جديد", clientName: "اسم العميل", selectUnit: "-- اختر الوحدة --", totalAmount: "الإجمالي (ج.م)", downPayment: "المقدم المدفوع", instCount: "عدد الأقساط", paySystem: "نظام الدفع", firstInstDate: "تاريخ أول قسط", saveContract: "تسجيل العقد وإنشاء الأقساط", overdueTitle: "⚠️ أقساط متأخرة ومستحقة", cancelContract: "فسخ العقد", status: "الحالة", paid: "مدفوع", pending: "مستحق", suspended: "معلق (0)", addManualInst: "➕ إضافة قسط يدوي", addAttachment: "📎 إرفاق مستند (صورة)", attachments: "المرفقات", noContracts: "لا توجد عقود نشطة", repCustodyTitle: "تقرير كشف حساب", repSalesTitle: "بيان أقساط ومستحقات", periodFrom: "من", periodTo: "إلى", start: "البداية", now: "الآن", repOpBalance: "رصيد بداية المدة المُرَحَّل", incTable: "جدول الإيرادات", expTable: "جدول المصروفات", totalIncomes: "إجمالي الإيرادات", totalExpenses: "إجمالي المصروفات", currentNet: "صافي العهدة الحالي", repInstTitle: "تقرير الأقساط", repCustodyBtn: "كشف حساب العهد", repSalesBtn: "تقرير الأقساط", repContractsBtn: "موقف العملاء والوحدات", repPartnersBtn: "حسابات الشركاء", repContractsTitle: "تقرير موقف العملاء والوحدات", partnerReportTitle: "كشف حساب المستثمر / الشريك", totalUnit: "إجمالي الوحدة", paidAmt: "المدفوع", remAmt: "المتبقي", nextDue: "القسط القادم", partnerDue: "مستحق للشريك", partnerPaidStatus: "مدفوع للشريك", totalExpected: "إجمالي الأرباح المتوقعة", totalCollectedNotPaid: "مستحق للتوريد (مُحصل)", totalPaidToPartner: "تم توريده للشريك", totalPending: "باقي في السوق (لم يُحصل)", printPdf: "🖨️ طباعة PDF", exportExcel: "📊 تصدير Excel", langTitle: "اللغة / Language", addCatTitle: "🏷️ إضافة تصنيف", catName: "اسم التصنيف...", addCatBtn: "إضافة", respName: "اختر المسؤول من الموظفين...", initAmount: "الرصيد الافتتاحي (إن وُجد)", saveCustody: "حفظ العهدة", suggestedNet: "مقترح: صافي آخر عهدة", backupTitle: "💾 النسخ الاحتياطي", backupDesc: "احتفظ بنسخة من بياناتك بانتظام", exportBtn: "⬇️ تحميل نسخة", importBtn: "⬆️ استرجاع نسخة", dangerZone: "⚠️ منطقة الخطر", resetDesc: "سيتم مسح كافة البيانات نهائياً. هل أنت متأكد؟", resetBtn: "🗑️ ضبط المصنع", sys1: "شهري", sys2: "كل شهرين", sys3: "ربع سنوي", sys4: "كل 4 شهور", sys6: "نصف سنوي", sys12: "سنوي", promptCollect: "تحصيل قسط", promptEditInst: "تعديل قسط", promptManual: "قسط يدوي", promptCustody: "إيداع في عهدة (اختياري)", confirmCancel: "متأكد من فسخ العقد؟", confirmDelCat: "حذف التصنيف؟", confirmDelBuild: "حذف العمارة؟", confirmDelUnit: "حذف الوحدة؟", confirmDelTx: "حذف الحركة؟", success: "تم بنجاح" } };
     class ErrorBoundary extends React.Component { constructor(props) { super(props); this.state = { hasError: false, error: null }; } static getDerivedStateFromError(error) { return { hasError: true, error }; } render() { if (this.state.hasError) { return ( <div className="p-6 m-4 bg-red-50 border-2 border-red-500 rounded-2xl text-red-900 shadow-xl"><h2 className="text-2xl font-black mb-3">⚠️ حدث خطأ في النظام</h2><button onClick={() => { localStorage.clear(); window.location.reload(); }} className="w-full bg-red-600 text-white py-4 rounded-xl font-black">🔄 مسح التعارض وإعادة تشغيل التطبيق</button></div> ); } return this.props.children; } }
     function NumberInput({ name, value, onChange, placeholder, className, required, id, defaultValue }) { const [internalVal, setInternalVal] = useState(defaultValue !== undefined ? defaultValue : value); useEffect(() => { if (value !== undefined) setInternalVal(value); }, [value]); const displayVal = (internalVal !== '' && internalVal !== undefined && internalVal !== null && !isNaN(internalVal)) ? Number(internalVal).toLocaleString('en-US') : ''; return ( <input type="text" id={id} name={name} inputMode="numeric" value={displayVal} placeholder={placeholder} required={required} className={className} onChange={(e) => { const raw = e.target.value.replace(/[^0-9]/g, ''); setInternalVal(raw); if(onChange) onChange(raw); }} /> ); }
     function CustomSelect({ options, value, onChange, placeholder, className }) { const [isOpen, setIsOpen] = useState(false); const ref = useRef(null); useEffect(() => { const handleClickOutside = (e) => { if (ref.current && !ref.current.contains(e.target)) setIsOpen(false); }; document.addEventListener('mousedown', handleClickOutside); return () => document.removeEventListener('mousedown', handleClickOutside); }, []); const hasEmptyOption = options.some(o => o.value === ''); const displayOptions = placeholder && hasEmptyOption ? options.filter(o => o.value !== '') : options; const selectedOpt = options.find(o => String(o.value) === String(value)); const displayLabel = selectedOpt ? selectedOpt.label : (placeholder || 'اختر...'); return ( <div className={`relative w-full ${isOpen ? 'z-50' : 'z-10'} ${className || ''}`} ref={ref}> <div className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl bg-white cursor-pointer font-bold flex justify-between items-center shadow-sm hover:border-blue-400 transition text-slate-800" onClick={() => setIsOpen(!isOpen)}> <span className="truncate">{displayLabel}</span> <span className="text-xs text-blue-600">▼</span> </div> {isOpen && ( <div className="absolute top-full right-0 w-full bg-white border-2 border-slate-200 mt-1 shadow-2xl max-h-52 overflow-y-auto z-50 p-1 space-y-1 rounded-xl animate-fade-in text-slate-800"> {placeholder && ( <div className={`p-2.5 text-sm font-bold rounded-lg cursor-pointer transition ${value === '' ? 'bg-blue-50 text-blue-700 font-black' : 'hover:bg-slate-100 text-slate-700'}`} onClick={() => { onChange(''); setIsOpen(false); }}> {placeholder} </div> )} {displayOptions.map((opt, idx) => ( <div key={idx} className={`p-2.5 text-sm font-bold rounded-lg cursor-pointer transition ${String(value) === String(opt.value) ? 'bg-blue-600 text-white font-black' : 'hover:bg-slate-100 text-slate-800'}`} onClick={() => { onChange(opt.value); setIsOpen(false); }}> {opt.label} </div> ))} </div> )} </div> ); }
@@ -85,13 +83,14 @@
         return initialData;
       });
 
-      // --- حالات إدارة المستخدمين ورفع البيانات ---
+      // --- حالات إدارة المستخدمين والصلاحيات ---
+      const [currentUserData, setCurrentUserData] = useState(null);
       const [isUploading, setIsUploading] = useState(false);
       const [dbUsers, setDbUsers] = useState([]);
       const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'custody' });
       const [isCreatingUser, setIsCreatingUser] = useState(false);
 
-      // جلب قائمة المستخدمين من السيرفر
+      // جلب بيانات المستخدمين لتشغيل الصلاحيات والقوائم المنسدلة
       useEffect(() => {
         const usersRef = db.ref('systemUsers');
         usersRef.on('value', snap => {
@@ -99,27 +98,41 @@
           if(vals) {
             const arr = Object.keys(vals).map(k => ({ uid: k, ...vals[k] }));
             setDbUsers(arr);
+            if(user?.uid) {
+               const me = arr.find(u => u.uid === user.uid);
+               setCurrentUserData(me || { role: 'admin', name: 'المدير' });
+            }
           } else {
             setDbUsers([]);
+            setCurrentUserData({ role: 'admin', name: 'المدير' });
           }
         });
         return () => usersRef.off();
-      }, []);
+      }, [user]);
 
-      // دالة رفع البيانات للسيرفر
-      const handleMigrateData = async () => {
-        if(!window.confirm('هل أنت متأكد من رفع البيانات الحالية للسيرفر لتصبح متاحة لجميع المستخدمين؟')) return;
-        setIsUploading(true);
-        try {
-          await db.ref('companyData').set(data);
-          showMsg('تم رفع ومزامنة كافة البيانات على السيرفر بنجاح! ✅');
-        } catch(err) {
-          showMsg('حدث خطأ أثناء الرفع: ' + err.message, true);
-        }
-        setIsUploading(false);
+      const userRole = currentUserData?.role || 'admin';
+
+      const handleMigrateData = () => {
+        setAppModal({
+            show: true,
+            type: 'CONFIRM',
+            props: {
+                title: 'الترحيل للسحابة ☁️',
+                message: 'هل أنت متأكد من رفع البيانات الحالية للسيرفر لتصبح متاحة لجميع المستخدمين؟',
+                onConfirm: async () => {
+                    setIsUploading(true);
+                    try {
+                        await db.ref('companyData').set(data);
+                        showMsg('تم رفع ومزامنة كافة البيانات على السيرفر بنجاح! ✅');
+                    } catch(err) {
+                        showMsg('حدث خطأ أثناء الرفع: ' + err.message, true);
+                    }
+                    setIsUploading(false);
+                }
+            }
+        });
       };
 
-      // دالة إنشاء موظف جديد
       const handleCreateUser = async (e) => {
         e.preventDefault();
         setIsCreatingUser(true);
@@ -141,14 +154,9 @@
         setIsCreatingUser(false);
       };
 
-      // دالة مسح موظف
       const handleDeleteUser = async (uid) => {
-        if(window.confirm('هل متأكد من حذف صلاحيات هذا الموظف؟')) {
-          await db.ref('systemUsers/' + uid).remove();
-          showMsg('تم الحذف بنجاح');
-        }
+        setAppModal({ show:true, type:'CONFIRM', props:{ title: 'حذف موظف', message: 'هل متأكد من حذف صلاحيات هذا الموظف نهائياً؟', onConfirm: async () => { await db.ref('systemUsers/' + uid).remove(); showMsg('تم الحذف بنجاح'); } } });
       };
-
 
       useEffect(() => {
         let needsUpdate = false;
@@ -165,7 +173,7 @@
         if (needsUpdate) setData(prev => ({ ...prev, installments: updatedInsts }));
       }, []);
 
-      const [activeTab, setActiveTab] = useState('dashboard');
+      const [activeTab, setActiveTab] = useState(userRole === 'partner' ? 'reports' : 'dashboard');
       const [toast, setToast] = useState({ show: false, msg: '', isError: false });
       const [appModal, setAppModal] = useState({ show: false, type: '', props: {} });
       const [editingTxId, setEditingTxId] = useState(null);
@@ -180,7 +188,6 @@
       const [newCategory, setNewCategory] = useState('');
       const [newCustody, setNewCustody] = useState({ personName: '', totalAmount: '', notes: '' });
       const [newTransaction, setNewTransaction] = useState({ type: 'income', amount: '', categoryId: '', buildingId: '', custodyId: '', toCustodyId: '', description: '', date: todayDateStr });
-      const [newContract, setNewContract] = useState({ clientName: '', unitId: '', totalAmount: '', downPayment: '', custodyId: '', installmentsCount: '', firstInstallmentDate: '', interval: '1' });
       const [reportType, setReportType] = useState('transactions'); 
       const [reportFilter, setReportFilter] = useState({ startDate: '', endDate: '', custodyIds: [], buildingIds: [] });
       const [reportSort, setReportSort] = useState('date');
@@ -193,21 +200,17 @@
       const [descFocus, setDescFocus] = useState(false);
       const [showMonthDetails, setShowMonthDetails] = useState(false);
       const [expandedBuildings, setExpandedBuildings] = useState({});
-      const [custodyNameFocus, setCustodyNameFocus] = useState(false);
       const [showOverdue, setShowOverdue] = useState(false);
 
       useEffect(() => { localStorage.setItem('real_estate_core_data', JSON.stringify(data)); }, [data]);
       useEffect(() => { localStorage.setItem('real_estate_last_custody', JSON.stringify(dashboardCustodyFilter)); }, [dashboardCustodyFilter]);
 
-      const showMsg = (msg, isError = false) => { setToast({ show: true, msg, isError }); setTimeout(() => setToast(p => ({ ...p, show: false })), 3500); };
       const closeModal = () => setAppModal({ show: false, type: '', props: {} });
       const requirePin = (onSuccess) => setAppModal({ show: true, type: 'PIN', props: { onSuccess } });
       const formatShortDate = (d) => { if(!d) return ''; const p = d.split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0].substring(2)}` : d; };
 
       const allDescriptions = useMemo(() => { const descs = []; for (let i = (data.transactions || []).length - 1; i >= 0; i--) { const d = data.transactions[i]?.description; if (d && !descs.includes(d)) descs.push(d); } return descs; }, [data.transactions]);
       const filteredDescs = newTransaction.description ? allDescriptions.filter(d => d.includes(newTransaction.description) && d !== newTransaction.description) : [];
-      const uniqueCustodyNames = useMemo(() => [...new Set((data.custodies||[]).map(c=>c.personName))], [data.custodies]);
-      const filteredCustodyNames = newCustody.personName ? uniqueCustodyNames.filter(n => n.includes(newCustody.personName) && n !== newCustody.personName) : [];
       const uniquePartnersList = useMemo(() => { const names = []; (data.buildings||[]).forEach(b => { if (b.hasPartner && b.partnerPercent > 0 && b.partnerName) { const tName = b.partnerName.trim(); if (!names.includes(tName)) names.push(tName); } }); return names; }, [data.buildings]);
 
       const sortedCustodies = useMemo(() => [...(data.custodies || [])].reverse(), [data.custodies]);
@@ -638,16 +641,16 @@
       const monthInstallments = (data.installments || []).filter(i => i.status === 'pending' && Number(i.amount) > 0 && i.dueDate?.startsWith(thisMonth)).sort((a,b)=>new Date(a.dueDate||0)-new Date(b.dueDate||0));
       const overdueInstallments = (data.installments || []).filter(i => i.status === 'pending' && Number(i.amount) > 0 && i.dueDate < todayDateStr).sort((a,b)=>new Date(a.dueDate||0)-new Date(b.dueDate||0));
 
-      const tabs = [
-        { id: 'dashboard', label: t.tab_dash }, { id: 'transactions', label: t.tab_tx },
-        { id: 'custody', label: t.tab_cust }, { id: 'inventory', label: t.tab_inv },
-        { id: 'sales', label: t.tab_sales }, { id: 'reports', label: t.tab_rep },
-        { id: 'settings', label: t.tab_settings }
+      // --- نظام الصلاحيات وعزل الشاشات ---
+      const allTabs = [
+        { id: 'dashboard', label: t.tab_dash, roles: ['admin', 'custody'] }, 
+        { id: 'transactions', label: t.tab_tx, roles: ['admin', 'custody'] },
+        { id: 'custody', label: t.tab_cust, roles: ['admin', 'custody'] }, 
+        { id: 'inventory', label: t.tab_inv, roles: ['admin'] },
+        { id: 'sales', label: t.tab_sales, roles: ['admin'] }, 
+        { id: 'reports', label: t.tab_rep, roles: ['admin', 'partner', 'custody'] }
       ];
-
-      const lastCustodyNet = sortedCustodies.length > 0 ? (custodyCalculations.find(c => c.id === sortedCustodies[0].id)?.remaining || 0) : 0;
-      const filteredContracts = (data.contracts || []).filter(c => c.status === 'active' && (!globalSearch || c.clientName.includes(globalSearch)));
-      const isContractsListOpen = showContractsList || globalSearch.trim().length > 0;
+      const visibleTabs = allTabs.filter(tab => tab.roles.includes(userRole));
 
       return (
         <div className="min-h-screen flex flex-col bg-slate-100 pb-10">
@@ -656,18 +659,19 @@
             
             <div className="flex items-center gap-4">
                <span className="text-xs bg-slate-800 px-3 py-1 rounded-full text-slate-300 font-mono hidden md:inline-block border border-slate-700">
-                  {user?.email}
+                  {currentUserData?.name || user?.email} ({userRole === 'admin' ? 'مدير' : userRole === 'partner' ? 'شريك' : 'أمين عهدة'})
                </span>
+               <button onClick={() => setActiveTab('settings')} className={`text-2xl hover:rotate-90 transition-transform ${activeTab === 'settings' ? 'text-blue-400' : 'text-white'}`}>⚙️</button>
                <button onClick={() => auth.signOut()} className="text-sm bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg font-bold shadow transition flex items-center gap-1">
                   خروج 🚪
                </button>
             </div>
           </header>
 
-          <nav className="bg-slate-800 text-slate-200 grid grid-cols-3 md:grid-cols-7 border-b border-slate-700 print-hide shadow-md">
-            {tabs.map(tab => (
+          <nav className="bg-slate-800 text-slate-200 flex overflow-x-auto print-hide shadow-md hide-scrollbar">
+            {visibleTabs.map(tab => (
               <button key={tab.id} onClick={() => {setActiveTab(tab.id); setEditingTxId(null); setGlobalSearch(''); setEditingContractId(null);}} 
-                className={`p-3 text-sm font-bold text-center border-b border-l border-slate-700 transition-colors ${activeTab === tab.id ? 'bg-slate-100 text-blue-800 border-b-4 border-b-blue-600 shadow-inner' : 'hover:bg-slate-700'}`}>
+                className={`p-3 text-sm font-bold text-center border-b border-l border-slate-700 transition-colors whitespace-nowrap flex-1 min-w-fit ${activeTab === tab.id ? 'bg-slate-100 text-blue-800 border-b-4 border-b-blue-600 shadow-inner' : 'hover:bg-slate-700'}`}>
                 {tab.label}
               </button>
             ))}
@@ -696,15 +700,17 @@
               <div className="space-y-6 print-hide animate-fade-in">
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-5 rounded-2xl border border-blue-200 shadow-inner cursor-pointer hover:shadow-md transition" onClick={() => setShowMonthDetails(!showMonthDetails)}>
-                      <div className="flex justify-between items-center mb-2">
-                        <p className="text-sm text-blue-800 font-bold">{t.monthDues}</p>
-                        <span className="text-blue-600 bg-white px-3 py-1 rounded-lg text-xs font-bold shadow-sm">{showMonthDetails ? t.hideDetails : t.showDetails}</span>
-                      </div>
-                      <p className="text-4xl font-black text-blue-900 mt-2">{monthInstallments.reduce((sum, i) => sum + Number(i.amount||0), 0).toLocaleString()} <span className="text-lg font-bold">ج.م</span></p>
-                    </div>
+                    {userRole === 'admin' && (
+                        <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-5 rounded-2xl border border-blue-200 shadow-inner cursor-pointer hover:shadow-md transition" onClick={() => setShowMonthDetails(!showMonthDetails)}>
+                          <div className="flex justify-between items-center mb-2">
+                            <p className="text-sm text-blue-800 font-bold">{t.monthDues}</p>
+                            <span className="text-blue-600 bg-white px-3 py-1 rounded-lg text-xs font-bold shadow-sm">{showMonthDetails ? t.hideDetails : t.showDetails}</span>
+                          </div>
+                          <p className="text-4xl font-black text-blue-900 mt-2">{monthInstallments.reduce((sum, i) => sum + Number(i.amount||0), 0).toLocaleString()} <span className="text-lg font-bold">ج.م</span></p>
+                        </div>
+                    )}
                     
-                    <div className="bg-gradient-to-br from-amber-50 to-orange-100 p-5 rounded-2xl border border-amber-200 shadow-inner">
+                    <div className={`bg-gradient-to-br from-amber-50 to-orange-100 p-5 rounded-2xl border border-amber-200 shadow-inner ${userRole !== 'admin' ? 'md:col-span-2' : ''}`}>
                       <p className="text-sm text-amber-900 mb-2 font-bold">{t.activeCustody}</p>
                       <MultiSelectDropdown options={custodyMultiOptions} selected={dashboardCustodyFilter} onChange={setDashboardCustodyFilter} placeholder={t.allCustodies} />
                       <p className="text-3xl font-black text-amber-600 mt-4">{t.net}: {dashboardNet.toLocaleString()} <span className="text-lg font-bold">ج.م</span></p>
@@ -716,7 +722,7 @@
                   </div>
                 </div>
 
-                {showMonthDetails && (
+                {showMonthDetails && userRole === 'admin' && (
                   <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 animate-slide-up">
                     <h3 className="font-bold mb-4 border-b pb-2 text-blue-800 text-lg">{t.detailsMonthDues}</h3>
                     <div className="overflow-x-auto">
@@ -777,7 +783,7 @@
                   ) : (
                     <div className="grid grid-cols-2 gap-3 border-t border-slate-100 pt-3">
                       <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.custody}</label><CustomSelect options={custodyOptions} value={newTransaction.custodyId} onChange={(v) => setNewTransaction({ ...newTransaction, custodyId: v })} placeholder={t.generalSafe} /></div>
-                      <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.building}</label><CustomSelect options={buildingOptions} value={newTransaction.buildingId} onChange={(v) => setNewTransaction({ ...newTransaction, buildingId: v })} placeholder={t.allBuildings} /></div>
+                      {userRole === 'admin' && (<div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.building}</label><CustomSelect options={buildingOptions} value={newTransaction.buildingId} onChange={(v) => setNewTransaction({ ...newTransaction, buildingId: v })} placeholder={t.allBuildings} /></div>)}
                     </div>
                   )}
                   {newTransaction.type === 'expense' && (
@@ -826,7 +832,7 @@
               </div>
             )}
 
-            {activeTab === 'inventory' && (
+            {activeTab === 'inventory' && userRole === 'admin' && (
               <div className="space-y-6 print-hide animate-fade-in">
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-md mx-auto mb-6">
                   <h3 className="font-bold mb-5 text-center text-lg text-slate-800">{t.addBuildingTitle}</h3>
@@ -870,7 +876,7 @@
               </div>
             )}
 
-            {activeTab === 'sales' && (
+            {activeTab === 'sales' && userRole === 'admin' && (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print-hide animate-fade-in">
                 <div className={`bg-white p-6 rounded-2xl shadow-sm border-2 h-fit transition-colors ${editingContractId ? 'border-amber-400 shadow-md' : 'border-slate-200'}`}>
                   <h3 className="font-bold mb-5 border-b pb-2 text-lg text-slate-800">{editingContractId ? 'تعديل بيانات العقد الشامل' : t.newContractTitle}</h3>
@@ -1016,12 +1022,21 @@
                 </div>
 
                 <div className="print-hide">
-                  <div className="flex bg-slate-100 p-1.5 rounded-xl mb-6 shadow-inner gap-1 flex-wrap md:flex-nowrap overflow-x-auto"><button onClick={()=>setReportType('transactions')} className={`flex-1 min-w-[120px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='transactions'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repCustodyBtn}</button><button onClick={()=>setReportType('installments')} className={`flex-1 min-w-[120px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='installments'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repSalesBtn}</button><button onClick={()=>setReportType('contracts')} className={`flex-1 min-w-[120px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='contracts'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repContractsBtn}</button><button onClick={()=>setReportType('partners')} className={`flex-1 min-w-[120px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='partners'?'bg-white text-purple-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repPartnersBtn}</button></div>
+                  <div className="flex bg-slate-100 p-1.5 rounded-xl mb-6 shadow-inner gap-1 flex-wrap md:flex-nowrap overflow-x-auto">
+                     {['admin', 'custody'].includes(userRole) && <button onClick={()=>setReportType('transactions')} className={`flex-1 min-w-[120px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='transactions'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repCustodyBtn}</button>}
+                     {['admin'].includes(userRole) && <button onClick={()=>setReportType('installments')} className={`flex-1 min-w-[120px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='installments'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repSalesBtn}</button>}
+                     {['admin'].includes(userRole) && <button onClick={()=>setReportType('contracts')} className={`flex-1 min-w-[120px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='contracts'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repContractsBtn}</button>}
+                     {['admin', 'partner'].includes(userRole) && <button onClick={()=>setReportType('partners')} className={`flex-1 min-w-[120px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='partners'?'bg-white text-purple-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repPartnersBtn}</button>}
+                  </div>
                   {reportType === 'installments' && ( <div className="mb-4 flex items-center gap-3"><label className="font-bold text-slate-700 text-sm">{t.sortBy}</label><CustomSelect options={[ { value: "date", label: t.sortDate }, { value: "client", label: t.sortClient }, { value: "building", label: t.sortBuilding } ]} value={reportSort} onChange={(v) => setReportSort(v)} className="w-48" /></div> )}
                   {reportType === 'partners' ? (
                      <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner mb-6">
-                        <label className="text-xs font-bold text-slate-500 mb-2 block">اختر اسم المستثمر / الشريك</label>
-                        <div className="max-w-md mb-6"><CustomSelect options={uniquePartnersList.map(pn => ({ value: pn, label: pn }))} value={selectedPartnerR} onChange={(v) => setSelectedPartnerR(v)} placeholder="-- اختر الشريك --" /></div>
+                        {userRole === 'admin' && (
+                            <>
+                                <label className="text-xs font-bold text-slate-500 mb-2 block">اختر اسم المستثمر / الشريك</label>
+                                <div className="max-w-md mb-6"><CustomSelect options={uniquePartnersList.map(pn => ({ value: pn, label: pn }))} value={selectedPartnerR} onChange={(v) => setSelectedPartnerR(v)} placeholder="-- اختر الشريك --" /></div>
+                            </>
+                        )}
                         {partnerReportData && (
                            <div className="animate-slide-up space-y-6">
                               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -1055,7 +1070,7 @@
                       <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.periodFrom}</label><CustomDateInput value={reportFilter.startDate} onChange={(d) => setReportFilter({ ...reportFilter, startDate: d })} /></div>
                       <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.periodTo}</label><CustomDateInput value={reportFilter.endDate} onChange={(d) => setReportFilter({ ...reportFilter, endDate: d })} /></div>
                       {reportType === 'transactions' && <div className="relative z-30"><label className="text-xs font-bold text-slate-500 mb-1 block">{t.custody}</label><MultiSelectDropdown options={custodyMultiOptions} selected={reportFilter.custodyIds} onChange={(newIds) => setReportFilter({...reportFilter, custodyIds: newIds})} placeholder={t.allCustodies} /></div>}
-                      <div className="relative z-20"><label className="text-xs font-bold text-slate-500 mb-1 block">{t.building}</label><MultiSelectDropdown options={sortedBuildings.map(b => ({ id: b.id, label: b.name }))} selected={reportFilter.buildingIds} onChange={(newIds) => setReportFilter({...reportFilter, buildingIds: newIds})} placeholder={t.allBuildings} /></div>
+                      {userRole === 'admin' && <div className="relative z-20"><label className="text-xs font-bold text-slate-500 mb-1 block">{t.building}</label><MultiSelectDropdown options={sortedBuildings.map(b => ({ id: b.id, label: b.name }))} selected={reportFilter.buildingIds} onChange={(newIds) => setReportFilter({...reportFilter, buildingIds: newIds})} placeholder={t.allBuildings} /></div>}
                     </div>
                   )}
                   <div className="flex gap-4 flex-col md:flex-row"><button onClick={handlePrint} className="flex-1 bg-slate-800 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-slate-900 transition-transform hover:-translate-y-1">{t.printPdf}</button><button onClick={handleExportExcel} className="flex-1 bg-green-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-green-700 transition-transform hover:-translate-y-1">{t.exportExcel}</button></div>
@@ -1066,56 +1081,64 @@
             {activeTab === 'settings' && (
               <div className="space-y-6 animate-fade-in print-hide">
                 
-                {/* 1. قسم رفع البيانات للسيرفر (جديد) */}
-                <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 rounded-3xl shadow-xl text-white text-center relative overflow-hidden">
-                   <div className="absolute top-0 right-0 p-4 opacity-20 text-9xl">☁️</div>
-                   <h2 className="text-3xl font-black mb-2 relative z-10">الترحيل للسحابة (Cloud Migration)</h2>
-                   <p className="text-blue-100 font-bold mb-6 relative z-10">اضغط هنا لرفع كافة بياناتك المسجلة على الموبايل إلى سيرفرات جوجل لتصبح متاحة لحظياً.</p>
-                   <button onClick={handleMigrateData} disabled={isUploading} className={`relative z-10 px-8 py-4 rounded-xl font-black text-xl shadow-lg transition-transform ${isUploading ? 'bg-slate-400' : 'bg-white text-blue-800 hover:-translate-y-1 hover:shadow-2xl'}`}>
-                      {isUploading ? 'جاري الرفع والمزامنة...' : '⬆️ رفع البيانات للسيرفر الآن'}
-                   </button>
-                </div>
-
-                {/* 2. قسم إدارة المستخدمين (جديد) */}
-                <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
-                   <h3 className="font-black text-2xl text-slate-800 mb-6 border-b-2 border-slate-100 pb-4">👥 إدارة المستخدمين وصلاحيات الموظفين</h3>
-                   <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                      {/* نموذج الإضافة */}
-                      <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner h-fit">
-                         <h4 className="font-bold text-slate-700 mb-4">إنشاء حساب موظف جديد</h4>
-                         <form onSubmit={handleCreateUser} className="space-y-4">
-                            <div><label className="text-xs font-bold text-slate-500 mb-1 block">الاسم</label><input type="text" required className="w-full border-2 p-3 rounded-xl font-bold outline-none focus:border-blue-500" value={newUser.name} onChange={e=>setNewUser({...newUser, name: e.target.value})} /></div>
-                            <div><label className="text-xs font-bold text-slate-500 mb-1 block">البريد (للدخول)</label><input type="email" required className="w-full border-2 p-3 rounded-xl font-bold outline-none focus:border-blue-500 text-left" dir="ltr" placeholder="eng@realstate.com" value={newUser.email} onChange={e=>setNewUser({...newUser, email: e.target.value})} /></div>
-                            <div><label className="text-xs font-bold text-slate-500 mb-1 block">كلمة المرور (6 حروف)</label><input type="text" required minLength="6" className="w-full border-2 p-3 rounded-xl font-black tracking-widest outline-none focus:border-blue-500 text-left" dir="ltr" value={newUser.password} onChange={e=>setNewUser({...newUser, password: e.target.value})} /></div>
-                            <div><label className="text-xs font-bold text-slate-500 mb-1 block">الصلاحية</label><select className="w-full border-2 p-3 rounded-xl font-bold outline-none focus:border-blue-500 bg-white" value={newUser.role} onChange={e=>setNewUser({...newUser, role: e.target.value})}><option value="admin">مدير نظام</option><option value="custody">أمين عهدة</option><option value="partner">شريك / مستثمر</option></select></div>
-                            <button disabled={isCreatingUser} className={`w-full text-white py-4 rounded-xl font-bold shadow transition ${isCreatingUser ? 'bg-slate-400' : 'bg-slate-800 hover:bg-slate-900'}`}>{isCreatingUser ? 'جاري الإنشاء...' : '➕ إضافة الموظف'}</button>
-                         </form>
-                      </div>
-                      {/* قائمة المستخدمين */}
-                      <div className="md:col-span-2">
-                         <h4 className="font-bold text-slate-700 mb-4">قائمة الموظفين الحاليين ({dbUsers.length})</h4>
-                         <div className="space-y-3">
-                            {dbUsers.map(u => (
-                               <div key={u.uid} className="bg-white p-4 rounded-2xl border-2 border-slate-100 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4 hover:border-blue-200 transition">
-                                  <div className="flex items-center gap-4"><div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-inner ${u.role === 'admin' ? 'bg-blue-100' : u.role === 'partner' ? 'bg-purple-100' : 'bg-emerald-100'}`}>{u.role === 'admin' ? '👑' : u.role === 'partner' ? '💼' : '👷'}</div><div><p className="font-black text-slate-800">{u.name}</p><p className="text-xs text-slate-500 font-mono mt-1">{u.email}</p></div></div>
-                                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end"><span className={`px-3 py-1 rounded-lg text-xs font-bold border ${u.role === 'admin' ? 'bg-blue-50 text-blue-700 border-blue-200' : u.role === 'partner' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>{u.role === 'admin' ? 'مدير نظام' : u.role === 'partner' ? 'شريك' : 'أمين عهدة'}</span><button onClick={()=>handleDeleteUser(u.uid)} className="bg-red-50 text-red-600 w-8 h-8 rounded-lg font-bold hover:bg-red-100 transition shadow-sm border border-red-100">🗑️</button></div>
-                               </div>
-                            ))}
-                            {dbUsers.length === 0 && <div className="text-center p-8 bg-slate-50 rounded-2xl border border-slate-200 text-slate-500 font-bold">لا يوجد موظفين مسجلين.</div>}
-                         </div>
-                      </div>
-                   </div>
-                </div>
-
-                {/* باقي إعداداتك الأصلية زي ما هي */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
+                {/* الإعدادات المتاحة للجميع (أمين العهدة والمدير) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200 md:col-span-2 flex flex-col md:flex-row justify-between items-center gap-4 bg-gradient-to-r from-slate-800 to-slate-900 text-white"><h4 className="font-bold text-lg">{t.langTitle}</h4><div className="flex bg-slate-700 p-1 rounded-xl"><button onClick={() => setLang('ar')} className={`px-6 py-2 rounded-lg font-bold transition ${lang === 'ar' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-300 hover:text-white'}`}>عربي</button><button onClick={() => setLang('en')} className={`px-6 py-2 rounded-lg font-bold transition ${lang === 'en' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-300 hover:text-white'}`}>English</button></div></div>
                   <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200"><h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">{t.addCatTitle}</h4><form onSubmit={(e)=>{e.preventDefault(); setData(p=>({...p, categories: [...(p.categories || []), {id: 'c_'+Date.now(), name: newCategory}]})); setNewCategory(''); showMsg(t.success);}} className="flex flex-col gap-3 mb-4"><input required type="text" placeholder={t.catName} className="border-2 p-3 text-md w-full rounded-xl font-bold focus:border-blue-500 outline-none bg-slate-50" value={newCategory} onChange={e=>setNewCategory(e.target.value)}/><button className="bg-slate-800 text-white p-3 rounded-xl text-md font-bold shadow hover:bg-slate-900 transition">{t.addCatBtn}</button></form><div className="flex flex-wrap gap-2">{sortedCategories.map(c => ( <span key={c.id} onClick={() => setAppModal({ show: true, type: 'CAT_ACTION', props: { cat: c } })} className="bg-slate-100 border border-slate-200 p-2 px-3 rounded-lg text-xs font-bold text-slate-700 shadow-sm cursor-pointer hover:bg-blue-50 transition">{c.name}</span> ))}</div></div>
-                  <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200"><h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">{t.newCustodyTitle}</h4><form onSubmit={(e)=>{e.preventDefault(); setData(p=>({...p, custodies: [...(p.custodies || []), {id: 'cus_'+Date.now(), ...newCustody}]})); setNewCustody({personName:'', totalAmount:'', notes:''}); showMsg(t.success);}} className="space-y-4 relative"><div className="relative"><input required type="text" placeholder={t.respName} className="border-2 p-3 text-sm w-full rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCustody.personName} onChange={e=>setNewCustody({...newCustody, personName:e.target.value})} onFocus={() => setCustodyNameFocus(true)} onBlur={() => setTimeout(() => setCustodyNameFocus(false), 200)}/>{custodyNameFocus && filteredCustodyNames.length > 0 && ( <div className="absolute top-full left-0 right-0 bg-white border-2 border-slate-200 mt-1 shadow-2xl z-50 max-h-48 overflow-y-auto rounded-xl animate-fade-in">{filteredCustodyNames.map((n, idx) => <div key={idx} className="p-3 text-sm border-b hover:bg-blue-50 cursor-pointer font-bold text-slate-700" onMouseDown={() => setNewCustody({...newCustody, personName: n})}>{n}</div>)}</div> )}</div><div><NumberInput required placeholder={t.initAmount} className="border-2 p-3 text-sm w-full rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCustody.totalAmount} onChange={v=>setNewCustody({...newCustody, totalAmount:v})}/>{lastCustodyNet > 0 && <span onClick={() => setNewCustody({...newCustody, totalAmount: lastCustodyNet.toString()})} className="block text-xs font-bold text-blue-600 mt-2 cursor-pointer hover:underline bg-blue-50 p-2 rounded-lg text-center border border-blue-100 shadow-sm transition hover:bg-blue-100">💡 {t.suggestedNet} ({lastCustodyNet.toLocaleString()})</span>}</div><button className="bg-slate-800 text-white p-4 rounded-xl w-full text-md font-bold shadow-lg hover:bg-slate-900 transition">{t.saveCustody}</button></form></div>
-                  <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200 md:col-span-2"><h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">تغيير رمز PIN للحماية</h4><form onSubmit={(e)=>{ e.preventDefault(); const formTarget = e.target; const oldPinVal = formTarget.oldPin.value; const newPinVal = formTarget.newPin.value; if (oldPinVal !== (data.pinCode || '0000')) { showMsg(lang === 'ar' ? 'الرمز الحالي غير صحيح' : 'Incorrect current PIN', true); return; } setData(p => { const newData = {...p, pinCode: newPinVal}; localStorage.setItem('real_estate_core_data', JSON.stringify(newData)); return newData; }); showMsg(lang === 'ar' ? 'تم تغيير الرمز بنجاح' : 'PIN changed successfully'); formTarget.reset(); }} className="flex flex-col gap-4"><div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-lg mx-auto w-full"><div><label className="text-xs font-bold text-slate-500 mb-1 block">الرمز الحالي (المستخدم الآن):</label><input name="oldPin" type="password" inputMode="numeric" maxLength="4" pattern="[0-9]{4}" placeholder="****" className="border-2 p-3 text-center tracking-[1em] text-2xl w-full rounded-xl font-bold focus:border-red-500 outline-none bg-slate-50" required /></div><div><label className="text-xs font-bold text-slate-500 mb-1 block">الرمز الجديد:</label><input name="newPin" type="password" inputMode="numeric" maxLength="4" pattern="[0-9]{4}" placeholder="****" className="border-2 p-3 text-center tracking-[1em] text-2xl w-full rounded-xl font-bold focus:border-blue-500 outline-none bg-slate-50" required /></div></div><button className="bg-slate-800 text-white p-3 rounded-xl text-md font-bold shadow hover:bg-slate-900 transition mt-2 max-w-lg mx-auto w-full">تحديث الرمز السري</button></form></div>
-                  <div className="bg-white p-8 shadow-sm rounded-2xl md:col-span-2 text-center border-2 border-dashed border-blue-400 relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-2 bg-blue-500"></div><h4 className="font-black mb-3 text-blue-900 text-2xl">{t.backupTitle}</h4><p className="text-sm mb-6 text-slate-600 font-bold bg-blue-50 inline-block p-2 rounded-lg">{t.backupDesc}</p><div className="flex flex-col sm:flex-row gap-4 justify-center mt-6"><button onClick={()=>{const b=new Blob([JSON.stringify(data)],{type:'application/json'});const l=document.createElement('a');l.href=URL.createObjectURL(b);l.download=`backup_${todayDateStr}.json`;l.click(); showMsg(t.success);}} className="bg-blue-600 text-white px-8 py-4 rounded-xl font-black text-lg shadow-lg hover:bg-blue-700 transition hover:-translate-y-1">{t.exportBtn}</button><label className="bg-amber-500 text-white px-8 py-4 rounded-xl font-black text-lg shadow-lg hover:bg-amber-600 transition cursor-pointer hover:-translate-y-1">{t.importBtn}<input type="file" accept=".json" className="hidden" onChange={(e)=>{ const r = new FileReader(); r.onload = (ev) => { try { const imported = JSON.parse(ev.target.result); setData(p => { const newData = { ...imported, pinCode: p.pinCode || '0000' }; localStorage.setItem('real_estate_core_data', JSON.stringify(newData)); return newData; }); showMsg(t.success); } catch { showMsg('Invalid File', true); } }; if(e.target.files[0]) r.readAsText(e.target.files[0]); }}/></label></div></div>
-                  <div className="bg-red-50 p-8 shadow-sm rounded-2xl md:col-span-2 border-2 border-red-300 mt-2 relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-2 bg-red-600"></div><h4 className="font-black mb-3 text-red-800 text-center text-2xl">{t.dangerZone}</h4><p className="text-sm text-center text-red-600 mb-6 font-bold">{t.resetDesc}</p><button onClick={handleResetFactory} className="w-full bg-red-600 text-white py-4 rounded-xl text-xl font-black shadow-lg hover:bg-red-700 transition hover:-translate-y-1">{t.resetBtn}</button></div>
+                  <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200"><h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">{t.newCustodyTitle}</h4><form onSubmit={(e)=>{e.preventDefault(); setData(p=>({...p, custodies: [...(p.custodies || []), {id: 'cus_'+Date.now(), ...newCustody}]})); setNewCustody({personName:'', totalAmount:'', notes:''}); showMsg(t.success);}} className="space-y-4 relative">
+                    <div className="relative">
+                      <CustomSelect options={dbUsers.length > 0 ? [...dbUsers.map(u => ({ value: u.name, label: `${u.name} - ${u.role === 'admin'?'مدير':u.role==='partner'?'شريك':'أمين عهدة'}` }))] : [{value: '', label: 'لا يوجد موظفين مسجلين'}]} value={newCustody.personName} onChange={v => setNewCustody({...newCustody, personName: v})} placeholder={t.respName} />
+                    </div>
+                    <div><NumberInput placeholder={t.initAmount} className="border-2 p-3 text-sm w-full rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCustody.totalAmount} onChange={v=>setNewCustody({...newCustody, totalAmount:v})}/>{lastCustodyNet > 0 && <span onClick={() => setNewCustody({...newCustody, totalAmount: lastCustodyNet.toString()})} className="block text-xs font-bold text-blue-600 mt-2 cursor-pointer hover:underline bg-blue-50 p-2 rounded-lg text-center border border-blue-100 shadow-sm transition hover:bg-blue-100">💡 {t.suggestedNet} ({lastCustodyNet.toLocaleString()})</span>}</div><button className="bg-slate-800 text-white p-4 rounded-xl w-full text-md font-bold shadow-lg hover:bg-slate-900 transition">{t.saveCustody}</button></form></div>
                 </div>
+
+                {/* الإعدادات الخاصة بالمدير فقط (Admin Only) */}
+                {userRole === 'admin' && (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
+                        <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200 md:col-span-2"><h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">تغيير رمز PIN للحماية</h4><form onSubmit={(e)=>{ e.preventDefault(); const formTarget = e.target; const oldPinVal = formTarget.oldPin.value; const newPinVal = formTarget.newPin.value; if (oldPinVal !== (data.pinCode || '0000')) { showMsg(lang === 'ar' ? 'الرمز الحالي غير صحيح' : 'Incorrect current PIN', true); return; } setData(p => { const newData = {...p, pinCode: newPinVal}; localStorage.setItem('real_estate_core_data', JSON.stringify(newData)); return newData; }); showMsg(lang === 'ar' ? 'تم تغيير الرمز بنجاح' : 'PIN changed successfully'); formTarget.reset(); }} className="flex flex-col gap-4"><div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-lg mx-auto w-full"><div><label className="text-xs font-bold text-slate-500 mb-1 block">الرمز الحالي (المستخدم الآن):</label><input name="oldPin" type="password" inputMode="numeric" maxLength="4" pattern="[0-9]{4}" placeholder="****" className="border-2 p-3 text-center tracking-[1em] text-2xl w-full rounded-xl font-bold focus:border-red-500 outline-none bg-slate-50" required /></div><div><label className="text-xs font-bold text-slate-500 mb-1 block">الرمز الجديد:</label><input name="newPin" type="password" inputMode="numeric" maxLength="4" pattern="[0-9]{4}" placeholder="****" className="border-2 p-3 text-center tracking-[1em] text-2xl w-full rounded-xl font-bold focus:border-blue-500 outline-none bg-slate-50" required /></div></div><button className="bg-slate-800 text-white p-3 rounded-xl text-md font-bold shadow hover:bg-slate-900 transition mt-2 max-w-lg mx-auto w-full">تحديث الرمز السري</button></form></div>
+                        <div className="bg-white p-8 shadow-sm rounded-2xl md:col-span-2 text-center border-2 border-dashed border-blue-400 relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-2 bg-blue-500"></div><h4 className="font-black mb-3 text-blue-900 text-2xl">{t.backupTitle}</h4><p className="text-sm mb-6 text-slate-600 font-bold bg-blue-50 inline-block p-2 rounded-lg">{t.backupDesc}</p><div className="flex flex-col sm:flex-row gap-4 justify-center mt-6"><button onClick={()=>{const b=new Blob([JSON.stringify(data)],{type:'application/json'});const l=document.createElement('a');l.href=URL.createObjectURL(b);l.download=`backup_${todayDateStr}.json`;l.click(); showMsg(t.success);}} className="bg-blue-600 text-white px-8 py-4 rounded-xl font-black text-lg shadow-lg hover:bg-blue-700 transition hover:-translate-y-1">{t.exportBtn}</button><label className="bg-amber-500 text-white px-8 py-4 rounded-xl font-black text-lg shadow-lg hover:bg-amber-600 transition cursor-pointer hover:-translate-y-1">{t.importBtn}<input type="file" accept=".json" className="hidden" onChange={(e)=>{ const r = new FileReader(); r.onload = (ev) => { try { const imported = JSON.parse(ev.target.result); setData(p => { const newData = { ...imported, pinCode: p.pinCode || '0000' }; localStorage.setItem('real_estate_core_data', JSON.stringify(newData)); return newData; }); showMsg(t.success); } catch { showMsg('Invalid File', true); } }; if(e.target.files[0]) r.readAsText(e.target.files[0]); }}/></label></div></div>
+                        <div className="bg-red-50 p-8 shadow-sm rounded-2xl md:col-span-2 border-2 border-red-300 mt-2 relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-2 bg-red-600"></div><h4 className="font-black mb-3 text-red-800 text-center text-2xl">{t.dangerZone}</h4><p className="text-sm text-center text-red-600 mb-6 font-bold">{t.resetDesc}</p><button onClick={handleResetFactory} className="w-full bg-red-600 text-white py-4 rounded-xl text-xl font-black shadow-lg hover:bg-red-700 transition hover:-translate-y-1">{t.resetBtn}</button></div>
+                    </div>
+    
+                    <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 rounded-3xl shadow-xl text-white text-center relative overflow-hidden mt-6">
+                       <div className="absolute top-0 right-0 p-4 opacity-20 text-9xl">☁️</div>
+                       <h2 className="text-3xl font-black mb-2 relative z-10">الترحيل للسحابة (Cloud Migration)</h2>
+                       <p className="text-blue-100 font-bold mb-6 relative z-10">اضغط هنا لرفع كافة بياناتك المسجلة على الموبايل إلى سيرفرات جوجل لتصبح متاحة لحظياً.</p>
+                       <button onClick={handleMigrateData} disabled={isUploading} className={`relative z-10 px-8 py-4 rounded-xl font-black text-xl shadow-lg transition-transform ${isUploading ? 'bg-slate-400' : 'bg-white text-blue-800 hover:-translate-y-1 hover:shadow-2xl'}`}>
+                          {isUploading ? 'جاري الرفع والمزامنة...' : '⬆️ رفع البيانات للسيرفر الآن'}
+                       </button>
+                    </div>
+    
+                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 mt-6">
+                       <h3 className="font-black text-2xl text-slate-800 mb-6 border-b-2 border-slate-100 pb-4">👥 إدارة المستخدمين وصلاحيات الموظفين</h3>
+                       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                          <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner h-fit">
+                             <h4 className="font-bold text-slate-700 mb-4">إنشاء حساب موظف جديد</h4>
+                             <form onSubmit={handleCreateUser} className="space-y-4">
+                                <div><label className="text-xs font-bold text-slate-500 mb-1 block">الاسم</label><input type="text" required className="w-full border-2 p-3 rounded-xl font-bold outline-none focus:border-blue-500" value={newUser.name} onChange={e=>setNewUser({...newUser, name: e.target.value})} /></div>
+                                <div><label className="text-xs font-bold text-slate-500 mb-1 block">البريد (للدخول)</label><input type="email" required className="w-full border-2 p-3 rounded-xl font-bold outline-none focus:border-blue-500 text-left" dir="ltr" placeholder="eng@realstate.com" value={newUser.email} onChange={e=>setNewUser({...newUser, email: e.target.value})} /></div>
+                                <div><label className="text-xs font-bold text-slate-500 mb-1 block">كلمة المرور (6 حروف)</label><input type="text" required minLength="6" className="w-full border-2 p-3 rounded-xl font-black tracking-widest outline-none focus:border-blue-500 text-left" dir="ltr" value={newUser.password} onChange={e=>setNewUser({...newUser, password: e.target.value})} /></div>
+                                <div><label className="text-xs font-bold text-slate-500 mb-1 block">الصلاحية</label><select className="w-full border-2 p-3 rounded-xl font-bold outline-none focus:border-blue-500 bg-white" value={newUser.role} onChange={e=>setNewUser({...newUser, role: e.target.value})}><option value="admin">مدير نظام</option><option value="custody">أمين عهدة</option><option value="partner">شريك / مستثمر</option></select></div>
+                                <button disabled={isCreatingUser} className={`w-full text-white py-4 rounded-xl font-bold shadow transition ${isCreatingUser ? 'bg-slate-400' : 'bg-slate-800 hover:bg-slate-900'}`}>{isCreatingUser ? 'جاري الإنشاء...' : '➕ إضافة الموظف'}</button>
+                             </form>
+                          </div>
+                          <div className="md:col-span-2">
+                             <h4 className="font-bold text-slate-700 mb-4">قائمة الموظفين الحاليين ({dbUsers.length})</h4>
+                             <div className="space-y-3">
+                                {dbUsers.map(u => (
+                                   <div key={u.uid} className="bg-white p-4 rounded-2xl border-2 border-slate-100 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4 hover:border-blue-200 transition">
+                                      <div className="flex items-center gap-4"><div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-inner ${u.role === 'admin' ? 'bg-blue-100' : u.role === 'partner' ? 'bg-purple-100' : 'bg-emerald-100'}`}>{u.role === 'admin' ? '👑' : u.role === 'partner' ? '💼' : '👷'}</div><div><p className="font-black text-slate-800">{u.name}</p><p className="text-xs text-slate-500 font-mono mt-1">{u.email}</p></div></div>
+                                      <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end"><span className={`px-3 py-1 rounded-lg text-xs font-bold border ${u.role === 'admin' ? 'bg-blue-50 text-blue-700 border-blue-200' : u.role === 'partner' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>{u.role === 'admin' ? 'مدير نظام' : u.role === 'partner' ? 'شريك' : 'أمين عهدة'}</span><button onClick={()=>handleDeleteUser(u.uid)} className="bg-red-50 text-red-600 w-8 h-8 rounded-lg font-bold hover:bg-red-100 transition shadow-sm border border-red-100">🗑️</button></div>
+                                   </div>
+                                ))}
+                                {dbUsers.length === 0 && <div className="text-center p-8 bg-slate-50 rounded-2xl border border-slate-200 text-slate-500 font-bold">لا يوجد موظفين مسجلين.</div>}
+                             </div>
+                          </div>
+                       </div>
+                    </div>
+                  </>
+                )}
 
               </div>
             )}

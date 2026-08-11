@@ -19,44 +19,15 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
 
   <style>
-    @media print {
-      html, body, #root, .min-h-screen, main, main > div { 
-        height: auto !important; min-height: auto !important; overflow: visible !important; position: static !important; background: white !important; margin: 0 !important; padding: 0 !important; display: block !important;
-      }
-      header, nav, .print-hide { display: none !important; }
-      .print-show { display: block !important; position: static !important; width: 100% !important; visibility: visible !important; }
-      .print-receipt-wrapper { position: static !important; display: block !important; background: transparent !important; padding: 0 !important; }
-      .print-receipt-wrapper > div { position: static !important; box-shadow: none !important; max-width: 100% !important; width: 100% !important; margin: 0 !important; border: none !important; border-radius: 0 !important; }
-      .receipt-print-area { padding: 0 !important; border: none !important; }
-      @page { size: auto; margin: 8mm; }
-      table { width: 100%; border-collapse: collapse; margin: 15px auto; page-break-inside: auto; }
-      tr { page-break-inside: avoid; page-break-after: auto; }
-      th, td { border: 2px solid black !important; padding: 6px 8px !important; text-align: center; color: black !important; }
-      .print-row-text { font-size: 1rem !important; }
-    }
-    @keyframes slideUp { from { transform: translateY(10%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-    .animate-slide-up { animation: slideUp 0.2s ease-out; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    .animate-fade-in { animation: fadeIn 0.2s ease-out; }
-    .no-scrollbar::-webkit-scrollbar { display: none; }
+    @media print { html, body, #root, .min-h-screen, main, main > div { height: auto !important; min-height: auto !important; overflow: visible !important; position: static !important; background: white !important; margin: 0 !important; padding: 0 !important; display: block !important; } header, nav, .print-hide { display: none !important; } .print-show { display: block !important; position: static !important; width: 100% !important; visibility: visible !important; } .print-receipt-wrapper { position: static !important; display: block !important; background: transparent !important; padding: 0 !important; } .print-receipt-wrapper > div { position: static !important; box-shadow: none !important; max-width: 100% !important; width: 100% !important; margin: 0 !important; border: none !important; border-radius: 0 !important; } .receipt-print-area { padding: 0 !important; border: none !important; } @page { size: auto; margin: 8mm; } table { width: 100%; border-collapse: collapse; margin: 15px auto; page-break-inside: auto; } tr { page-break-inside: avoid; page-break-after: auto; } th, td { border: 2px solid black !important; padding: 6px 8px !important; text-align: center; color: black !important; } .print-row-text { font-size: 1rem !important; } }
+    @keyframes slideUp { from { transform: translateY(10%); opacity: 0; } to { transform: translateY(0); opacity: 1; } } .animate-slide-up { animation: slideUp 0.2s ease-out; } @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } } .animate-fade-in { animation: fadeIn 0.2s ease-out; } .no-scrollbar::-webkit-scrollbar { display: none; }
   </style>
 </head>
 <body className="bg-slate-50 text-slate-800 font-sans">
   <div id="root"></div>
 
   <script type="text/babel">
-    // إعدادات Firebase الخاصة بتطبيقك
-    const firebaseConfig = {
-      apiKey: "AIzaSyCCQPsTOuA_Hz31pFQQe4CeWM45vFV-ov4",
-      authDomain: "realstateapp-efa82.firebaseapp.com",
-      databaseURL: "https://realstateapp-efa82-default-rtdb.firebaseio.com",
-      projectId: "realstateapp-efa82",
-      storageBucket: "realstateapp-efa82.firebasestorage.app",
-      messagingSenderId: "285724516700",
-      appId: "1:285724516700:web:c63ed613ac5fd15aafe199"
-    };
-
-    // تشغيل Firebase
+    const firebaseConfig = { apiKey: "AIzaSyCCQPsTOuA_Hz31pFQQe4CeWM45vFV-ov4", authDomain: "realstateapp-efa82.firebaseapp.com", databaseURL: "https://realstateapp-efa82-default-rtdb.firebaseio.com", projectId: "realstateapp-efa82", storageBucket: "realstateapp-efa82.firebasestorage.app", messagingSenderId: "285724516700", appId: "1:285724516700:web:c63ed613ac5fd15aafe199" };
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.database();
@@ -65,80 +36,25 @@
     const getTodayStr = () => new Date().toISOString().substring(0, 10);
     const todayDateStr = getTodayStr();
 
-    // -------------------------------------------------------------
-    // شاشة تسجيل الدخول الجديدة (Login Screen)
-    // -------------------------------------------------------------
     function LoginScreen() {
-      const [email, setEmail] = useState('');
-      const [password, setPassword] = useState('');
-      const [error, setError] = useState('');
-      const [loading, setLoading] = useState(false);
-
-      const handleLogin = (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setError('');
-        auth.signInWithEmailAndPassword(email, password)
-          .catch(err => {
-            setError('الإيميل أو كلمة المرور غير صحيحة');
-            setLoading(false);
-          });
-      };
-
+      const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [error, setError] = useState(''); const [loading, setLoading] = useState(false);
+      const handleLogin = (e) => { e.preventDefault(); setLoading(true); setError(''); auth.signInWithEmailAndPassword(email, password).catch(err => { setError('الإيميل أو كلمة المرور غير صحيحة'); setLoading(false); }); };
       return (
         <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
           <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md animate-slide-up">
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-black text-slate-800 mb-2">RealStateApp</h1>
-              <p className="text-slate-500 font-bold">تسجيل الدخول للنظام</p>
-            </div>
-            
-            {error && (
-              <div className="bg-red-50 text-red-600 p-4 rounded-xl font-bold mb-6 text-center border border-red-200">
-                {error}
-              </div>
-            )}
-
+            <div className="text-center mb-8"><h1 className="text-3xl font-black text-slate-800 mb-2">RealStateApp</h1><p className="text-slate-500 font-bold">تسجيل الدخول للنظام</p></div>
+            {error && <div className="bg-red-50 text-red-600 p-4 rounded-xl font-bold mb-6 text-center border border-red-200">{error}</div>}
             <form onSubmit={handleLogin} className="space-y-5">
-              <div>
-                <label className="block text-sm font-bold text-slate-600 mb-1">البريد الإلكتروني</label>
-                <input 
-                  type="email" 
-                  required 
-                  className="w-full border-2 border-slate-200 p-4 rounded-xl text-left bg-slate-50 outline-none focus:border-blue-500 font-bold transition"
-                  dir="ltr"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-600 mb-1">كلمة المرور</label>
-                <input 
-                  type="password" 
-                  required 
-                  className="w-full border-2 border-slate-200 p-4 rounded-xl text-left bg-slate-50 outline-none focus:border-blue-500 font-black tracking-widest transition"
-                  dir="ltr"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                />
-              </div>
-              <button 
-                type="submit" 
-                disabled={loading}
-                className={`w-full text-white p-4 rounded-xl font-black text-lg shadow-lg transition-transform ${loading ? 'bg-slate-400' : 'bg-blue-600 hover:bg-blue-700 hover:-translate-y-1'}`}
-              >
-                {loading ? 'جاري التحقق...' : 'دخول'}
-              </button>
+              <div><label className="block text-sm font-bold text-slate-600 mb-1">البريد الإلكتروني</label><input type="email" required className="w-full border-2 border-slate-200 p-4 rounded-xl text-left bg-slate-50 outline-none focus:border-blue-500 font-bold transition" dir="ltr" value={email} onChange={e => setEmail(e.target.value)} /></div>
+              <div><label className="block text-sm font-bold text-slate-600 mb-1">كلمة المرور</label><input type="password" required className="w-full border-2 border-slate-200 p-4 rounded-xl text-left bg-slate-50 outline-none focus:border-blue-500 font-black tracking-widest transition" dir="ltr" value={password} onChange={e => setPassword(e.target.value)} /></div>
+              <button type="submit" disabled={loading} className={`w-full text-white p-4 rounded-xl font-black text-lg shadow-lg transition-transform ${loading ? 'bg-slate-400' : 'bg-blue-600 hover:bg-blue-700 hover:-translate-y-1'}`}>{loading ? 'جاري التحقق...' : 'دخول'}</button>
             </form>
           </div>
         </div>
       );
     }
 
-    // هنا بقية الكود الأصلي بتاعك زي ما هو بالظبط بدون أي مسح (ضغطت الكود المساعد بس لتوفير المساحة)
     const compressImage = (file, callback) => { const reader = new FileReader(); reader.readAsDataURL(file); reader.onload = event => { const img = new Image(); img.src = event.target.result; img.onload = () => { const canvas = document.createElement('canvas'); const MAX_WIDTH = 800; let width = img.width; let height = img.height; if (width > MAX_WIDTH) { height = height * (MAX_WIDTH / width); width = MAX_WIDTH; } canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height); callback(canvas.toDataURL('image/jpeg', 0.6)); } } };
-    
-    // (وضعت هنا بقية القواميس والمكونات الصغرى زي ما كانت بالظبط عشان مفيش حاجة تضيع)
     const dict = { ar: { appTitle: "RealStateApp", tab_dash: "الرئيسية", tab_tx: "إيراد/مصروف", tab_cust: "العهد", tab_inv: "الوحدات", tab_sales: "المبيعات", tab_rep: "التقارير", tab_settings: "الإعدادات", income: "إيراد", expense: "مصروف", transfer: "تحويل", addIncome: "➕ إيراد", addExpense: "➖ مصروف", addTransfer: "🔄 تحويل عهد", date: "التاريخ", amount: "المبلغ (ج.م)", desc: "البيان (التفاصيل)", custody: "العهدة / الخزينة", building: "العمارة", unit: "الوحدة", category: "تصنيف المصروف", save: "حفظ", update: "تحديث", cancel: "إلغاء", edit: "تعديل", delete: "حذف", allCustodies: "-- جميع العهد والخزينة --", generalSafe: "-- الخزينة العامة --", allBuildings: "-- جميع العمارات --", selectCat: "-- اختر التصنيف --", monthDues: "مستحق هذا الشهر", activeCustody: "أرصدة العهد", net: "الصافي", addCat: "إضافة تصنيف مصروفات", newCustody: "تسليم عهدة لمسؤول جديد", settings: "الإعدادات والأمان", backup: "النسخ الاحتياطي", reset: "إعادة ضبط المصنع", lang: "لغة البرنامج / Language", yes: "نعم متأكد", no: "إلغاء", txTitle: "تسجيل حركة نقدية", showDetails: "التفاصيل ▼", hideDetails: "إخفاء ▲", opBalance: "رصيد أول المدة", hasPartner: "يوجد شريك؟", partnerPercent: "نسبة الشريك (%)", partnerNameInput: "اسم الشريك (اختياري)", myShare: "نسبتي", partnerShare: "للشريك", payPartnerBtn: "توريد للشريك", payPartnerTitle: "تأكيد توريد مبلغ الشريك", payPartnerDesc: "يمكنك توريد المبلغ كاملاً أو جزء منه وخصمه كـ (مصروف)", deductFromSafe: "خصم من عهدة / الخزينة", selectSafe: "-- اختر العهدة --", sortBy: "ترتيب حسب:", sortDate: "التاريخ", sortClient: "العميل", sortBuilding: "العمارة", detailsMonthDues: "تفاصيل أقساط الشهر", client: "العميل", dueDate: "الاستحقاق", action: "إجراء", noDues: "لا توجد أقساط مستحقة هذا الشهر", collect: "تحصيل", saveTx: "💾 حفظ الحركة", updateTx: "🔄 تحديث الحركة", searchDesc: "🔍 ابحث في البيان...", incomes: "الإيرادات ⬇", expenses: "المصروفات ⬆", total: "الإجمالي", noMatches: "لا توجد حركات مطابقة", addBuildingTitle: "🏢 إضافة عمارة/مشروع", buildingName: "اسم العمارة...", saveBuilding: "حفظ العمارة", addUnitTitle: "🔑 إضافة وحدة عقارية", unitName: "رقم أو اسم الوحدة", saveUnit: "حفظ الوحدة", newContractTitle: "إنشاء عقد جديد", clientName: "اسم العميل", selectUnit: "-- اختر الوحدة --", totalAmount: "الإجمالي (ج.م)", downPayment: "المقدم المدفوع", instCount: "عدد الأقساط", paySystem: "نظام الدفع", firstInstDate: "تاريخ أول قسط", saveContract: "تسجيل العقد وإنشاء الأقساط", overdueTitle: "⚠️ أقساط متأخرة ومستحقة", cancelContract: "فسخ العقد", status: "الحالة", paid: "مدفوع", pending: "مستحق", suspended: "معلق (0)", addManualInst: "➕ إضافة قسط يدوي", addAttachment: "📎 إرفاق مستند (صورة)", attachments: "المرفقات", noContracts: "لا توجد عقود نشطة", repCustodyTitle: "تقرير كشف حساب", repSalesTitle: "بيان أقساط ومستحقات", periodFrom: "من", periodTo: "إلى", start: "البداية", now: "الآن", repOpBalance: "رصيد بداية المدة المُرَحَّل", incTable: "جدول الإيرادات", expTable: "جدول المصروفات", totalIncomes: "إجمالي الإيرادات", totalExpenses: "إجمالي المصروفات", currentNet: "صافي العهدة الحالي", repInstTitle: "تقرير الأقساط", repCustodyBtn: "كشف حساب العهد", repSalesBtn: "تقرير الأقساط", repContractsBtn: "موقف العملاء والوحدات", repPartnersBtn: "حسابات الشركاء", repContractsTitle: "تقرير موقف العملاء والوحدات", partnerReportTitle: "كشف حساب المستثمر / الشريك", totalUnit: "إجمالي الوحدة", paidAmt: "المدفوع", remAmt: "المتبقي", nextDue: "القسط القادم", partnerDue: "مستحق للشريك", partnerPaidStatus: "مدفوع للشريك", totalExpected: "إجمالي الأرباح المتوقعة", totalCollectedNotPaid: "مستحق للتوريد (مُحصل)", totalPaidToPartner: "تم توريده للشريك", totalPending: "باقي في السوق (لم يُحصل)", printPdf: "🖨️ طباعة PDF", exportExcel: "📊 تصدير Excel", langTitle: "اللغة / Language", addCatTitle: "🏷️ إضافة تصنيف", catName: "اسم التصنيف...", addCatBtn: "إضافة", newCustodyTitle: "👤 إضافة عهدة جديدة", respName: "اسم المسؤول...", initAmount: "الرصيد الافتتاحي", saveCustody: "حفظ العهدة", suggestedNet: "مقترح: صافي آخر عهدة", backupTitle: "💾 النسخ الاحتياطي", backupDesc: "احتفظ بنسخة من بياناتك بانتظام", exportBtn: "⬇️ تحميل نسخة", importBtn: "⬆️ استرجاع نسخة", dangerZone: "⚠️ منطقة الخطر", resetDesc: "سيتم مسح كافة البيانات نهائياً. هل أنت متأكد؟", resetBtn: "🗑️ ضبط المصنع", sys1: "شهري", sys2: "كل شهرين", sys3: "ربع سنوي", sys4: "كل 4 شهور", sys6: "نصف سنوي", sys12: "سنوي", promptCollect: "تحصيل قسط", promptEditInst: "تعديل قسط", promptManual: "قسط يدوي", promptCustody: "إيداع في عهدة (اختياري)", confirmCancel: "متأكد من فسخ العقد؟", confirmDelCat: "حذف التصنيف؟", confirmDelBuild: "حذف العمارة؟", confirmDelUnit: "حذف الوحدة؟", confirmDelTx: "حذف الحركة؟", success: "تم بنجاح" } };
     class ErrorBoundary extends React.Component { constructor(props) { super(props); this.state = { hasError: false, error: null }; } static getDerivedStateFromError(error) { return { hasError: true, error }; } render() { if (this.state.hasError) { return ( <div className="p-6 m-4 bg-red-50 border-2 border-red-500 rounded-2xl text-red-900 shadow-xl"><h2 className="text-2xl font-black mb-3">⚠️ حدث خطأ في النظام</h2><button onClick={() => { localStorage.clear(); window.location.reload(); }} className="w-full bg-red-600 text-white py-4 rounded-xl font-black">🔄 مسح التعارض وإعادة تشغيل التطبيق</button></div> ); } return this.props.children; } }
     function NumberInput({ name, value, onChange, placeholder, className, required, id, defaultValue }) { const [internalVal, setInternalVal] = useState(defaultValue !== undefined ? defaultValue : value); useEffect(() => { if (value !== undefined) setInternalVal(value); }, [value]); const displayVal = (internalVal !== '' && internalVal !== undefined && internalVal !== null && !isNaN(internalVal)) ? Number(internalVal).toLocaleString('en-US') : ''; return ( <input type="text" id={id} name={name} inputMode="numeric" value={displayVal} placeholder={placeholder} required={required} className={className} onChange={(e) => { const raw = e.target.value.replace(/[^0-9]/g, ''); setInternalVal(raw); if(onChange) onChange(raw); }} /> ); }
@@ -148,20 +64,12 @@
 
     const initialData = { pinCode: '0000', buildings: [], units: [], categories: [], contracts: [], installments: [], custodies: [], transactions: [] };
 
-    // -------------------------------------------------------------
-    // MainApp تم تعديله لاستقبال اليوزر وإضافة زر تسجيل الخروج
-    // -------------------------------------------------------------
     function MainApp({ user }) {
       const [lang, setLang] = useState(() => localStorage.getItem('real_estate_lang') || 'ar');
       const t = dict[lang] || dict['ar'];
 
-      useEffect(() => {
-        localStorage.setItem('real_estate_lang', lang);
-        document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-        document.documentElement.lang = lang;
-      }, [lang]);
+      useEffect(() => { localStorage.setItem('real_estate_lang', lang); document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr'; document.documentElement.lang = lang; }, [lang]);
 
-      // في الخطوة دي لسه بنقرأ من اللوكال ستوريدج، الخطوة الجاية هنربطها بالسيرفر
       const [data, setData] = useState(() => {
         const saved = localStorage.getItem('real_estate_core_data');
         if (saved) { try { const parsed = JSON.parse(saved); return { ...initialData, ...parsed }; } catch (e) { return initialData; } }
@@ -367,15 +275,12 @@
                  const u = (data.units||[]).find(un => un.id === c.unitId);
                  const pShare = Math.round(Number(inst.amount) * (Number(b.partnerPercent)/100));
                  const paidToPartnerAmt = inst.partnerPaidAmount !== undefined ? Number(inst.partnerPaidAmount) : (inst.partnerPaid ? pShare : 0);
-
                  expected += pShare;
                  paid += paidToPartnerAmt;
-
                  if (inst.status === 'paid') {
                      const remainingUnpaidToPartner = Math.max(0, pShare - paidToPartnerAmt);
                      unpaid += remainingUnpaidToPartner;
                  } else { pending += pShare; }
-
                  const clientLabel = inst.isDownPayment ? `${c.clientName} (مقدم)` : c.clientName;
                  let partnerStatusText = 'غير محصل من العميل';
                  if (inst.status === 'paid') {
@@ -674,7 +579,7 @@
           <header className="bg-slate-900 text-white p-4 shadow-lg print-hide flex justify-between items-center relative z-40">
             <h1 className="text-xl font-bold tracking-wide flex items-center gap-2">🏢 <span className="hidden sm:inline">{t.appTitle}</span></h1>
             
-            {/* تم إضافة معلومات اليوزر وزر الخروج هنا */}
+            {/* معلومات اليوزر وزر الخروج */}
             <div className="flex items-center gap-4">
                <span className="text-xs bg-slate-800 px-3 py-1 rounded-full text-slate-300 font-mono hidden md:inline-block border border-slate-700">
                   {user?.email}
@@ -699,7 +604,6 @@
 
           {appModal.show && (
             <div className={`fixed inset-0 bg-slate-900 bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-[100] animate-fade-in p-4 ${appModal.type !== 'RECEIPT' ? 'print-hide' : 'print-receipt-wrapper'}`} onClick={closeModal}>
-              {/* جميع الموديلز تم إبقاؤها كما هي بالضبط */}
               {appModal.type === 'TX_ACTION' && appModal.props.tx && ( <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}><div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div><h3 className="font-bold text-lg mb-2 text-center text-slate-800 border-b pb-2">{t.action}</h3><p className="text-center text-sm text-slate-500 mb-6 bg-slate-50 p-2 rounded">{appModal.props.tx?.description} <br/> <span className="font-bold text-lg text-slate-800">{Number(appModal.props.tx?.amount || 0).toLocaleString()}</span></p><button onClick={() => { closeModal(); setNewTransaction({...appModal.props.tx}); setEditingTxId(appModal.props.tx?.id); setActiveTab('transactions'); }} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow hover:bg-blue-700 transition">✏️ {t.edit}</button><button onClick={() => { closeModal(); requirePin(() => { setAppModal({ show: true, type: 'CONFIRM', props: { title: t.delete, message: t.confirmDelTx, onConfirm: () => { setData(p => ({...p, transactions: (p.transactions||[]).filter(tx => tx.id !== appModal.props.tx?.id)})); showMsg(t.success); closeModal(); } }}); }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button></div> )}
               {appModal.type === 'CAT_ACTION' && appModal.props.cat && ( <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}><div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div><h3 className="font-bold text-lg mb-4 text-center text-slate-800 border-b pb-2">{t.action}</h3><input type="text" id="catEditInput" defaultValue={appModal.props.cat.name} className="w-full border-2 border-slate-300 p-3 rounded-xl mb-4 font-bold text-center focus:border-blue-500 outline-none" /><button onClick={() => { const val = document.getElementById('catEditInput').value; if(val) { setData(p => ({...p, categories: p.categories.map(c => c.id === appModal.props.cat.id ? {...c, name: val} : c)})); closeModal(); showMsg(t.success); } }} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow hover:bg-blue-700 transition">✏️ {t.edit}</button><button onClick={() => { requirePin(() => { setData(p => ({...p, categories: p.categories.filter(c => c.id !== appModal.props.cat.id)})); closeModal(); showMsg(t.success); }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button></div> )}
               {appModal.type === 'BUILDING_ACTION' && appModal.props.b && ( <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}><div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div><h3 className="font-bold text-lg mb-4 text-center text-slate-800 border-b pb-2">{t.action}</h3><input type="text" id="buildEditInput" defaultValue={appModal.props.b.name} className="w-full border-2 border-slate-300 p-3 rounded-xl mb-4 font-bold text-center focus:border-blue-500 outline-none" /><button onClick={() => { const val = document.getElementById('buildEditInput').value; if(val) { setData(p => ({...p, buildings: p.buildings.map(b => b.id === appModal.props.b.id ? {...b, name: val} : b)})); closeModal(); showMsg(t.success); } }} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow hover:bg-blue-700 transition">✏️ {t.edit}</button><button onClick={() => { requirePin(() => { setAppModal({show: true, type: 'CONFIRM', props: { title: t.delete, message: t.confirmDelBuild, onConfirm: () => { setData(p => ({...p, buildings: p.buildings.filter(b => b.id !== appModal.props.b.id)})); closeModal(); showMsg(t.success); } }}) }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button></div> )}
@@ -713,61 +617,438 @@
             </div>
           )}
 
-          {/* الباقي من كود الواجهة الرئيسية (MainApp) كما هو */}
           <main className={`flex-grow p-4 mx-auto w-full max-w-7xl relative z-10 ${appModal.type === 'RECEIPT' ? 'print-hide' : ''}`}>
-             {/* 
-                هنا باقي أكواد الـ Tabs (dashboard, transactions, custody, inventory, sales, reports, settings)
-                بدون أي تغيير عن النسخة السابقة لضمان عمل كل شيء كما هو في المرحلة دي
-             */}
-             <div className="bg-blue-50 text-blue-800 p-6 rounded-xl font-bold text-center mt-10">
-                مرحباً بك يا مدير النظام. في هذه المرحلة (المرحلة الأولى)، قمنا بتفعيل شاشة تسجيل الدخول فقط. 
-                جميع بياناتك السابقة لا تزال محفوظة هنا، وجاهزون للمرحلة التالية لرفعها على السيرفر.
-             </div>
+            
+            {activeTab === 'dashboard' && (
+              <div className="space-y-6 print-hide animate-fade-in">
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-5 rounded-2xl border border-blue-200 shadow-inner cursor-pointer hover:shadow-md transition" onClick={() => setShowMonthDetails(!showMonthDetails)}>
+                      <div className="flex justify-between items-center mb-2">
+                        <p className="text-sm text-blue-800 font-bold">{t.monthDues}</p>
+                        <span className="text-blue-600 bg-white px-3 py-1 rounded-lg text-xs font-bold shadow-sm">{showMonthDetails ? t.hideDetails : t.showDetails}</span>
+                      </div>
+                      <p className="text-4xl font-black text-blue-900 mt-2">{monthInstallments.reduce((sum, i) => sum + Number(i.amount||0), 0).toLocaleString()} <span className="text-lg font-bold">ج.م</span></p>
+                    </div>
+                    
+                    <div className="bg-gradient-to-br from-amber-50 to-orange-100 p-5 rounded-2xl border border-amber-200 shadow-inner">
+                      <p className="text-sm text-amber-900 mb-2 font-bold">{t.activeCustody}</p>
+                      <MultiSelectDropdown options={custodyMultiOptions} selected={dashboardCustodyFilter} onChange={setDashboardCustodyFilter} placeholder={t.allCustodies} />
+                      <p className="text-3xl font-black text-amber-600 mt-4">{t.net}: {dashboardNet.toLocaleString()} <span className="text-lg font-bold">ج.م</span></p>
+                      <div className="flex gap-3 mt-5 pt-4 border-t border-amber-200/60">
+                        <button onClick={() => goToTransaction('income')} className="flex-1 bg-emerald-500 text-white py-3 rounded-xl text-sm font-bold shadow-md hover:bg-emerald-600 transition">➕</button>
+                        <button onClick={() => goToTransaction('expense')} className="flex-1 bg-red-500 text-white py-3 rounded-xl text-sm font-bold shadow-md hover:bg-red-600 transition">➖</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {showMonthDetails && (
+                  <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 animate-slide-up">
+                    <h3 className="font-bold mb-4 border-b pb-2 text-blue-800 text-lg">{t.detailsMonthDues}</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm text-right" style={{textAlign: lang==='en'?'left':'right'}}>
+                        <thead className="bg-slate-50 text-slate-500"><tr><th className="p-3">{t.client}</th><th className="p-3">{t.dueDate}</th><th className="p-3">{t.amount}</th><th className="p-3">{t.action}</th></tr></thead>
+                        <tbody>
+                          {monthInstallments.map(inst => {
+                            const c = (data.contracts || []).find(ct => ct.id === inst.contractId);
+                            const b = (data.buildings || []).find(bd => bd.id === c?.buildingId);
+                            return (
+                              <tr key={inst.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                                <td className="p-3 font-bold text-slate-700">{c?.clientName} {inst.isDownPayment && <span className="text-[10px] bg-blue-100 text-blue-800 px-1 rounded ml-1">مقدم</span>}</td><td className="p-3 font-mono text-slate-500" dir="ltr">{formatShortDate(inst.dueDate)}</td>
+                                <td className="p-3">
+                                  <div className="font-black text-red-600 text-lg">{Number(inst.amount).toLocaleString()}</div>
+                                  {b?.hasPartner && b.partnerPercent > 0 && (
+                                    <div className="text-[10px] text-slate-500 mt-1 space-y-0.5"><span className="bg-blue-50 text-blue-700 px-1 rounded block">{t.myShare}: {Math.round(inst.amount * ((100 - b.partnerPercent)/100)).toLocaleString()}</span><span className="bg-purple-50 text-purple-700 px-1 rounded block">{t.partnerShare}: {Math.round(inst.amount * (b.partnerPercent/100)).toLocaleString()}</span></div>
+                                  )}
+                                </td>
+                                <td className="p-3 flex flex-col gap-2">
+                                  <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptCollect, defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId)=>payInstallment(inst.id, c?.clientName, c?.buildingId, amt, dt, custId) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">{t.collect}</button>
+                                  <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptEditInst, showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>editInstallment(inst.id, amt, dt) }})} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">{t.edit}</button>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                          {monthInstallments.length === 0 && <tr><td colSpan="4" className="text-center p-6 text-slate-400 font-medium">{t.noDues}</td></tr>}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'transactions' && (
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-lg mx-auto print-hide animate-fade-in">
+                <h3 className="font-bold text-2xl mb-6 text-center text-slate-800 border-b pb-3">{editingTxId ? t.edit : t.txTitle}</h3>
+                <form onSubmit={handleSaveTransaction} className="space-y-5">
+                  <div className="flex gap-2 p-1.5 bg-slate-100 rounded-xl border border-slate-200 shadow-inner">
+                    <label className={`flex-1 flex items-center justify-center p-2.5 rounded-lg cursor-pointer font-bold text-xs transition-all ${newTransaction.type === 'income' ? 'bg-emerald-500 text-white shadow' : 'text-slate-600 hover:bg-slate-200'}`}><input type="radio" className="hidden" checked={newTransaction.type === 'income'} onChange={()=>setNewTransaction({...newTransaction, type:'income'})}/> {t.addIncome}</label>
+                    <label className={`flex-1 flex items-center justify-center p-2.5 rounded-lg cursor-pointer font-bold text-xs transition-all ${newTransaction.type === 'expense' ? 'bg-red-500 text-white shadow' : 'text-slate-600 hover:bg-slate-200'}`}><input type="radio" className="hidden" checked={newTransaction.type === 'expense'} onChange={()=>setNewTransaction({...newTransaction, type:'expense'})}/> {t.addExpense}</label>
+                    <label className={`flex-1 flex items-center justify-center p-2.5 rounded-lg cursor-pointer font-bold text-xs transition-all ${newTransaction.type === 'transfer' ? 'bg-purple-600 text-white shadow' : 'text-slate-600 hover:bg-slate-200'}`}><input type="radio" className="hidden" checked={newTransaction.type === 'transfer'} onChange={()=>setNewTransaction({...newTransaction, type:'transfer'})}/> {t.addTransfer}</label>
+                  </div>
+                  <div><label className="text-sm font-bold text-slate-500 mb-1 block">{t.date}</label><CustomDateInput value={newTransaction.date} onChange={(d) => setNewTransaction({ ...newTransaction, date: d })} /></div>
+                  <div><label className="text-sm font-bold text-slate-500 mb-1 block">{t.amount}</label><NumberInput required value={newTransaction.amount} onChange={v=>setNewTransaction({...newTransaction, amount: v})} className="w-full border-2 border-slate-300 p-3 text-xl rounded-xl font-black text-slate-800 bg-white focus:border-blue-500 outline-none transition" /></div>
+                  <div className="relative">
+                    <label className="text-sm font-bold text-slate-500 mb-1 block">{t.desc}</label>
+                    <textarea rows="2" required placeholder="..." className="w-full border-2 border-slate-300 p-3 text-lg rounded-xl font-bold bg-white focus:border-blue-500 outline-none transition shadow-inner resize-none" value={newTransaction.description} onChange={e => setNewTransaction({...newTransaction, description: e.target.value})} onFocus={() => setDescFocus(true)} onBlur={() => setTimeout(() => setDescFocus(false), 200)}></textarea>
+                    {descFocus && newTransaction.description && filteredDescs.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 bg-white border-2 border-slate-200 mt-1 shadow-2xl z-50 max-h-48 overflow-y-auto rounded-xl animate-fade-in">{filteredDescs.map((d, idx) => <div key={idx} className="p-3 text-sm border-b hover:bg-blue-50 cursor-pointer font-bold text-slate-700" onMouseDown={() => setNewTransaction({...newTransaction, description: d})}>{d}</div>)}</div>
+                    )}
+                  </div>
+                  {newTransaction.type === 'transfer' ? (
+                    <div className="grid grid-cols-2 gap-3 border-t border-slate-100 pt-3">
+                      <div><label className="text-xs font-bold text-slate-500 mb-1 block">من عهدة / الخزينة:</label><CustomSelect options={custodyOptions} value={newTransaction.custodyId} onChange={(v) => setNewTransaction({ ...newTransaction, custodyId: v })} placeholder={t.generalSafe} /></div>
+                      <div><label className="text-xs font-bold text-slate-500 mb-1 block">إلى عهدة / الخزينة:</label><CustomSelect options={custodyOptions} value={newTransaction.toCustodyId} onChange={(v) => setNewTransaction({ ...newTransaction, toCustodyId: v })} placeholder={t.generalSafe} /></div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3 border-t border-slate-100 pt-3">
+                      <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.custody}</label><CustomSelect options={custodyOptions} value={newTransaction.custodyId} onChange={(v) => setNewTransaction({ ...newTransaction, custodyId: v })} placeholder={t.generalSafe} /></div>
+                      <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.building}</label><CustomSelect options={buildingOptions} value={newTransaction.buildingId} onChange={(v) => setNewTransaction({ ...newTransaction, buildingId: v })} placeholder={t.allBuildings} /></div>
+                    </div>
+                  )}
+                  {newTransaction.type === 'expense' && (
+                    <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.category}</label><CustomSelect options={categoryOptions} value={newTransaction.categoryId} onChange={(v) => setNewTransaction({ ...newTransaction, categoryId: v })} placeholder={t.selectCat} /></div>
+                  )}
+                  <button className={`w-full text-white py-4 rounded-xl text-xl font-black shadow-lg transition hover:-translate-y-1 ${editingTxId ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-600 hover:bg-blue-700'}`}>{editingTxId ? t.updateTx : t.saveTx}</button>
+                  {editingTxId && <button type="button" onClick={()=>{setEditingTxId(null); setNewTransaction({ type: 'income', amount: '', categoryId: '', buildingId: '', custodyId: '', toCustodyId: '', description: '', date: todayDateStr });}} className="w-full mt-2 text-slate-500 font-bold py-2 hover:bg-slate-100 rounded-xl transition">{t.cancel}</button>}
+                </form>
+              </div>
+            )}
+
+            {activeTab === 'custody' && (
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 print-hide animate-fade-in">
+                <div className="mb-5 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <label className="font-bold block mb-2 text-slate-800 text-sm">{t.activeCustody}:</label>
+                  <MultiSelectDropdown options={custodyMultiOptions} selected={selectedCustodies} onChange={setSelectedCustodies} placeholder={t.allCustodies} />
+                </div>
+                <div className="mb-5"><input type="text" placeholder={t.searchDesc} className="w-full border-2 border-slate-300 focus:border-blue-400 p-3 rounded-xl text-md font-bold outline-none transition bg-white shadow-sm" value={custodySearch} onChange={e => setCustodySearch(e.target.value)} /></div>
+                <div className="flex bg-slate-100 p-1.5 rounded-xl mb-4 shadow-inner">
+                  <button onClick={() => setCustodyTabSub('income')} className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${custodyTabSub === 'income' ? 'bg-white text-emerald-700 shadow border border-slate-200' : 'text-slate-500'}`}>{t.incomes}</button>
+                  <button onClick={() => setCustodyTabSub('expense')} className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${custodyTabSub === 'expense' ? 'bg-white text-red-700 shadow border border-slate-200' : 'text-slate-500'}`}>{t.expenses}</button>
+                </div>
+                <div className="overflow-x-auto min-h-[300px]">
+                  <table className="w-full text-right" style={{textAlign: lang==='en'?'left':'right'}}>
+                    <thead className="text-slate-400 border-b-2"><tr><th className="p-3 pb-2 font-medium">{t.desc}</th><th className="p-3 pb-2 font-medium text-left" style={{textAlign: lang==='en'?'right':'left'}}>{t.amount} / {t.date}</th></tr></thead>
+                    <tbody>
+                      {custodyTabSub === 'income' && !custodySearch && (
+                        <tr className="border-b-2 border-slate-200 bg-slate-100">
+                          <td className="p-3 font-bold text-slate-700">{t.opBalance}</td>
+                          <td className="p-3 text-left" style={{textAlign: lang==='en'?'right':'left'}}><span className="font-black text-lg text-slate-900">{Number(totalOpeningBalance).toLocaleString()}</span><br/><span className="text-xs text-slate-400">--</span></td>
+                        </tr>
+                      )}
+                      {filteredCustodyTrans.map(tx => (
+                        <tr key={tx.id} className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer" onClick={() => handleTxClick(tx)}>
+                          <td className="p-3 font-bold text-slate-800">{tx.description}{tx.type === 'transfer' && <span className="mr-2 text-xs bg-purple-100 text-purple-800 font-bold px-2 py-0.5 rounded-md">تحويل</span>}</td>
+                          <td className="p-3 text-left" style={{textAlign: lang==='en'?'right':'left'}}><div className="font-black text-slate-900 text-lg">{Number(tx.amount).toLocaleString()}</div><div className="text-slate-400 font-mono text-xs">{formatShortDate(tx.date)}</div></td>
+                        </tr>
+                      ))}
+                      {filteredCustodyTrans.length === 0 && <tr><td colSpan="2" className="text-center p-8 text-slate-400 font-bold">{t.noMatches}</td></tr>}
+                    </tbody>
+                  </table>
+                  <div className={`mt-6 p-4 rounded-xl font-black text-2xl text-center text-white shadow-inner ${custodyTabSub === 'expense' ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-gradient-to-r from-emerald-500 to-emerald-600'}`}>
+                    {t.total}: {(filteredCustodyTrans.reduce((s,tx)=>s+Number(tx.amount||0),0) + (custodyTabSub === 'income' && !custodySearch ? totalOpeningBalance : 0)).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'inventory' && (
+              <div className="space-y-6 print-hide animate-fade-in">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-md mx-auto mb-6">
+                  <h3 className="font-bold mb-5 text-center text-lg text-slate-800">{t.addBuildingTitle}</h3>
+                  <form onSubmit={addBuilding} className="flex flex-col gap-4">
+                    <input required type="text" placeholder={t.buildingName} className="border-2 p-3 rounded-xl text-md w-full font-bold focus:border-blue-400 outline-none bg-slate-50" value={newBuilding} onChange={e=>setNewBuilding(e.target.value)}/>
+                    <label className="font-bold text-sm flex items-center gap-2 cursor-pointer bg-slate-50 p-2 rounded-xl border"><input type="checkbox" className="w-5 h-5" checked={newBuildingPartner} onChange={e => setNewBuildingPartner(e.target.checked)} /> {t.hasPartner}</label>
+                    {newBuildingPartner && (
+                       <div className="flex flex-col gap-3 border-t border-slate-100 pt-3 mt-1">
+                         <div><label className="text-xs font-bold text-slate-500 mb-1 block">اسم الشريك (اختياري)</label><input type="text" placeholder={t.partnerNameInput} className="border-2 p-3 rounded-xl text-sm w-full font-bold focus:border-blue-400 outline-none bg-slate-50" value={newBuildingPartnerName} onChange={e=>setNewBuildingPartnerName(e.target.value)}/></div>
+                         <div><label className="text-xs font-bold text-slate-500 mb-1 block">نسبة الشريك (%)</label><NumberInput required placeholder={t.partnerPercent} className="border-2 p-3 rounded-xl text-md w-full font-bold focus:border-blue-400 outline-none bg-slate-50 text-center" value={newBuildingPartnerPercent} onChange={v=>setNewBuildingPartnerPercent(v)}/></div>
+                       </div>
+                    )}
+                    <button className="bg-slate-800 text-white px-4 py-3 rounded-xl text-md font-bold w-full shadow hover:bg-slate-900 mt-2">{t.saveBuilding}</button>
+                  </form>
+                </div>
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-md mx-auto">
+                  <h3 className="font-bold mb-5 text-center text-lg text-slate-800">{t.addUnitTitle}</h3>
+                  <form onSubmit={addUnit} className="flex flex-col gap-4">
+                    <div><CustomSelect options={buildingOptions} value={newUnit.buildingId} onChange={(v) => setNewUnit({ ...newUnit, buildingId: v })} placeholder={t.allBuildings} /></div>
+                    <div><input type="text" placeholder={t.unitName} className="border-2 p-3 rounded-xl text-sm w-full font-bold focus:border-blue-400 outline-none bg-slate-50" required value={newUnit.unitNumber} onChange={e => setNewUnit({...newUnit, unitNumber: e.target.value})} /></div>
+                    <button className="bg-blue-600 text-white px-4 py-3 rounded-xl text-md font-bold w-full shadow hover:bg-blue-700">{t.saveUnit}</button>
+                  </form>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {sortedBuildings.map(b => (
+                    <div key={b.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 cursor-pointer hover:border-blue-300 transition" onClick={() => setExpandedBuildings(p => ({...p, [b.id]: !p[b.id]}))}>
+                      <div className="flex justify-between items-center bg-slate-50 p-3 rounded-lg border text-slate-800 mb-2">
+                        <span onClick={(e) => { e.stopPropagation(); setAppModal({show: true, type: 'BUILDING_ACTION', props: {b}}); }} className="font-bold flex-grow hover:text-blue-600 flex items-center gap-2"><span>{b.name}</span> <span className="text-xs">⚙️</span></span>
+                        <span className="text-blue-600 bg-white px-2 py-1 rounded text-xs font-bold shadow-sm">{expandedBuildings[b.id] ? t.hideDetails : t.showDetails}</span>
+                      </div>
+                      {expandedBuildings[b.id] && (
+                        <div className="grid grid-cols-3 gap-3 mt-4 animate-slide-up" onClick={e=>e.stopPropagation()}>
+                          {(data.units || []).filter(u => u.buildingId === b.id).map(u => (
+                            <div key={u.id} onClick={() => setAppModal({show: true, type: 'UNIT_ACTION', props: {u}})} className={`p-2 text-center rounded-xl font-bold text-white shadow-sm flex flex-col justify-center min-h-[65px] transition-transform hover:scale-105 cursor-pointer ${u.status === 'available' ? 'bg-emerald-500' : 'bg-slate-400'}`}><span className="text-sm break-words">{u.unitNumber}</span></div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'sales' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print-hide animate-fade-in">
+                <div className={`bg-white p-6 rounded-2xl shadow-sm border-2 h-fit transition-colors ${editingContractId ? 'border-amber-400 shadow-md' : 'border-slate-200'}`}>
+                  <h3 className="font-bold mb-5 border-b pb-2 text-lg text-slate-800">{editingContractId ? 'تعديل بيانات العقد الشامل' : t.newContractTitle}</h3>
+                  {editingContractId && <div className="bg-amber-50 text-amber-700 text-xs p-3 rounded-xl mb-4 font-bold border border-amber-200 leading-relaxed">⚠️ تنبيه: الحفظ سيلغي الأقساط القديمة ويقوم بتسوية المدفوعات السابقة (إن وُجدت) لإنشاء الجدول الجديد للعميل.</div>}
+                  <form onSubmit={addContract} className="space-y-4">
+                    <input type="text" placeholder={t.clientName} className="w-full border-2 p-3 rounded-xl text-sm font-bold bg-slate-50 focus:border-blue-400 outline-none" required value={newContract.clientName} onChange={e => setNewContract({...newContract, clientName: e.target.value})} />
+                    <div>
+                      <label className="text-xs font-bold text-slate-500 block mb-1">الوحدة العقارية:</label>
+                      <CustomSelect options={(data.units || []).filter(u => u.status === 'available' || (editingContractId && newContract.unitId === u.id)).map(u => ({ value: u.id, label: `${(data.buildings || []).find(b=>b.id===u.buildingId)?.name || ''} - ${u.unitNumber}` }))} value={newContract.unitId} onChange={(v) => setNewContract({ ...newContract, unitId: v })} placeholder={t.selectUnit} />
+                    </div>
+                    <div><label className="text-xs font-bold text-slate-500 block mb-1">{t.totalAmount}</label><NumberInput required value={newContract.totalAmount} onChange={v => setNewContract({...newContract, totalAmount: v})} className="w-full border-2 p-3 rounded-xl text-lg font-bold bg-white focus:border-blue-400 outline-none" /></div>
+                    <div><label className="text-xs font-bold text-slate-500 block mb-1">{t.downPayment}</label><NumberInput required value={newContract.downPayment} onChange={v => setNewContract({...newContract, downPayment: v})} className="w-full border-2 p-3 rounded-xl text-lg font-bold bg-white focus:border-blue-400 outline-none" /></div>
+                    {Number(newContract.downPayment) > 0 && <div><label className="text-xs font-bold text-blue-700 block mb-1">إيداع المقدم في عهدة / الخزينة:</label><CustomSelect options={custodyOptions} value={newContract.custodyId} onChange={(v) => setNewContract({ ...newContract, custodyId: v })} placeholder={t.generalSafe} /></div>}
+                    <div><label className="text-xs font-bold text-slate-500 block mb-1">{t.instCount}</label><NumberInput required value={newContract.installmentsCount} onChange={v => setNewContract({...newContract, installmentsCount: v})} className="w-full border-2 p-3 rounded-xl text-lg font-bold bg-white focus:border-blue-400 outline-none text-center" /></div>
+                    <div><label className="text-xs font-bold text-slate-500 block mb-1">{t.paySystem}</label><CustomSelect options={[{ value: "1", label: t.sys1 }, { value: "2", label: t.sys2 }, { value: "3", label: t.sys3 }, { value: "4", label: t.sys4 }, { value: "6", label: t.sys6 }, { value: "12", label: t.sys12 }]} value={newContract.interval} onChange={(v) => setNewContract({ ...newContract, interval: v })} /></div>
+                    <div><label className="text-xs font-bold text-slate-500 block mb-1">{t.firstInstDate}</label><CustomDateInput value={newContract.firstInstallmentDate} onChange={(d) => setNewContract({ ...newContract, firstInstallmentDate: d })} /></div>
+                    <button className={`w-full text-white py-4 rounded-xl font-bold text-md shadow-lg transition mt-2 ${editingContractId ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-600 hover:bg-blue-700'}`}>{editingContractId ? 'تحديث العقد وتعديل الأقساط' : t.saveContract}</button>
+                    {editingContractId && <button type="button" onClick={() => { setEditingContractId(null); setNewContract({ clientName: '', unitId: '', totalAmount: '', downPayment: '', custodyId: '', installmentsCount: '', firstInstallmentDate: '', interval: '1' }); }} className="w-full mt-2 text-slate-500 font-bold py-2 hover:bg-slate-100 rounded-xl transition">إلغاء التعديل</button>}
+                  </form>
+                </div>
+                
+                <div className="bg-transparent lg:col-span-2 space-y-4">
+                  {overdueInstallments.length > 0 && (
+                    <div className="bg-red-50 p-4 rounded-2xl shadow-sm border border-red-200 cursor-pointer hover:shadow-md transition" onClick={() => setShowOverdue(!showOverdue)}>
+                      <div className="flex justify-between items-center"><p className="text-md text-red-800 font-bold">{t.overdueTitle} ({overdueInstallments.length})</p><span className="text-red-600 bg-white px-3 py-1 rounded-lg text-xs font-bold shadow-sm">{showOverdue ? t.hideDetails : t.showDetails}</span></div>
+                      {showOverdue && (
+                        <div className="overflow-x-auto mt-4 animate-slide-up" onClick={e=>e.stopPropagation()}>
+                          <table className="w-full text-sm text-right" style={{textAlign: lang==='en'?'left':'right'}}>
+                            <thead className="bg-red-100 text-red-800"><tr><th className="p-2 pb-2">{t.client}</th><th className="p-2 pb-2">{t.dueDate}</th><th className="p-2 pb-2">{t.amount}</th><th className="p-2 pb-2">{t.action}</th></tr></thead>
+                            <tbody>
+                              {overdueInstallments.map(inst => {
+                                const c = (data.contracts || []).find(ct => ct.id === inst.contractId);
+                                const b = (data.buildings || []).find(bd => bd.id === c?.buildingId);
+                                return (
+                                  <tr key={inst.id} className="border-b border-red-100 hover:bg-white transition-colors">
+                                    <td className="p-2 font-bold text-slate-800">{c?.clientName} {inst.isDownPayment && <span className="text-[10px] bg-blue-100 text-blue-800 px-1 rounded ml-1">مقدم</span>}</td><td className="p-2 font-mono text-xs text-red-600" dir="ltr">{formatShortDate(inst.dueDate)}</td>
+                                    <td className="p-2"><div className="font-black text-slate-900 text-base">{Number(inst.amount).toLocaleString()}</div>{b?.hasPartner && b.partnerPercent > 0 && <div className="text-[10px] text-slate-500 mt-1 space-y-0.5"><span className="bg-blue-50 text-blue-700 px-1 rounded block">{t.myShare}: {Math.round(inst.amount * ((100 - b.partnerPercent)/100)).toLocaleString()}</span><span className="bg-purple-50 text-purple-700 px-1 rounded block">{t.partnerShare}: {Math.round(inst.amount * (b.partnerPercent/100)).toLocaleString()}</span></div>}</td>
+                                    <td className="p-2 flex flex-col gap-2"><button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptCollect, defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId)=>payInstallment(inst.id, c.clientName, c.buildingId, amt, dt, custId) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">{t.collect}</button><button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptEditInst, showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>editInstallment(inst.id, amt, dt) }})} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">{t.edit}</button></td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div className="p-3.5 bg-slate-800 text-white font-bold flex justify-between items-center cursor-pointer hover:bg-slate-900 transition" onClick={() => setShowContractsList(!showContractsList)}>
+                      <div className="flex items-center gap-2"><span className="text-lg">👥</span><span className="text-sm font-black">قائمة العقود والعملاء ({filteredContracts.length})</span></div><span className="text-xs bg-slate-700 text-slate-200 px-3 py-1 rounded-lg border border-slate-600 font-bold">{isContractsListOpen ? 'إخفاء القائمة ▲' : 'عرض العملاء ▼'}</span>
+                    </div>
+
+                    {isContractsListOpen && (
+                      <div className="p-3.5 space-y-3 bg-slate-50/50 animate-slide-up">
+                        <div className="relative"><input type="text" placeholder="🔍 بحث عن عميل..." className="w-full bg-white text-slate-800 px-4 py-2.5 rounded-xl border-2 border-slate-200 outline-none focus:border-blue-500 text-sm font-bold shadow-sm" onChange={(e)=>setGlobalSearch(e.target.value)} value={globalSearch}/></div>
+                        {filteredContracts.map(c => {
+                          const u = (data.units || []).find(un => un.id === c.unitId);
+                          const b = (data.buildings || []).find(bd => bd.id === c.buildingId);
+                          const isExpanded = expandedBuildings[c.id]; 
+                          const suspendedPool = Number(c.suspendedAmount || 0);
+                          return (
+                            <div key={c.id} className="bg-white p-2.5 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-blue-300 transition" onClick={() => setExpandedBuildings(p => ({...p, [c.id]: !p[c.id]}))}>
+                              <div className="flex justify-between items-center gap-2"><div className="flex items-center gap-2 min-w-0 flex-grow">{suspendedPool > 0 && <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" title="يوجد رصيد معلق"></span>}<p className="font-black text-blue-900 text-sm truncate">{c.clientName}</p></div><div className="flex items-center gap-2 shrink-0"><button className="text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm border border-blue-100">{isExpanded ? t.hideDetails : t.showDetails}</button></div></div>
+                              
+                              {isExpanded && (
+                                <div className="mt-3 border-t pt-3 animate-slide-up" onClick={e=>e.stopPropagation()}>
+                                  <div className="flex justify-between items-center mb-3 bg-slate-50 p-2.5 rounded-xl border flex-wrap gap-2 text-xs font-bold"><span className="text-slate-700 bg-white px-2.5 py-1 rounded-lg border border-slate-200">🏢 {b?.name} - الوحدة {u?.unitNumber}</span>{suspendedPool > 0 && <span className="text-amber-800 bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-300">⚠️ رصيد معلق مجمع: {suspendedPool.toLocaleString()} ج.م</span>}<div className="flex gap-2 mr-auto"><button onClick={(e)=>{ e.stopPropagation(); requirePin(() => { setEditingContractId(c.id); const cInsts = (data.installments || []).filter(i => i.contractId === c.id).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate)); const firstDate = cInsts.length > 0 ? cInsts[0].dueDate : todayDateStr; setNewContract({ clientName: c.clientName, unitId: c.unitId, totalAmount: c.totalAmount, downPayment: c.downPayment || '', custodyId: '', installmentsCount: c.installmentsCount || cInsts.length, firstInstallmentDate: firstDate, interval: c.interval || '1' }); window.scrollTo({ top: 0, behavior: 'smooth' }); }); }} className="text-xs text-amber-700 bg-amber-50 px-3 py-1 rounded-xl font-bold border border-amber-200 hover:bg-amber-100 transition">تعديل العقد</button><button onClick={(e) => { e.stopPropagation(); requirePin(()=>setAppModal({show:true, type:'CONFIRM', props:{title: t.cancelContract, message: t.confirmCancel, onConfirm:()=>{ setData(p=>({...p, contracts: p.contracts.map(ct=>ct.id===c.id?{...ct,status:'canceled'}:ct), installments: p.installments.filter(i=>!(i.contractId===c.id && i.status==='pending')), units: p.units.map(un=>un.id===c.unitId?{...un,status:'available'}:un)})); showMsg(t.success); }}})); }} className="text-xs text-red-600 bg-red-50 px-3 py-1 rounded-xl font-bold border border-red-100 hover:bg-red-100 transition">{t.cancelContract}</button></div></div>
+                                  <div className="overflow-x-auto mb-4">
+                                    <table className="w-full text-sm text-right" style={{textAlign: lang==='en'?'left':'right'}}>
+                                      <thead className="text-slate-400 border-b-2"><tr><th className="p-2 pb-2 font-medium">{t.dueDate}</th><th className="p-2 pb-2 font-medium">{t.amount}</th><th className="p-2 pb-2 font-medium">{t.status}</th><th className="p-2 pb-2 font-medium">{t.action}</th></tr></thead>
+                                      <tbody>
+                                        {suspendedPool > 0 && <tr className="border-b-2 border-amber-200 bg-amber-50/70"><td className="p-2 font-bold text-amber-800 text-xs">-- معلق مجمع --</td><td className="p-2 font-black text-amber-900 text-base">{suspendedPool.toLocaleString()} ج.م</td><td className="p-2"><span className="text-amber-800 font-bold text-xs bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-300">مبلغ معلق</span></td><td className="p-2 flex gap-1"><button onClick={() => setAppModal({ show: true, type: 'PROMPT_INST', props: { title: 'جدولة المبلغ المعلق لقسط جديد', showDate: true, defaultAmount: suspendedPool, defaultDate: todayDateStr, onConfirm: (amt, dt) => convertSuspendedToInstallment(c.id, amt, dt) } })} className="bg-purple-600 text-white px-2.5 py-1 rounded-lg text-xs font-bold shadow hover:bg-purple-700 transition">➕ تحويل لقسط</button></td></tr>}
+                                        {(data.installments || []).filter(i => i.contractId === c.id).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate)).map(inst => {
+                                          const totalPartnerShare = Math.round(inst.amount * (b?.partnerPercent/100));
+                                          const currentPaidToPartner = inst.partnerPaidAmount !== undefined ? Number(inst.partnerPaidAmount) : (inst.partnerPaid ? totalPartnerShare : 0);
+                                          const remainingToPartner = Math.max(0, totalPartnerShare - currentPaidToPartner);
+                                          return (
+                                            <tr key={inst.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                                              <td className="p-2 font-mono text-xs text-slate-500 whitespace-nowrap" dir="ltr">{formatShortDate(inst.dueDate)}</td>
+                                              <td className="p-2"><div className="font-bold text-slate-800 text-base">{Number(inst.amount).toLocaleString()} {inst.isDownPayment && <span className="text-[10px] bg-blue-100 text-blue-800 px-1 rounded ml-1">مقدم</span>}</div>{b?.hasPartner && b.partnerPercent > 0 && <div className="text-[10px] text-slate-500 mt-1 space-y-0.5"><span className="bg-blue-50 text-blue-700 px-1 rounded block">{t.myShare}: {Math.round(inst.amount * ((100 - b.partnerPercent)/100)).toLocaleString()}</span><span className="bg-purple-50 text-purple-700 px-1 rounded block">{t.partnerShare}: {totalPartnerShare.toLocaleString()} {currentPaidToPartner > 0 && `(تم توريد ${currentPaidToPartner.toLocaleString()})`}</span></div>}</td>
+                                              <td className="p-2">{inst.status === 'suspended' || Number(inst.amount) === 0 ? <span className="text-slate-500 font-bold text-xs bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">{t.suspended}</span> : inst.status === 'paid' ? <span className="text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-lg text-xs border border-emerald-100">{t.paid}</span> : <span className="text-amber-500 font-bold text-xs bg-amber-50 px-3 py-1 rounded-lg border border-amber-100">{t.pending}</span>}</td>
+                                              <td className="p-2 flex flex-col gap-2">{inst.status === 'pending' && Number(inst.amount) > 0 && <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptCollect, defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId)=>payInstallment(inst.id, c.clientName, b?.id, amt, dt, custId) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">{t.collect}</button>}
+                                                <button onClick={() => setAppModal({ show: true, type: 'PROMPT_INST', props: { title: t.promptEditInst, showDate: true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm: (amt, dt) => editInstallment(inst.id, amt, dt) } })} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">{t.edit}</button>
+                                                {inst.status === 'paid' && remainingToPartner > 0 && b?.hasPartner && b.partnerPercent > 0 && <button onClick={() => setAppModal({ show:true, type:'PAY_PARTNER', props:{ partnerAmt: remainingToPartner, onConfirm:(actualAmt, dt, custId)=>payPartnerShare(inst.id, actualAmt, c.clientName, b.name, custId, dt) } })} className="bg-purple-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-purple-600 transition">{t.payPartnerBtn} {currentPaidToPartner > 0 ? '(متبقي)' : ''}</button>}
+                                                {inst.status === 'paid' && <button onClick={() => { const contractInsts = (data.installments || []).filter(i => i.contractId === c.id); const paidSum = contractInsts.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.amount), 0); const unitPrice = Number(c.totalAmount || 0); const remaining = unitPrice - paidSum; setAppModal({ show: true, type:'RECEIPT', props:{ date: formatShortDate(todayDateStr), dueDate: formatShortDate(inst.dueDate), clientName: inst.isDownPayment ? `${c.clientName} (مقدم)` : c.clientName, buildingName: `${b?.name} - الوحدة ${u?.unitNumber}`, amount: inst.amount, unitPrice: unitPrice, totalPaid: paidSum, remainingAmount: remaining } }); }} className="bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-slate-900 transition flex justify-center items-center gap-1">🖨️ إيصال</button>}
+                                              </td>
+                                            </tr>
+                                          );
+                                        })}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                  <div className="flex gap-2 justify-start mb-4">
+                                    <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptManual, showDate:true, defaultDate: todayDateStr, onConfirm:(amt,dt)=>addManualInstallment(c.id, amt, dt) }})} className="bg-blue-50 text-blue-700 border border-blue-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-blue-100 transition">{t.addManualInst}</button>
+                                    <label className="bg-slate-50 text-slate-700 border border-slate-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-slate-100 transition cursor-pointer flex items-center justify-center">{t.addAttachment}<input type="file" accept="image/*" className="hidden" onChange={e => { const file = e.target.files[0]; if(!file) return; compressImage(file, (compressedBase64) => { setData(p => ({ ...p, contracts: p.contracts.map(ct => ct.id === c.id ? { ...ct, attachments: [...(ct.attachments || []), compressedBase64] } : ct) })); showMsg(t.success); }); }}/></label>
+                                  </div>
+                                  {(c.attachments || []).length > 0 && (
+                                      <div className="mt-4"><span className="text-xs font-bold text-slate-500 mb-2 block">{t.attachments}:</span><div className="flex gap-3 overflow-x-auto p-3 bg-slate-50 rounded-xl border border-slate-200 shadow-inner">
+                                            {c.attachments.map((att, idx) => ( <div key={idx} className="relative inline-block flex-shrink-0"><img src={att} className="h-20 w-20 object-cover rounded-lg cursor-pointer border-2 border-slate-300 shadow hover:scale-105 hover:border-blue-400 transition" onClick={(e) => { e.stopPropagation(); setAppModal({show: true, type: 'IMAGE_VIEW', props: { src: att }}); }} /><button onClick={(e) => { e.stopPropagation(); requirePin(() => { setData(p => ({ ...p, contracts: p.contracts.map(ct => ct.id === c.id ? { ...ct, attachments: ct.attachments.filter((_, i) => i !== idx) } : ct) })); showMsg(t.success); }); }} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-md hover:bg-red-700 transition">X</button></div> ))}
+                                      </div></div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {filteredContracts.length === 0 && <div className="text-center p-10 text-slate-400 font-bold bg-white rounded-2xl shadow-sm border border-slate-200">لا توجد نتائج بحث مطابقة</div>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'reports' && (
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 animate-fade-in">
+                <div className="hidden print-show text-black">
+                  {reportType === 'transactions' ? (
+                    <>
+                      <h2 className="text-3xl font-black text-center mb-2">{t.repCustodyTitle}</h2><h3 className="text-2xl font-bold text-center mb-6">{reportData.custodyName}</h3><h4 className="text-lg font-bold text-gray-700 mb-4">{t.periodFrom}: {reportFilter.startDate ? formatShortDate(reportFilter.startDate) : t.start} | {t.periodTo}: {reportFilter.endDate ? formatShortDate(reportFilter.endDate) : t.now}</h4>
+                      <h4 className="text-2xl font-black mt-6 border-b-4 border-black inline-block">{t.incTable}</h4><table><thead className="bg-gray-100 text-lg"><tr><th className="w-[15%] text-center">{t.date}</th><th className="w-[65%] text-center">{t.desc}</th><th className="w-[20%] text-center">{t.amount}</th></tr></thead><tbody><tr className="print-row-text bg-gray-50"><td className="text-center font-mono">--</td><td className="font-bold text-lg text-slate-700">{t.repOpBalance}</td><td className="text-center font-bold text-xl">{reportData.openingBalance.toLocaleString()}</td></tr>{reportData.incomes.map(tx => ( <tr key={tx.id} className="print-row-text"><td dir="ltr" className="text-center font-mono">{formatShortDate(tx.date)}</td><td className="font-bold text-lg">{tx.description}</td><td className="text-center font-bold text-xl">{Number(tx.amount).toLocaleString()}</td></tr> ))}</tbody></table><div className="mt-3 mb-8 text-2xl font-black bg-gray-100 p-2 border-2 border-black inline-block rounded" style={{float: lang==='en'?'right':'left'}}>{t.totalIncomes}: {(reportData.totalIncomes + reportData.openingBalance).toLocaleString()}</div><div className="clear-both"></div>
+                      <h4 className="text-2xl font-black mt-6 border-b-4 border-black inline-block">{t.expTable}</h4><table><thead className="bg-gray-100 text-lg"><tr><th className="w-[15%] text-center">{t.date}</th><th className="w-[65%] text-center">{t.desc}</th><th className="w-[20%] text-center">{t.amount}</th></tr></thead><tbody>{reportData.expenses.map(tx => ( <tr key={tx.id} className="print-row-text"><td dir="ltr" className="text-center font-mono">{formatShortDate(tx.date)}</td><td className="font-bold text-lg">{tx.description}</td><td className="text-center font-bold text-xl">{Number(tx.amount).toLocaleString()}</td></tr> ))}</tbody></table><div className="mt-3 mb-8 text-2xl font-black bg-gray-100 p-2 border-2 border-black inline-block rounded" style={{float: lang==='en'?'right':'left'}}>{t.totalExpenses}: {reportData.totalExpenses.toLocaleString()}</div><div className="clear-both"></div>
+                      <div className="p-4 text-center text-3xl border-4 border-black mt-10 bg-gray-200 font-black rounded-lg shadow-sm">{t.currentNet}: {reportData.finalBalance.toLocaleString()}</div>
+                    </>
+                  ) : reportType === 'installments' ? (
+                    <>
+                      <h2 className="text-3xl font-black text-center mb-2">{t.repSalesTitle}</h2><h3 className="text-2xl font-bold text-center mb-6">{reportData.buildingName}</h3><h4 className="text-lg font-bold text-gray-700 mb-4">{t.periodFrom}: {reportFilter.startDate ? formatShortDate(reportFilter.startDate) : t.start} | {t.periodTo}: {reportFilter.endDate ? formatShortDate(reportFilter.endDate) : t.now}</h4>
+                      <table><thead className="bg-gray-100 text-lg"><tr><th className="text-center">{t.date}</th><th className="text-center">{t.client}</th><th className="text-center">{t.building}</th><th className="text-center">{t.amount}</th><th className="text-center">{t.myShare}</th><th className="text-center">{t.partnerDue}</th><th className="text-center">{t.partnerPaidStatus}</th><th className="text-center">{t.status}</th></tr></thead><tbody>{reportInstallments.map(i => { const c = (data.contracts||[]).find(ct=>ct.id===i.contractId); const b = (data.buildings||[]).find(bd=>bd.id===c?.buildingId); const totalAmt = Math.round(Number(i.amount)); const hasPartner = b?.hasPartner && b.partnerPercent > 0; const partnerShare = hasPartner ? Math.round(totalAmt * (b.partnerPercent/100)) : 0; const myShare = totalAmt - partnerShare; const partnerDue = (hasPartner && !i.partnerPaid) ? partnerShare : 0; const partnerPaidStat = (hasPartner && i.partnerPaid) ? partnerShare : 0; return <tr key={i.id}><td dir="ltr" className="text-center font-mono print-row-text">{formatShortDate(i.dueDate)}</td><td className="font-bold text-lg">{i.isDownPayment ? `${c?.clientName} (مقدم)` : c?.clientName}</td><td className="text-center font-bold text-lg">{b?.name}</td><td className="text-center font-black text-xl">{totalAmt.toLocaleString()}</td><td className="text-center font-bold text-lg">{myShare > 0 ? myShare.toLocaleString() : '--'}</td><td className="text-center font-bold text-lg text-red-600">{partnerDue > 0 ? partnerDue.toLocaleString() : '--'}</td><td className="text-center font-bold text-lg text-emerald-600">{partnerPaidStat > 0 ? partnerPaidStat.toLocaleString() : '--'}</td><td className="text-center font-bold text-lg">{i.status==='paid'?t.paid:t.pending}</td></tr> })}{reportInstallments.length > 0 && ( <tr className="bg-gray-200"><td colSpan="3" className="text-left font-black text-xl" style={{textAlign: lang==='ar'?'left':'right'}}>{t.total}:</td><td className="text-center font-black text-2xl">{reportInstallments.reduce((s,i)=>s+Math.round(Number(i.amount)),0).toLocaleString()}</td><td className="text-center font-black text-xl">{reportInstallments.reduce((s,i)=>{ const c=(data.contracts||[]).find(ct=>ct.id===i.contractId); const b=(data.buildings||[]).find(bd=>bd.id===c?.buildingId); const hasP=b?.hasPartner&&b.partnerPercent>0; const pS=hasP?Math.round(Number(i.amount)*(b.partnerPercent/100)):0; return s+(Math.round(Number(i.amount))-pS); },0).toLocaleString()}</td><td className="text-center font-black text-xl text-red-600">{reportInstallments.reduce((s,i)=>{ const c=(data.contracts||[]).find(ct=>ct.id===i.contractId); const b=(data.buildings||[]).find(bd=>bd.id===c?.buildingId); const hasP=b?.hasPartner&&b.partnerPercent>0; return s+((hasP&&!i.partnerPaid)?Math.round(Number(i.amount)*(b.partnerPercent/100)):0); },0).toLocaleString()}</td><td className="text-center font-black text-xl text-emerald-600">{reportInstallments.reduce((s,i)=>{ const c=(data.contracts||[]).find(ct=>ct.id===i.contractId); const b=(data.buildings||[]).find(bd=>bd.id===c?.buildingId); const hasP=b?.hasPartner&&b.partnerPercent>0; return s+((hasP&&i.partnerPaid)?Math.round(Number(i.amount)*(b.partnerPercent/100)):0); },0).toLocaleString()}</td><td></td></tr> )}</tbody></table>
+                    </>
+                  ) : reportType === 'partners' && partnerReportData ? (
+                    <>
+                      <h2 className="text-3xl font-black text-center mb-2">{t.partnerReportTitle}</h2><h3 className="text-2xl font-bold text-center mb-6">{selectedPartnerR}</h3>
+                      <div className="grid grid-cols-4 gap-2 mb-8 border-b-4 border-black pb-4 text-center mt-6"><div className="border-r border-gray-300 pr-2"><p className="font-bold text-gray-600 text-xs mb-1">{t.totalExpected}</p><p className="text-xl font-black">{partnerReportData.expected.toLocaleString()}</p></div><div className="border-r border-gray-300 pr-2"><p className="font-bold text-gray-600 text-xs mb-1">{t.totalPaidToPartner}</p><p className="text-xl font-black text-emerald-600">{partnerReportData.paid.toLocaleString()}</p></div><div className="border-r border-gray-300 pr-2"><p className="font-bold text-gray-600 text-xs mb-1">{t.totalCollectedNotPaid}</p><p className="text-xl font-black text-red-600">{partnerReportData.unpaid.toLocaleString()}</p></div><div><p className="font-bold text-gray-600 text-xs mb-1">{t.totalPending}</p><p className="text-xl font-black text-amber-600">{partnerReportData.pending.toLocaleString()}</p></div></div>
+                      <h4 className="text-xl font-black mt-4 mb-2">كشف كافة أقساط ومستحقات الشريك</h4><table><thead className="bg-gray-100 text-sm"><tr><th className="text-center">تاريخ القسط</th><th className="text-center">{t.client}</th><th className="text-center">{t.building}</th><th className="text-center">إجمالي القسط</th><th className="text-center">نصيب الشريك</th><th className="text-center">تم توريده</th><th className="text-center">حالة التوريد</th></tr></thead><tbody>{partnerReportData.instsDetails.map((d, i) => ( <tr key={i}><td dir="ltr" className="text-center font-mono print-row-text">{formatShortDate(d.date)}</td><td className="font-bold text-sm">{d.client}</td><td className="text-center font-bold text-sm">{d.building}</td><td className="text-center font-black text-sm">{d.totalAmount.toLocaleString()}</td><td className="text-center font-black text-sm text-purple-800">{d.share.toLocaleString()}</td><td className="text-center font-bold text-sm text-emerald-600">{d.paidToPartner > 0 ? d.paidToPartner.toLocaleString() : '--'}</td><td className="text-center font-bold text-xs">{d.partnerStatus}</td></tr> ))}{partnerReportData.instsDetails.length > 0 && ( <tr className="bg-gray-200 font-black"><td colSpan="3" className="text-left font-black text-sm" style={{textAlign: lang==='ar'?'left':'right'}}>الإجمالي:</td><td className="text-center font-black text-sm">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.totalAmount||0),0).toLocaleString()}</td><td className="text-center font-black text-sm text-purple-900">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.share||0),0).toLocaleString()}</td><td className="text-center font-black text-sm text-emerald-800">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.paidToPartner||0),0).toLocaleString()}</td><td></td></tr> )}{partnerReportData.instsDetails.length === 0 && <tr><td colSpan="7" className="p-4 font-bold text-gray-500">لا توجد أية عقود أو أقساط مسجلة لهذا الشريك</td></tr>}</tbody></table>
+                    </>
+                  ) : (
+                    <>
+                      <h2 className="text-3xl font-black text-center mb-2">{t.repContractsTitle}</h2><h3 className="text-2xl font-bold text-center mb-6">{reportData.buildingName}</h3>
+                      <table><thead className="bg-gray-100 text-lg"><tr><th className="text-center">{t.client}</th><th className="text-center">{t.building}</th><th className="text-center">{t.totalUnit}</th><th className="text-center">{t.paidAmt}</th><th className="text-center">{t.remAmt}</th><th className="text-center">{t.nextDue}</th></tr></thead><tbody>{reportContractsList.map(c => ( <tr key={c.id}><td className="font-bold text-lg">{c.clientName}</td><td className="font-bold text-lg">{c.buildingName} - {c.unitNumber}</td><td className="text-center font-black text-xl">{c.totalAmount.toLocaleString()}</td><td className="text-center font-bold text-xl text-emerald-600">{c.paidAmount.toLocaleString()}</td><td className="text-center font-bold text-xl text-red-600">{c.remainingAmount.toLocaleString()}</td><td dir="ltr" className="text-center font-mono print-row-text">{c.nextDate==='--'?'--':formatShortDate(c.nextDate)}</td></tr> ))}{reportContractsList.length > 0 && ( <tr className="bg-gray-200"><td colSpan="2" className="text-left font-black text-xl" style={{textAlign: lang==='ar'?'left':'right'}}>{t.total}:</td><td className="text-center font-black text-2xl">{reportContractsList.reduce((s,c)=>s+c.totalAmount,0).toLocaleString()}</td><td className="text-center font-black text-2xl text-emerald-600">{reportContractsList.reduce((s,c)=>s+c.paidAmount,0).toLocaleString()}</td><td className="text-center font-black text-2xl text-red-600">{reportContractsList.reduce((s,c)=>s+c.remainingAmount,0).toLocaleString()}</td><td></td></tr> )}</tbody></table>
+                    </>
+                  )}
+                </div>
+
+                <div className="print-hide">
+                  <div className="flex bg-slate-100 p-1.5 rounded-xl mb-6 shadow-inner gap-1 flex-wrap md:flex-nowrap overflow-x-auto"><button onClick={()=>setReportType('transactions')} className={`flex-1 min-w-[120px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='transactions'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repCustodyBtn}</button><button onClick={()=>setReportType('installments')} className={`flex-1 min-w-[120px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='installments'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repSalesBtn}</button><button onClick={()=>setReportType('contracts')} className={`flex-1 min-w-[120px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='contracts'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repContractsBtn}</button><button onClick={()=>setReportType('partners')} className={`flex-1 min-w-[120px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='partners'?'bg-white text-purple-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repPartnersBtn}</button></div>
+                  {reportType === 'installments' && ( <div className="mb-4 flex items-center gap-3"><label className="font-bold text-slate-700 text-sm">{t.sortBy}</label><CustomSelect options={[ { value: "date", label: t.sortDate }, { value: "client", label: t.sortClient }, { value: "building", label: t.sortBuilding } ]} value={reportSort} onChange={(v) => setReportSort(v)} className="w-48" /></div> )}
+                  {reportType === 'partners' ? (
+                     <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner mb-6">
+                        <label className="text-xs font-bold text-slate-500 mb-2 block">اختر اسم المستثمر / الشريك</label>
+                        <div className="max-w-md mb-6"><CustomSelect options={uniquePartnersList.map(pn => ({ value: pn, label: pn }))} value={selectedPartnerR} onChange={(v) => setSelectedPartnerR(v)} placeholder="-- اختر الشريك --" /></div>
+                        {partnerReportData && (
+                           <div className="animate-slide-up space-y-6">
+                              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                <div className="bg-white p-4 rounded-xl border-t-4 border-slate-400 shadow-sm flex flex-col items-center justify-center text-center"><p className="text-xs font-bold text-slate-500 mb-2">{t.totalExpected}</p><p className="text-xl md:text-2xl font-black text-slate-800 break-words w-full">{partnerReportData.expected.toLocaleString()}</p></div>
+                                <div className="bg-white p-4 rounded-xl border-t-4 border-emerald-400 shadow-sm flex flex-col items-center justify-center text-center"><p className="text-xs font-bold text-slate-500 mb-2">{t.totalPaidToPartner}</p><p className="text-xl md:text-2xl font-black text-emerald-600 break-words w-full">{partnerReportData.paid.toLocaleString()}</p></div>
+                                <div className="bg-white p-4 rounded-xl border-t-4 border-red-400 shadow-sm relative flex flex-col items-center justify-center text-center"><p className="text-xs font-bold text-slate-500 mb-2">{t.totalCollectedNotPaid}</p><p className="text-xl md:text-2xl font-black text-red-600 break-words w-full">{partnerReportData.unpaid.toLocaleString()}</p>{partnerReportData.unpaid > 0 && <span className="absolute top-2 right-2 flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span></span>}</div>
+                                <div className="bg-white p-4 rounded-xl border-t-4 border-amber-400 shadow-sm flex flex-col items-center justify-center text-center"><p className="text-xs font-bold text-slate-500 mb-2">{t.totalPending}</p><p className="text-xl md:text-2xl font-black text-amber-600 break-words w-full">{partnerReportData.pending.toLocaleString()}</p></div>
+                              </div>
+                              <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                                <div className="flex justify-between items-center p-4 bg-slate-100/80 cursor-pointer hover:bg-slate-200/60 transition border-b" onClick={() => setShowPartnerDetails(!showPartnerDetails)}><h4 className="font-bold text-slate-800 text-sm flex items-center gap-2">📊 كشف كافة أقساط ومستحقات الشريك ({partnerReportData.instsDetails.length})</h4><span className="text-xs bg-white text-purple-700 px-3 py-1 rounded-lg font-bold shadow-sm border">{showPartnerDetails ? t.hideDetails : t.showDetails}</span></div>
+                                {showPartnerDetails && (
+                                  <div className="overflow-x-auto animate-slide-up">
+                                    <table className="w-full text-sm text-right">
+                                      <thead className="bg-slate-50 text-slate-700 border-b"><tr><th className="p-3">تاريخ القسط</th><th className="p-3">العميل</th><th className="p-3">العمارة/الوحدة</th><th className="p-3">إجمالي القسط</th><th className="p-3">نصيب الشريك</th><th className="p-3">تم توريده</th><th className="p-3">حالة القسط</th></tr></thead>
+                                      <tbody>
+                                        {partnerReportData.instsDetails.map((d, idx) => (
+                                          <tr key={idx} className="border-b hover:bg-slate-50"><td className="p-3 font-mono text-xs text-slate-500" dir="ltr">{formatShortDate(d.date)}</td><td className="p-3 font-bold text-slate-800">{d.client}</td><td className="p-3 font-bold text-slate-600">{d.building}</td><td className="p-3 font-bold text-slate-800">{d.totalAmount.toLocaleString()}</td><td className="p-3 font-black text-purple-800">{d.share.toLocaleString()}</td><td className="p-3 font-bold text-emerald-600">{d.paidToPartner > 0 ? d.paidToPartner.toLocaleString() : '--'}</td><td className="p-3 font-bold text-xs"><span className={`px-2 py-1 rounded-md text-[11px] ${d.instStatus==='paid' ? (d.dueToPartner===0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800') : 'bg-slate-100 text-slate-500'}`}>{d.partnerStatus}</span></td></tr>
+                                        ))}
+                                        {partnerReportData.instsDetails.length > 0 && ( <tr className="bg-slate-100 font-black border-t-2 border-slate-300"><td colSpan="3" className="p-3 text-left font-black" style={{textAlign: lang==='ar'?'left':'right'}}>الإجمالي:</td><td className="p-3 font-black text-slate-900">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.totalAmount||0),0).toLocaleString()}</td><td className="p-3 font-black text-purple-900">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.share||0),0).toLocaleString()}</td><td className="p-3 font-black text-emerald-700">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.paidToPartner||0),0).toLocaleString()}</td><td></td></tr> )}
+                                        {partnerReportData.instsDetails.length === 0 && <tr><td colSpan="7" className="p-6 text-center text-gray-500 font-bold">لا توجد عقود أو أقساط لهذا الشريك</td></tr>}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
+                              </div>
+                           </div>
+                        )}
+                     </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6 bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner">
+                      <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.periodFrom}</label><CustomDateInput value={reportFilter.startDate} onChange={(d) => setReportFilter({ ...reportFilter, startDate: d })} /></div>
+                      <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.periodTo}</label><CustomDateInput value={reportFilter.endDate} onChange={(d) => setReportFilter({ ...reportFilter, endDate: d })} /></div>
+                      {reportType === 'transactions' && <div className="relative z-30"><label className="text-xs font-bold text-slate-500 mb-1 block">{t.custody}</label><MultiSelectDropdown options={custodyMultiOptions} selected={reportFilter.custodyIds} onChange={(newIds) => setReportFilter({...reportFilter, custodyIds: newIds})} placeholder={t.allCustodies} /></div>}
+                      <div className="relative z-20"><label className="text-xs font-bold text-slate-500 mb-1 block">{t.building}</label><MultiSelectDropdown options={sortedBuildings.map(b => ({ id: b.id, label: b.name }))} selected={reportFilter.buildingIds} onChange={(newIds) => setReportFilter({...reportFilter, buildingIds: newIds})} placeholder={t.allBuildings} /></div>
+                    </div>
+                  )}
+                  <div className="flex gap-4 flex-col md:flex-row"><button onClick={handlePrint} className="flex-1 bg-slate-800 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-slate-900 transition-transform hover:-translate-y-1">{t.printPdf}</button><button onClick={handleExportExcel} className="flex-1 bg-green-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-green-700 transition-transform hover:-translate-y-1">{t.exportExcel}</button></div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'settings' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 print-hide animate-fade-in">
+                <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200 md:col-span-2 flex flex-col md:flex-row justify-between items-center gap-4 bg-gradient-to-r from-slate-800 to-slate-900 text-white">
+                  <h4 className="font-bold text-lg">{t.langTitle}</h4>
+                  <div className="flex bg-slate-700 p-1 rounded-xl"><button onClick={() => setLang('ar')} className={`px-6 py-2 rounded-lg font-bold transition ${lang === 'ar' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-300 hover:text-white'}`}>عربي</button><button onClick={() => setLang('en')} className={`px-6 py-2 rounded-lg font-bold transition ${lang === 'en' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-300 hover:text-white'}`}>English</button></div>
+                </div>
+                <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200">
+                  <h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">{t.addCatTitle}</h4>
+                  <form onSubmit={(e)=>{e.preventDefault(); setData(p=>({...p, categories: [...(p.categories || []), {id: 'c_'+Date.now(), name: newCategory}]})); setNewCategory(''); showMsg(t.success);}} className="flex flex-col gap-3 mb-4"><input required type="text" placeholder={t.catName} className="border-2 p-3 text-md w-full rounded-xl font-bold focus:border-blue-500 outline-none bg-slate-50" value={newCategory} onChange={e=>setNewCategory(e.target.value)}/><button className="bg-slate-800 text-white p-3 rounded-xl text-md font-bold shadow hover:bg-slate-900 transition">{t.addCatBtn}</button></form>
+                  <div className="flex flex-wrap gap-2">{sortedCategories.map(c => ( <span key={c.id} onClick={() => setAppModal({ show: true, type: 'CAT_ACTION', props: { cat: c } })} className="bg-slate-100 border border-slate-200 p-2 px-3 rounded-lg text-xs font-bold text-slate-700 shadow-sm cursor-pointer hover:bg-blue-50 transition">{c.name}</span> ))}</div>
+                </div>
+                <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200">
+                  <h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">{t.newCustodyTitle}</h4>
+                  <form onSubmit={(e)=>{e.preventDefault(); setData(p=>({...p, custodies: [...(p.custodies || []), {id: 'cus_'+Date.now(), ...newCustody}]})); setNewCustody({personName:'', totalAmount:'', notes:''}); showMsg(t.success);}} className="space-y-4 relative">
+                    <div className="relative"><input required type="text" placeholder={t.respName} className="border-2 p-3 text-sm w-full rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCustody.personName} onChange={e=>setNewCustody({...newCustody, personName:e.target.value})} onFocus={() => setCustodyNameFocus(true)} onBlur={() => setTimeout(() => setCustodyNameFocus(false), 200)}/>{custodyNameFocus && filteredCustodyNames.length > 0 && ( <div className="absolute top-full left-0 right-0 bg-white border-2 border-slate-200 mt-1 shadow-2xl z-50 max-h-48 overflow-y-auto rounded-xl animate-fade-in">{filteredCustodyNames.map((n, idx) => <div key={idx} className="p-3 text-sm border-b hover:bg-blue-50 cursor-pointer font-bold text-slate-700" onMouseDown={() => setNewCustody({...newCustody, personName: n})}>{n}</div>)}</div> )}</div>
+                    <div><NumberInput required placeholder={t.initAmount} className="border-2 p-3 text-sm w-full rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCustody.totalAmount} onChange={v=>setNewCustody({...newCustody, totalAmount:v})}/>{lastCustodyNet > 0 && <span onClick={() => setNewCustody({...newCustody, totalAmount: lastCustodyNet.toString()})} className="block text-xs font-bold text-blue-600 mt-2 cursor-pointer hover:underline bg-blue-50 p-2 rounded-lg text-center border border-blue-100 shadow-sm transition hover:bg-blue-100">💡 {t.suggestedNet} ({lastCustodyNet.toLocaleString()})</span>}</div>
+                    <button className="bg-slate-800 text-white p-4 rounded-xl w-full text-md font-bold shadow-lg hover:bg-slate-900 transition">{t.saveCustody}</button>
+                  </form>
+                </div>
+                <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200 md:col-span-2">
+                  <h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">تغيير رمز PIN للحماية</h4>
+                  <form onSubmit={(e)=>{ e.preventDefault(); const formTarget = e.target; const oldPinVal = formTarget.oldPin.value; const newPinVal = formTarget.newPin.value; if (oldPinVal !== (data.pinCode || '0000')) { showMsg(lang === 'ar' ? 'الرمز الحالي غير صحيح' : 'Incorrect current PIN', true); return; } setData(p => { const newData = {...p, pinCode: newPinVal}; localStorage.setItem('real_estate_core_data', JSON.stringify(newData)); return newData; }); showMsg(lang === 'ar' ? 'تم تغيير الرمز بنجاح' : 'PIN changed successfully'); formTarget.reset(); }} className="flex flex-col gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-lg mx-auto w-full"><div><label className="text-xs font-bold text-slate-500 mb-1 block">الرمز الحالي (المستخدم الآن):</label><input name="oldPin" type="password" inputMode="numeric" maxLength="4" pattern="[0-9]{4}" placeholder="****" className="border-2 p-3 text-center tracking-[1em] text-2xl w-full rounded-xl font-bold focus:border-red-500 outline-none bg-slate-50" required /></div><div><label className="text-xs font-bold text-slate-500 mb-1 block">الرمز الجديد:</label><input name="newPin" type="password" inputMode="numeric" maxLength="4" pattern="[0-9]{4}" placeholder="****" className="border-2 p-3 text-center tracking-[1em] text-2xl w-full rounded-xl font-bold focus:border-blue-500 outline-none bg-slate-50" required /></div></div>
+                    <button className="bg-slate-800 text-white p-3 rounded-xl text-md font-bold shadow hover:bg-slate-900 transition mt-2 max-w-lg mx-auto w-full">تحديث الرمز السري</button>
+                  </form>
+                </div>
+                <div className="bg-white p-8 shadow-sm rounded-2xl md:col-span-2 text-center border-2 border-dashed border-blue-400 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-2 bg-blue-500"></div><h4 className="font-black mb-3 text-blue-900 text-2xl">{t.backupTitle}</h4><p className="text-sm mb-6 text-slate-600 font-bold bg-blue-50 inline-block p-2 rounded-lg">{t.backupDesc}</p>
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
+                    <button onClick={()=>{const b=new Blob([JSON.stringify(data)],{type:'application/json'});const l=document.createElement('a');l.href=URL.createObjectURL(b);l.download=`backup_${todayDateStr}.json`;l.click(); showMsg(t.success);}} className="bg-blue-600 text-white px-8 py-4 rounded-xl font-black text-lg shadow-lg hover:bg-blue-700 transition hover:-translate-y-1">{t.exportBtn}</button>
+                    <label className="bg-amber-500 text-white px-8 py-4 rounded-xl font-black text-lg shadow-lg hover:bg-amber-600 transition cursor-pointer hover:-translate-y-1">{t.importBtn}<input type="file" accept=".json" className="hidden" onChange={(e)=>{ const r = new FileReader(); r.onload = (ev) => { try { const imported = JSON.parse(ev.target.result); setData(p => { const newData = { ...imported, pinCode: p.pinCode || '0000' }; localStorage.setItem('real_estate_core_data', JSON.stringify(newData)); return newData; }); showMsg(t.success); } catch { showMsg('Invalid File', true); } }; if(e.target.files[0]) r.readAsText(e.target.files[0]); }}/></label>
+                  </div>
+                </div>
+                <div className="bg-red-50 p-8 shadow-sm rounded-2xl md:col-span-2 border-2 border-red-300 mt-2 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-2 bg-red-600"></div><h4 className="font-black mb-3 text-red-800 text-center text-2xl">{t.dangerZone}</h4><p className="text-sm text-center text-red-600 mb-6 font-bold">{t.resetDesc}</p>
+                  <button onClick={handleResetFactory} className="w-full bg-red-600 text-white py-4 rounded-xl text-xl font-black shadow-lg hover:bg-red-700 transition hover:-translate-y-1">{t.resetBtn}</button>
+                </div>
+              </div>
+            )}
           </main>
         </div>
       );
     }
 
-    // -------------------------------------------------------------
-    // المكون الرئيسي الذي يدير حالة تسجيل الدخول (AppWrapper)
-    // -------------------------------------------------------------
     function AppWrapper() {
       const [user, setUser] = useState(null);
       const [loading, setLoading] = useState(true);
 
       useEffect(() => {
-        // المستمع اللحظي لحالة تسجيل الدخول
-        const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-          setUser(currentUser);
-          setLoading(false);
-        });
+        const unsubscribe = auth.onAuthStateChanged((currentUser) => { setUser(currentUser); setLoading(false); });
         return () => unsubscribe();
       }, []);
 
-      if (loading) {
-        return (
-          <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white flex-col gap-4">
-            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            <p className="font-bold text-lg tracking-widest">جاري التحميل...</p>
-          </div>
-        );
-      }
-
-      // لو مفيش مستخدم مسجل دخول، اعرض شاشة الدخول
-      if (!user) {
-        return <LoginScreen />;
-      }
-
-      // لو مسجل دخول، اعرض التطبيق ومرر بيانات المستخدم
+      if (loading) return ( <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white flex-col gap-4"><div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div><p className="font-bold text-lg tracking-widest">جاري التحميل...</p></div> );
+      if (!user) return <LoginScreen />;
       return <MainApp user={user} />;
     }
 
-    // تشغيل التطبيق من خلال الـ Wrapper
-    ReactDOM.createRoot(document.getElementById('root')).render(
-      <ErrorBoundary>
-        <AppWrapper />
-      </ErrorBoundary>
-    );
+    ReactDOM.createRoot(document.getElementById('root')).render( <ErrorBoundary><AppWrapper /></ErrorBoundary> );
   </script>
 </body>
 </html>

@@ -35,624 +35,96 @@
     const getTodayStr = () => new Date().toISOString().substring(0, 10);
     const todayDateStr = getTodayStr();
 
-    function LoginScreen() {
-      const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [error, setError] = useState(''); const [loading, setLoading] = useState(false);
+    const compressImage = (file, callback) => { const reader = new FileReader(); reader.readAsDataURL(file); reader.onload = event => { const img = new Image(); img.src = event.target.result; img.onload = () => { const canvas = document.createElement('canvas'); const MAX_WIDTH = 800; let width = img.width; let height = img.height; if (width > MAX_WIDTH) { height = height * (MAX_WIDTH / width); width = MAX_WIDTH; } canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height); callback(canvas.toDataURL('image/jpeg', 0.6)); } } };
+    
+    const dict = { 
+      ar: { appTitle: "RealStateApp", tab_dash: "الرئيسية", tab_tx: "إيراد/مصروف", tab_cust: "العهد", tab_inv: "الوحدات", tab_sales: "المبيعات", tab_rep: "التقارير", income: "إيراد", expense: "مصروف", transfer: "تحويل", addIncome: "➕ إيراد", addExpense: "➖ مصروف", addTransfer: "🔄 تحويل عهد", date: "التاريخ", amount: "المبلغ (ج.م)", desc: "البيان (التفاصيل)", custody: "العهدة / الخزينة", building: "العمارة", unit: "الوحدة", category: "تصنيف المصروف", save: "حفظ", update: "تحديث", cancel: "إلغاء", edit: "تعديل", delete: "حذف", allCustodies: "-- جميع العهد والخزينة --", generalSafe: "-- الخزينة العامة --", allBuildings: "-- جميع العمارات --", selectCat: "-- اختر التصنيف --", monthDues: "مستحق هذا الشهر", activeCustody: "أرصدة العهد", net: "الصافي", addCat: "إضافة تصنيف مصروفات", newCustody: "👤 فتح عهدة جديدة", newCustodyTitle: "استلام عهدة", backup: "النسخ الاحتياطي", reset: "إعادة ضبط المصنع", lang: "لغة البرنامج / Language", yes: "نعم متأكد", no: "إلغاء", txTitle: "تسجيل حركة نقدية", showDetails: "التفاصيل ▼", hideDetails: "إخفاء ▲", opBalance: "رصيد أول المدة", hasPartner: "يوجد شريك؟", partnerPercent: "نسبة الشريك (%)", partnerNameInput: "اسم الشريك (اختياري)", myShare: "نسبتي", partnerShare: "للشريك", payPartnerBtn: "توريد للشريك", payPartnerTitle: "تأكيد توريد مبلغ الشريك", payPartnerDesc: "يمكنك توريد المبلغ كاملاً أو جزء منه وخصمه كـ (مصروف)", deductFromSafe: "خصم من عهدة / الخزينة", selectSafe: "-- اختر العهدة --", sortBy: "ترتيب حسب:", sortDate: "التاريخ", sortClient: "العميل", sortBuilding: "العمارة", detailsMonthDues: "تفاصيل أقساط الشهر", client: "العميل", dueDate: "الاستحقاق", action: "إجراء", noDues: "لا توجد أقساط مستحقة هذا الشهر", collect: "تحصيل", saveTx: "💾 حفظ الحركة", updateTx: "🔄 تحديث الحركة", searchDesc: "🔍 ابحث في البيان...", incomes: "الإيرادات ⬇", expenses: "المصروفات ⬆", total: "الإجمالي", noMatches: "لا توجد حركات مطابقة", addBuildingTitle: "🏢 إضافة عمارة/مشروع", buildingName: "اسم العمارة...", saveBuilding: "حفظ العمارة", addUnitTitle: "🔑 إضافة وحدة عقارية", unitName: "رقم أو اسم الوحدة", saveUnit: "حفظ الوحدة", newContractTitle: "إنشاء عقد جديد", clientName: "اسم العميل", selectUnit: "-- اختر الوحدة --", totalAmount: "الإجمالي (ج.م)", downPayment: "المقدم المدفوع", instCount: "عدد الأقساط", paySystem: "نظام الدفع", firstInstDate: "تاريخ أول قسط", saveContract: "تسجيل العقد وإنشاء الأقساط", overdueTitle: "⚠️ أقساط متأخرة ومستحقة", cancelContract: "فسخ العقد", status: "الحالة", paid: "مدفوع", pending: "مستحق", suspended: "معلق (0)", addManualInst: "➕ إضافة قسط يدوي", addAttachment: "📎 إرفاق مستند (صورة)", attachments: "المرفقات", noContracts: "لا توجد عقود نشطة", repCustodyTitle: "تقرير كشف حساب", repSalesTitle: "بيان أقساط ومستحقات", periodFrom: "من", periodTo: "إلى", start: "البداية", now: "الآن", repOpBalance: "رصيد بداية المدة المُرَحَّل", incTable: "جدول الإيرادات", expTable: "جدول المصروفات", totalIncomes: "إجمالي الإيرادات", totalExpenses: "إجمالي المصروفات", currentNet: "صافي العهدة الحالي", repInstTitle: "تقرير الأقساط", repCustodyBtn: "كشف حساب العهد", repSalesBtn: "تقرير الأقساط", repContractsBtn: "موقف العملاء والوحدات", repPartnersBtn: "حسابات الشركاء", repContractsTitle: "تقرير موقف العملاء والوحدات", partnerReportTitle: "كشف حساب المستثمر / الشريك", totalUnit: "إجمالي الوحدة", paidAmt: "المدفوع", remAmt: "المتبقي", nextDue: "القسط القادم", partnerDue: "مستحق للشريك", partnerPaidStatus: "مدفوع للشريك", totalExpected: "إجمالي الأرباح المتوقعة", totalCollectedNotPaid: "مستحق للتوريد (مُحصل)", totalPaidToPartner: "تم توريده للشريك", totalPending: "باقي في السوق (لم يُحصل)", printPdf: "🖨️ طباعة PDF", exportExcel: "📊 تصدير Excel", langTitle: "اللغة / Language", addCatTitle: "🏷️ إضافة تصنيف", catName: "اسم التصنيف...", addCatBtn: "إضافة", respName: "اختر المسؤول عن العهدة...", initAmount: "الرصيد الافتتاحي (إن وُجد)", saveCustody: "حفظ العهدة", suggestedNet: "مقترح: صافي آخر عهدة", backupTitle: "💾 النسخ الاحتياطي", backupDesc: "احتفظ بنسخة من بياناتك بانتظام", exportBtn: "⬇️ تحميل نسخة", importBtn: "⬆️ استرجاع نسخة", dangerZone: "⚠️ منطقة الخطر", resetDesc: "سيتم مسح كافة البيانات نهائياً. هل أنت متأكد؟", resetBtn: "🗑️ ضبط المصنع", sys1: "شهري", sys2: "كل شهرين", sys3: "ربع سنوي", sys4: "كل 4 شهور", sys6: "نصف سنوي", sys12: "سنوي", promptCollect: "تحصيل قسط", promptEditInst: "تعديل قسط", promptManual: "قسط يدوي", promptCustody: "إيداع في عهدة (اختياري)", confirmCancel: "متأكد من فسخ العقد؟", confirmDelCat: "حذف التصنيف؟", confirmDelBuild: "حذف العمارة؟", confirmDelUnit: "حذف الوحدة؟", confirmDelTx: "حذف الحركة؟", success: "تم بنجاح", compName: "اسم الشركة / الكيان", compOwner: "اسم المالك / المدير", phone: "رقم التليفون", address: "عنوان الشركة", registerTab: "تسجيل شركة جديدة", loginTab: "تسجيل دخول", createCompBtn: "إنشاء حساب الشركة", backToLogin: "لديك حساب؟ تسجيل دخول" },
+      en: { appTitle: "RealStateApp", tab_dash: "Dashboard", tab_tx: "Income/Expense", tab_cust: "Custody", tab_inv: "Units", tab_sales: "Sales", tab_rep: "Reports", income: "Income", expense: "Expense", transfer: "Transfer", addIncome: "➕ Income", addExpense: "➖ Expense", addTransfer: "🔄 Transfer Custody", date: "Date", amount: "Amount", desc: "Description", custody: "Custody / Safe", building: "Building", unit: "Unit", category: "Category", save: "Save", update: "Update", cancel: "Cancel", edit: "Edit", delete: "Delete", allCustodies: "-- All Custodies & Safes --", generalSafe: "-- General Safe --", allBuildings: "-- All Buildings --", selectCat: "-- Select Category --", monthDues: "Due This Month", activeCustody: "Custody Balances", net: "Net", addCat: "Add Expense Category", newCustody: "👤 Open New Custody", newCustodyTitle: "Receive Custody", backup: "Backup", reset: "Factory Reset", lang: "Language / لغة البرنامج", yes: "Yes, I'm sure", no: "Cancel", txTitle: "Record Transaction", showDetails: "Details ▼", hideDetails: "Hide ▲", opBalance: "Opening Balance", hasPartner: "Has Partner?", partnerPercent: "Partner %", partnerNameInput: "Partner Name (Optional)", myShare: "My Share", partnerShare: "Partner Share", payPartnerBtn: "Pay Partner", payPartnerTitle: "Confirm Partner Payment", payPartnerDesc: "You can pay full or partial amount and deduct it as an (Expense)", deductFromSafe: "Deduct from Custody / Safe", selectSafe: "-- Select Custody --", sortBy: "Sort By:", sortDate: "Date", sortClient: "Client", sortBuilding: "Building", detailsMonthDues: "Month Installments Details", client: "Client", dueDate: "Due Date", action: "Action", noDues: "No installments due this month", collect: "Collect", saveTx: "💾 Save Transaction", updateTx: "🔄 Update Transaction", searchDesc: "🔍 Search Description...", incomes: "Incomes ⬇", expenses: "Expenses ⬆", total: "Total", noMatches: "No matching transactions", addBuildingTitle: "🏢 Add Building", buildingName: "Building Name...", saveBuilding: "Save Building", addUnitTitle: "🔑 Add Unit", unitName: "Unit Number/Name", saveUnit: "Save Unit", newContractTitle: "Create New Contract", clientName: "Client Name", selectUnit: "-- Select Unit --", totalAmount: "Total Amount", downPayment: "Down Payment", instCount: "Installments Count", paySystem: "Payment System", firstInstDate: "First Installment Date", saveContract: "Save Contract", overdueTitle: "⚠️ Overdue Installments", cancelContract: "Cancel Contract", status: "Status", paid: "Paid", pending: "Pending", suspended: "Suspended (0)", addManualInst: "➕ Manual Installment", addAttachment: "📎 Attach Image", attachments: "Attachments", noContracts: "No Active Contracts", repCustodyTitle: "Account Statement", repSalesTitle: "Sales Statement", periodFrom: "From", periodTo: "To", start: "Start", now: "Now", repOpBalance: "Opening Balance", incTable: "Incomes Table", expTable: "Expenses Table", totalIncomes: "Total Incomes", totalExpenses: "Total Expenses", currentNet: "Current Custody Net", repInstTitle: "Installments Report", repCustodyBtn: "Custody Statement", repSalesBtn: "Installments Report", repContractsBtn: "Clients & Units Status", repPartnersBtn: "Partners Accounts", repContractsTitle: "Clients & Units Report", partnerReportTitle: "Partner Statement", totalUnit: "Unit Total", paidAmt: "Paid", remAmt: "Remaining", nextDue: "Next Installment", partnerDue: "Due to Partner", partnerPaidStatus: "Paid to Partner", totalExpected: "Total Expected Profits", totalCollectedNotPaid: "Due for Payment (Collected)", totalPaidToPartner: "Paid to Partner", totalPending: "Remaining in Market (Not Collected)", printPdf: "🖨️ Print PDF", exportExcel: "📊 Export Excel", langTitle: "Language / اللغة", addCatTitle: "🏷️ Add Category", catName: "Category Name...", addCatBtn: "Add", respName: "Select Manager...", initAmount: "Opening Balance", saveCustody: "Save Custody", suggestedNet: "Suggested: Net of last custody", backupTitle: "💾 Backup", backupDesc: "Keep a copy of your data regularly", exportBtn: "⬇️ Download Copy", importBtn: "⬆️ Restore Copy", dangerZone: "⚠️ Danger Zone", resetDesc: "All data will be permanently deleted. Are you sure?", resetBtn: "🗑️ Factory Reset", sys1: "Monthly", sys2: "Every 2 Months", sys3: "Quarterly", sys4: "Every 4 Months", sys6: "Semi-Annual", sys12: "Annual", promptCollect: "Collect Installment", promptEditInst: "Edit Installment", promptManual: "Manual Installment", promptCustody: "Deposit to Custody (Optional)", confirmCancel: "Cancel the contract?", confirmDelCat: "Delete Category?", confirmDelBuild: "Delete Building?", confirmDelUnit: "Delete Unit?", confirmDelTx: "Delete Transaction?", success: "Done Successfully", compName: "Company / Entity Name", compOwner: "Owner / Manager Name", phone: "Phone Number", address: "Company Address", registerTab: "Register New Company", loginTab: "Login", createCompBtn: "Create Company Account", backToLogin: "Have an account? Login" }
+    };
+
+        function AuthScreen() {
+      const lang = localStorage.getItem('real_estate_lang') || 'ar';
+      const t = dict[lang] || dict['ar'];
+      const [isLogin, setIsLogin] = useState(true);
+      const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); 
       const [rememberMe, setRememberMe] = useState(true);
-      
-      const handleLogin = (e) => { 
+      const [compName, setCompName] = useState(''); const [compOwner, setCompOwner] = useState('');
+      const [compPhone, setCompPhone] = useState(''); const [compAddress, setCompAddress] = useState('');
+      const [error, setError] = useState(''); const [loading, setLoading] = useState(false);
+
+      const handleAuth = (e) => { 
           e.preventDefault(); setLoading(true); setError(''); 
           const persistence = rememberMe ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION;
-          auth.setPersistence(persistence)
-            .then(() => auth.signInWithEmailAndPassword(email, password))
-            .catch(err => { setError('الإيميل أو كلمة المرور غير صحيحة'); setLoading(false); }); 
+          
+          if (isLogin) {
+              auth.setPersistence(persistence).then(() => auth.signInWithEmailAndPassword(email, password)).catch(err => { setError(lang === 'ar' ? 'الإيميل أو كلمة المرور غير صحيحة' : 'Invalid email or password'); setLoading(false); });
+          } else {
+              auth.setPersistence(persistence).then(() => auth.createUserWithEmailAndPassword(email, password)).then(res => {
+                    const newCompId = 'COMP_' + Date.now();
+                    db.ref(`systemUsers/${res.user.uid}`).set({ name: compOwner, email: email, role: 'admin', companyId: newCompId, createdAt: new Date().toISOString() });
+                    db.ref(`companies/${newCompId}/info`).set({ companyName: compName, ownerName: compOwner, phone: compPhone, address: compAddress, createdAt: new Date().toISOString() });
+                }).catch(err => { setError(err.message); setLoading(false); });
+          }
       };
+
       return ( 
           <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
-              <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md animate-slide-up">
-                  <div className="text-center mb-8"><h1 className="text-3xl font-black text-slate-800 mb-2">RealStateApp</h1><p className="text-slate-500 font-bold">تسجيل الدخول للنظام</p></div>
-                  {error && <div className="bg-red-50 text-red-600 p-4 rounded-xl font-bold mb-6 text-center border border-red-200">{error}</div>}
-                  <form onSubmit={handleLogin} className="space-y-5">
-                      <div><label className="block text-sm font-bold text-slate-600 mb-1">البريد الإلكتروني</label><input type="email" required className="w-full border-2 border-slate-200 p-4 rounded-xl text-left bg-slate-50 outline-none focus:border-blue-500 font-bold transition" dir="ltr" value={email} onChange={e => setEmail(e.target.value)} /></div>
-                      <div>
-                          <label className="block text-sm font-bold text-slate-600 mb-1">كلمة المرور</label><input type="password" required className="w-full border-2 border-slate-200 p-4 rounded-xl text-left bg-slate-50 outline-none focus:border-blue-500 font-black tracking-widest transition" dir="ltr" value={password} onChange={e => setPassword(e.target.value)} />
-                          <div className="flex items-center gap-2 mt-3 cursor-pointer">
-                              <input type="checkbox" id="rememberMe" checked={rememberMe} onChange={e=>setRememberMe(e.target.checked)} className="w-4 h-4 text-blue-600 cursor-pointer" />
-                              <label htmlFor="rememberMe" className="text-sm font-bold text-slate-600 cursor-pointer select-none">تذكرني (Remember me)</label>
+              <div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-md animate-slide-up">
+                  <div className="text-center mb-6"><h1 className="text-3xl font-black text-slate-800 mb-2">RealStateApp</h1></div>
+                  <div className="flex bg-slate-100 p-1.5 rounded-xl mb-6 shadow-inner">
+                    <button type="button" onClick={() => {setIsLogin(true); setError('');}} className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${isLogin ? 'bg-white text-blue-800 shadow border border-slate-200' : 'text-slate-500 hover:text-slate-800'}`}>{t.loginTab}</button>
+                    <button type="button" onClick={() => {setIsLogin(false); setError('');}} className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${!isLogin ? 'bg-white text-blue-800 shadow border border-slate-200' : 'text-slate-500 hover:text-slate-800'}`}>{t.registerTab}</button>
+                  </div>
+                  {error && <div className="bg-red-50 text-red-600 p-3 rounded-xl font-bold mb-4 text-center text-sm border border-red-200">{error}</div>}
+                  <form onSubmit={handleAuth} className="space-y-4">
+                      {!isLogin && (
+                          <div className="space-y-4 animate-fade-in border-b border-slate-100 pb-4 mb-2">
+                             <div><label className="block text-xs font-bold text-slate-600 mb-1">{t.compName}</label><input type="text" required className="w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 outline-none focus:border-blue-500 font-bold" value={compName} onChange={e => setCompName(e.target.value)} /></div>
+                             <div><label className="block text-xs font-bold text-slate-600 mb-1">{t.compOwner}</label><input type="text" required className="w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 outline-none focus:border-blue-500 font-bold" value={compOwner} onChange={e => setCompOwner(e.target.value)} /></div>
+                             <div className="grid grid-cols-2 gap-3">
+                                <div><label className="block text-xs font-bold text-slate-600 mb-1">{t.phone}</label><input type="tel" required className="w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 outline-none focus:border-blue-500 font-bold text-left" dir="ltr" value={compPhone} onChange={e => setCompPhone(e.target.value)} /></div>
+                                <div><label className="block text-xs font-bold text-slate-600 mb-1">{t.address}</label><input type="text" required className="w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 outline-none focus:border-blue-500 font-bold" value={compAddress} onChange={e => setCompAddress(e.target.value)} /></div>
+                             </div>
                           </div>
+                      )}
+                      <div><label className="block text-xs font-bold text-slate-600 mb-1">البريد الإلكتروني / Email</label><input type="email" required className="w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 outline-none focus:border-blue-500 font-bold text-left" dir="ltr" value={email} onChange={e => setEmail(e.target.value)} /></div>
+                      <div>
+                          <label className="block text-xs font-bold text-slate-600 mb-1">كلمة المرور / Password</label><input type="password" required minLength="6" className="w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 outline-none focus:border-blue-500 font-black tracking-widest text-left" dir="ltr" value={password} onChange={e => setPassword(e.target.value)} />
+                          {isLogin && (
+                              <div className="flex items-center gap-2 mt-3 cursor-pointer">
+                                  <input type="checkbox" id="rememberMe" checked={rememberMe} onChange={e=>setRememberMe(e.target.checked)} className="w-4 h-4 text-blue-600 cursor-pointer" />
+                                  <label htmlFor="rememberMe" className="text-sm font-bold text-slate-600 cursor-pointer select-none">تذكرني (Remember me)</label>
+                              </div>
+                          )}
                       </div>
-                      <button type="submit" disabled={loading} className={`w-full text-white p-4 rounded-xl font-black text-lg shadow-lg transition-transform ${loading ? 'bg-slate-400' : 'bg-blue-600 hover:bg-blue-700 hover:-translate-y-1'}`}>{loading ? 'جاري التحقق...' : 'دخول'}</button>
+                      <button type="submit" disabled={loading} className={`w-full text-white py-4 rounded-xl font-black text-lg shadow-lg transition-transform mt-2 ${loading ? 'bg-slate-400' : 'bg-blue-600 hover:bg-blue-700 hover:-translate-y-1'}`}>{loading ? '...' : isLogin ? t.loginTab : t.createCompBtn}</button>
                   </form>
               </div>
           </div> 
       );
     }
 
-    const compressImage = (file, callback) => { const reader = new FileReader(); reader.readAsDataURL(file); reader.onload = event => { const img = new Image(); img.src = event.target.result; img.onload = () => { const canvas = document.createElement('canvas'); const MAX_WIDTH = 800; let width = img.width; let height = img.height; if (width > MAX_WIDTH) { height = height * (MAX_WIDTH / width); width = MAX_WIDTH; } canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height); callback(canvas.toDataURL('image/jpeg', 0.6)); } } };
-    
-    // القاموس الشامل للغتين
-    const dict = { 
-      ar: { appTitle: "RealStateApp", tab_dash: "الرئيسية", tab_tx: "إيراد/مصروف", tab_cust: "العهد", tab_inv: "الوحدات", tab_sales: "المبيعات", tab_rep: "التقارير", income: "إيراد", expense: "مصروف", transfer: "تحويل", addIncome: "➕ إيراد", addExpense: "➖ مصروف", addTransfer: "🔄 تحويل عهد", date: "التاريخ", amount: "المبلغ (ج.م)", desc: "البيان (التفاصيل)", custody: "العهدة / الخزينة", building: "العمارة", unit: "الوحدة", category: "تصنيف المصروف", save: "حفظ", update: "تحديث", cancel: "إلغاء", edit: "تعديل", delete: "حذف", allCustodies: "-- جميع العهد والخزينة --", generalSafe: "-- الخزينة العامة --", allBuildings: "-- جميع العمارات --", selectCat: "-- اختر التصنيف --", monthDues: "مستحق هذا الشهر", activeCustody: "أرصدة العهد", net: "الصافي", addCat: "إضافة تصنيف مصروفات", newCustody: "👤 فتح عهدة جديدة", newCustodyTitle: "استلام عهدة", backup: "النسخ الاحتياطي", reset: "إعادة ضبط المصنع", lang: "لغة البرنامج / Language", yes: "نعم متأكد", no: "إلغاء", txTitle: "تسجيل حركة نقدية", showDetails: "التفاصيل ▼", hideDetails: "إخفاء ▲", opBalance: "رصيد أول المدة", hasPartner: "يوجد شريك؟", partnerPercent: "نسبة الشريك (%)", partnerNameInput: "اسم الشريك (اختياري)", myShare: "نسبتي", partnerShare: "للشريك", payPartnerBtn: "توريد للشريك", payPartnerTitle: "تأكيد توريد مبلغ الشريك", payPartnerDesc: "يمكنك توريد المبلغ كاملاً أو جزء منه وخصمه كـ (مصروف)", deductFromSafe: "خصم من عهدة / الخزينة", selectSafe: "-- اختر العهدة --", sortBy: "ترتيب حسب:", sortDate: "التاريخ", sortClient: "العميل", sortBuilding: "العمارة", detailsMonthDues: "تفاصيل أقساط الشهر", client: "العميل", dueDate: "الاستحقاق", action: "إجراء", noDues: "لا توجد أقساط مستحقة هذا الشهر", collect: "تحصيل", saveTx: "💾 حفظ الحركة", updateTx: "🔄 تحديث الحركة", searchDesc: "🔍 ابحث في البيان...", incomes: "الإيرادات ⬇", expenses: "المصروفات ⬆", total: "الإجمالي", noMatches: "لا توجد حركات مطابقة", addBuildingTitle: "🏢 إضافة عمارة/مشروع", buildingName: "اسم العمارة...", saveBuilding: "حفظ العمارة", addUnitTitle: "🔑 إضافة وحدة عقارية", unitName: "رقم أو اسم الوحدة", saveUnit: "حفظ الوحدة", newContractTitle: "إنشاء عقد جديد", clientName: "اسم العميل", selectUnit: "-- اختر الوحدة --", totalAmount: "الإجمالي (ج.م)", downPayment: "المقدم المدفوع", instCount: "عدد الأقساط", paySystem: "نظام الدفع", firstInstDate: "تاريخ أول قسط", saveContract: "تسجيل العقد وإنشاء الأقساط", overdueTitle: "⚠️ أقساط متأخرة ومستحقة", cancelContract: "فسخ العقد", status: "الحالة", paid: "مدفوع", pending: "مستحق", suspended: "معلق (0)", addManualInst: "➕ إضافة قسط يدوي", addAttachment: "📎 إرفاق مستند (صورة)", attachments: "المرفقات", noContracts: "لا توجد عقود نشطة", repCustodyTitle: "تقرير كشف حساب", repSalesTitle: "بيان أقساط ومستحقات", periodFrom: "من", periodTo: "إلى", start: "البداية", now: "الآن", repOpBalance: "رصيد بداية المدة المُرَحَّل", incTable: "جدول الإيرادات", expTable: "جدول المصروفات", totalIncomes: "إجمالي الإيرادات", totalExpenses: "إجمالي المصروفات", currentNet: "صافي العهدة الحالي", repInstTitle: "تقرير الأقساط", repCustodyBtn: "كشف حساب العهد", repSalesBtn: "تقرير الأقساط", repContractsBtn: "موقف العملاء والوحدات", repPartnersBtn: "حسابات الشركاء", repContractsTitle: "تقرير موقف العملاء والوحدات", partnerReportTitle: "كشف حساب المستثمر / الشريك", totalUnit: "إجمالي الوحدة", paidAmt: "المدفوع", remAmt: "المتبقي", nextDue: "القسط القادم", partnerDue: "مستحق للشريك", partnerPaidStatus: "مدفوع للشريك", totalExpected: "إجمالي الأرباح المتوقعة", totalCollectedNotPaid: "مستحق للتوريد (مُحصل)", totalPaidToPartner: "تم توريده للشريك", totalPending: "باقي في السوق (لم يُحصل)", printPdf: "🖨️ طباعة PDF", exportExcel: "📊 تصدير Excel", langTitle: "اللغة / Language", addCatTitle: "🏷️ إضافة تصنيف", catName: "اسم التصنيف...", addCatBtn: "إضافة", respName: "اختر المسؤول عن العهدة...", initAmount: "الرصيد الافتتاحي (إن وُجد)", saveCustody: "حفظ العهدة", suggestedNet: "مقترح: صافي آخر عهدة", backupTitle: "💾 النسخ الاحتياطي", backupDesc: "احتفظ بنسخة من بياناتك بانتظام", exportBtn: "⬇️ تحميل نسخة", importBtn: "⬆️ استرجاع نسخة", dangerZone: "⚠️ منطقة الخطر", resetDesc: "سيتم مسح كافة البيانات نهائياً. هل أنت متأكد؟", resetBtn: "🗑️ ضبط المصنع", sys1: "شهري", sys2: "كل شهرين", sys3: "ربع سنوي", sys4: "كل 4 شهور", sys6: "نصف سنوي", sys12: "سنوي", promptCollect: "تحصيل قسط", promptEditInst: "تعديل قسط", promptManual: "قسط يدوي", promptCustody: "إيداع في عهدة (اختياري)", confirmCancel: "متأكد من فسخ العقد؟", confirmDelCat: "حذف التصنيف؟", confirmDelBuild: "حذف العمارة؟", confirmDelUnit: "حذف الوحدة؟", confirmDelTx: "حذف الحركة؟", success: "تم بنجاح" },
-      en: { appTitle: "RealStateApp", tab_dash: "Dashboard", tab_tx: "Income/Expense", tab_cust: "Custody", tab_inv: "Units", tab_sales: "Sales", tab_rep: "Reports", income: "Income", expense: "Expense", transfer: "Transfer", addIncome: "➕ Income", addExpense: "➖ Expense", addTransfer: "🔄 Transfer Custody", date: "Date", amount: "Amount", desc: "Description", custody: "Custody / Safe", building: "Building", unit: "Unit", category: "Category", save: "Save", update: "Update", cancel: "Cancel", edit: "Edit", delete: "Delete", allCustodies: "-- All Custodies & Safes --", generalSafe: "-- General Safe --", allBuildings: "-- All Buildings --", selectCat: "-- Select Category --", monthDues: "Due This Month", activeCustody: "Custody Balances", net: "Net", addCat: "Add Expense Category", newCustody: "👤 Open New Custody", newCustodyTitle: "Receive Custody", backup: "Backup", reset: "Factory Reset", lang: "Language / لغة البرنامج", yes: "Yes, I'm sure", no: "Cancel", txTitle: "Record Transaction", showDetails: "Details ▼", hideDetails: "Hide ▲", opBalance: "Opening Balance", hasPartner: "Has Partner?", partnerPercent: "Partner %", partnerNameInput: "Partner Name (Optional)", myShare: "My Share", partnerShare: "Partner Share", payPartnerBtn: "Pay Partner", payPartnerTitle: "Confirm Partner Payment", payPartnerDesc: "You can pay full or partial amount and deduct it as an (Expense)", deductFromSafe: "Deduct from Custody / Safe", selectSafe: "-- Select Custody --", sortBy: "Sort By:", sortDate: "Date", sortClient: "Client", sortBuilding: "Building", detailsMonthDues: "Month Installments Details", client: "Client", dueDate: "Due Date", action: "Action", noDues: "No installments due this month", collect: "Collect", saveTx: "💾 Save Transaction", updateTx: "🔄 Update Transaction", searchDesc: "🔍 Search Description...", incomes: "Incomes ⬇", expenses: "Expenses ⬆", total: "Total", noMatches: "No matching transactions", addBuildingTitle: "🏢 Add Building", buildingName: "Building Name...", saveBuilding: "Save Building", addUnitTitle: "🔑 Add Unit", unitName: "Unit Number/Name", saveUnit: "Save Unit", newContractTitle: "Create New Contract", clientName: "Client Name", selectUnit: "-- Select Unit --", totalAmount: "Total Amount", downPayment: "Down Payment", instCount: "Installments Count", paySystem: "Payment System", firstInstDate: "First Installment Date", saveContract: "Save Contract", overdueTitle: "⚠️ Overdue Installments", cancelContract: "Cancel Contract", status: "Status", paid: "Paid", pending: "Pending", suspended: "Suspended (0)", addManualInst: "➕ Manual Installment", addAttachment: "📎 Attach Image", attachments: "Attachments", noContracts: "No Active Contracts", repCustodyTitle: "Account Statement", repSalesTitle: "Sales Statement", periodFrom: "From", periodTo: "To", start: "Start", now: "Now", repOpBalance: "Opening Balance", incTable: "Incomes Table", expTable: "Expenses Table", totalIncomes: "Total Incomes", totalExpenses: "Total Expenses", currentNet: "Current Custody Net", repInstTitle: "Installments Report", repCustodyBtn: "Custody Statement", repSalesBtn: "Installments Report", repContractsBtn: "Clients & Units Status", repPartnersBtn: "Partners Accounts", repContractsTitle: "Clients & Units Report", partnerReportTitle: "Partner Statement", totalUnit: "Unit Total", paidAmt: "Paid", remAmt: "Remaining", nextDue: "Next Installment", partnerDue: "Due to Partner", partnerPaidStatus: "Paid to Partner", totalExpected: "Total Expected Profits", totalCollectedNotPaid: "Due for Payment (Collected)", totalPaidToPartner: "Paid to Partner", totalPending: "Remaining in Market (Not Collected)", printPdf: "🖨️ Print PDF", exportExcel: "📊 Export Excel", langTitle: "Language / اللغة", addCatTitle: "🏷️ Add Category", catName: "Category Name...", addCatBtn: "Add", respName: "Select Manager...", initAmount: "Opening Balance", saveCustody: "Save Custody", suggestedNet: "Suggested: Net of last custody", backupTitle: "💾 Backup", backupDesc: "Keep a copy of your data regularly", exportBtn: "⬇️ Download Copy", importBtn: "⬆️ Restore Copy", dangerZone: "⚠️ Danger Zone", resetDesc: "All data will be permanently deleted. Are you sure?", resetBtn: "🗑️ Factory Reset", sys1: "Monthly", sys2: "Every 2 Months", sys3: "Quarterly", sys4: "Every 4 Months", sys6: "Semi-Annual", sys12: "Annual", promptCollect: "Collect Installment", promptEditInst: "Edit Installment", promptManual: "Manual Installment", promptCustody: "Deposit to Custody (Optional)", confirmCancel: "Cancel the contract?", confirmDelCat: "Delete Category?", confirmDelBuild: "Delete Building?", confirmDelUnit: "Delete Unit?", confirmDelTx: "Delete Transaction?", success: "Done Successfully" }
-    };
-    
     class ErrorBoundary extends React.Component { constructor(props) { super(props); this.state = { hasError: false, error: null }; } static getDerivedStateFromError(error) { return { hasError: true, error }; } render() { if (this.state.hasError) { return ( <div className="p-6 m-4 bg-red-50 border-2 border-red-500 rounded-2xl text-red-900 shadow-xl"><h2 className="text-2xl font-black mb-3">⚠️ حدث خطأ في النظام</h2><p className="text-sm font-bold mb-4">{String(this.state.error)}</p><button onClick={() => { window.location.reload(); }} className="w-full bg-red-600 text-white py-4 rounded-xl font-black">🔄 مسح التعارض وإعادة تشغيل التطبيق</button></div> ); } return this.props.children; } }
     function NumberInput({ name, value, onChange, placeholder, className, required, id, defaultValue }) { const [internalVal, setInternalVal] = useState(defaultValue !== undefined ? defaultValue : value); useEffect(() => { if (value !== undefined) setInternalVal(value); }, [value]); const displayVal = (internalVal !== '' && internalVal !== undefined && internalVal !== null && !isNaN(internalVal)) ? Number(internalVal).toLocaleString('en-US') : ''; return ( <input type="text" id={id} name={name} inputMode="numeric" value={displayVal} placeholder={placeholder} required={required} className={className} onChange={(e) => { const raw = e.target.value.replace(/[^0-9]/g, ''); setInternalVal(raw); if(onChange) onChange(raw); }} /> ); }
     function CustomSelect({ options, value, onChange, placeholder, className, required }) { const [isOpen, setIsOpen] = useState(false); const ref = useRef(null); useEffect(() => { const handleClickOutside = (e) => { if (ref.current && !ref.current.contains(e.target)) setIsOpen(false); }; document.addEventListener('mousedown', handleClickOutside); return () => document.removeEventListener('mousedown', handleClickOutside); }, []); const hasEmptyOption = options.some(o => o.value === ''); const displayOptions = placeholder && hasEmptyOption ? options.filter(o => o.value !== '') : options; const selectedOpt = options.find(o => String(o.value) === String(value)); const displayLabel = selectedOpt ? selectedOpt.label : (placeholder || 'اختر...'); return ( <div className={`relative w-full ${isOpen ? 'z-50' : 'z-10'} ${className || ''}`} ref={ref}> <div className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl bg-white cursor-pointer font-bold flex justify-between items-center shadow-sm hover:border-blue-400 transition text-slate-800" onClick={() => setIsOpen(!isOpen)}> <span className="truncate">{displayLabel}</span> <span className="text-xs text-blue-600">▼</span> </div> {isOpen && ( <div className="absolute top-full right-0 w-full bg-white border-2 border-slate-200 mt-1 shadow-2xl max-h-52 overflow-y-auto z-50 p-1 space-y-1 rounded-xl animate-fade-in text-slate-800"> {placeholder && ( <div className={`p-2.5 text-sm font-bold rounded-lg cursor-pointer transition ${value === '' ? 'bg-blue-50 text-blue-700 font-black' : 'hover:bg-slate-100 text-slate-700'}`} onClick={() => { onChange(''); setIsOpen(false); }}> {placeholder} </div> )} {displayOptions.map((opt, idx) => ( <div key={idx} className={`p-2.5 text-sm font-bold rounded-lg cursor-pointer transition ${String(value) === String(opt.value) ? 'bg-blue-600 text-white font-black' : 'hover:bg-slate-100 text-slate-800'}`} onClick={() => { onChange(opt.value); setIsOpen(false); }}> {opt.label} </div> ))} </div> )} <input type="hidden" required={required} value={value} /> </div> ); }
     function CustomDateInput({ value, onChange, className }) { const [isOpen, setIsOpen] = useState(false); const dateObj = value ? new Date(value) : new Date(); const [viewYear, setViewYear] = useState(dateObj.getFullYear() || new Date().getFullYear()); const [viewMonth, setViewMonth] = useState(dateObj.getMonth() || new Date().getMonth()); const ref = useRef(null); useEffect(() => { if(value) { const d = new Date(value); if(!isNaN(d.getTime())) { setViewYear(d.getFullYear()); setViewMonth(d.getMonth()); } } }, [value]); useEffect(() => { const handleClickOutside = (e) => { if (ref.current && !ref.current.contains(e.target)) setIsOpen(false); }; document.addEventListener('mousedown', handleClickOutside); return () => document.removeEventListener('mousedown', handleClickOutside); }, []); const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate(); const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay(); const monthsNames = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]; const handleSelectDay = (day) => { const m = String(viewMonth + 1).padStart(2, '0'); const d = String(day).padStart(2, '0'); const selectedStr = `${viewYear}-${m}-${d}`; onChange(selectedStr); setIsOpen(false); }; const formatDisplay = (dStr) => { if(!dStr) return 'اختر التاريخ...'; const p = dStr.split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : dStr; }; return ( <div className={`relative w-full ${isOpen ? 'z-50' : 'z-10'}`} ref={ref}> <div onClick={() => setIsOpen(!isOpen)} className={`cursor-pointer font-mono font-bold flex justify-between items-center ${className || 'w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 text-slate-800'}`}> <span>{formatDisplay(value)}</span> <span className="text-slate-400 text-sm">📅</span> </div> {isOpen && ( <div className="absolute top-full right-0 w-full max-w-xs bg-white border-2 border-slate-200 mt-1 p-3 shadow-2xl z-50 rounded-2xl animate-fade-in text-slate-800" onClick={e=>e.stopPropagation()}> <div className="flex justify-between items-center mb-3"> <button type="button" onClick={() => { if(viewMonth === 0) { setViewMonth(11); setViewYear(viewYear-1); } else setViewMonth(viewMonth-1); }} className="p-1 px-2.5 bg-slate-100 rounded-lg text-slate-700 font-bold hover:bg-slate-200">▶</button> <span className="font-bold text-sm text-slate-800">{monthsNames[viewMonth]} {viewYear}</span> <button type="button" onClick={() => { if(viewMonth === 11) { setViewMonth(0); setViewYear(viewYear+1); } else setViewMonth(viewMonth+1); }} className="p-1 px-2.5 bg-slate-100 rounded-lg text-slate-700 font-bold hover:bg-slate-200">◀</button> </div> <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 mb-2"> <span>أحد</span><span>إثن</span><span>ثلا</span><span>أرب</span><span>خميس</span><span>جمعة</span><span>سبت</span> </div> <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold"> {Array.from({ length: firstDayOfWeek }).map((_, i) => <div key={'empty_'+i}></div>)} {Array.from({ length: daysInMonth }).map((_, i) => { const day = i + 1; const m = String(viewMonth + 1).padStart(2, '0'); const d = String(day).padStart(2, '0'); const curStr = `${viewYear}-${m}-${d}`; const isSelected = value === curStr; const isToday = todayDateStr === curStr; return ( <button key={day} type="button" onClick={() => handleSelectDay(day)} className={`p-2 rounded-xl transition font-mono ${isSelected ? 'bg-blue-600 text-white font-black shadow' : isToday ? 'bg-blue-100 text-blue-800 border border-blue-300' : 'hover:bg-slate-100 text-slate-700'}`}> {day} </button> ); })} </div> </div> )} </div> ); }
     function MultiSelectDropdown({ options, selected, onChange, placeholder }) { const [isOpen, setIsOpen] = useState(false); const dropdownRef = useRef(null); useEffect(() => { const handleClickOutside = (e) => { if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setIsOpen(false); }; document.addEventListener('mousedown', handleClickOutside); return () => document.removeEventListener('mousedown', handleClickOutside); }, []); const isAll = (selected || []).includes('ALL'); const selectedLabels = (selected || []).map(id => options.find(o => o.id === id)?.label).filter(Boolean); let displayTxt = placeholder || '-- جميع العهد والخزينة --'; if (isAll) { displayTxt = '-- جميع العهد والخزينة --'; } else if (selectedLabels.length > 0) { displayTxt = selectedLabels.length <= 2 ? selectedLabels.join(' + ') : `(${selectedLabels.length} مختارة)`; } return ( <div className={`relative w-full ${isOpen ? 'z-50' : 'z-20'}`} ref={dropdownRef}> <div className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl bg-white cursor-pointer font-bold flex justify-between items-center shadow-sm hover:border-blue-400 transition text-slate-800" onClick={() => setIsOpen(!isOpen)}> <span className="truncate">{displayTxt}</span><span className="text-xs text-blue-600">▼</span> </div> {isOpen && ( <div className="absolute top-full right-0 w-full bg-white border-2 border-slate-200 mt-1 shadow-2xl max-h-56 overflow-y-auto z-50 p-2 space-y-1 rounded-xl animate-fade-in text-slate-800"> {(options || []).map(opt => { const checked = (selected || []).includes(opt.id); return ( <label key={opt.id} className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-50 p-2 rounded-lg transition text-slate-800 font-bold border-b border-slate-100 last:border-none"> <input type="checkbox" checked={checked} className="w-4 h-4 text-blue-600 rounded" onChange={(e) => { if (opt.id === 'ALL') { onChange(e.target.checked ? ['ALL'] : []); } else { let next = (selected || []).filter(id => id !== 'ALL'); if (e.target.checked) { next.push(opt.id); } else { next = next.filter(id => id !== opt.id); } onChange(next); } }} /> <span>{opt.label}</span> </label> ); })} </div> )} </div> ); }
 
-          const initialData = { pinCode: '0000', buildings: [], units: [], categories: [], contracts: [], installments: [], custodies: [], transactions: [], requests: [] };
+    const initialData = { pinCode: '0000', buildings: [], units: [], categories: [], contracts: [], installments: [], custodies: [], transactions: [], requests: [] };
 
-    function MainApp({ user }) {
+    function MainApp({ user, currentUserData }) {
       const [lang, setLang] = useState(() => localStorage.getItem('real_estate_lang') || 'ar');
       const t = dict[lang] || dict['ar'];
 
       useEffect(() => { localStorage.setItem('real_estate_lang', lang); document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr'; document.documentElement.lang = lang; }, [lang]);
 
       const [data, setData] = useState(() => {
-        const saved = localStorage.getItem('real_estate_core_data');
-        if (saved) { try { const parsed = JSON.parse(saved); return { ...initialData, ...parsed }; } catch (e) { return initialData; } }
+        const saved = localStorage.getItem(`real_estate_data_${currentUserData.companyId}`);
+        if (saved) { try { return { ...initialData, ...JSON.parse(saved) }; } catch (e) { return initialData; } }
         return initialData;
       });
 
-      // --- المزامنة اللحظية السحابية ---
-      useEffect(() => {
-        const dataRef = db.ref('companyData');
-        const listener = dataRef.on('value', (snapshot) => {
-          const cloudData = snapshot.val();
-          if (cloudData) {
-             setData(prev => {
-                if(JSON.stringify(prev) !== JSON.stringify(cloudData)) {
-                   localStorage.setItem('real_estate_core_data', JSON.stringify({ ...initialData, ...cloudData }));
-                   return { ...initialData, ...cloudData };
-                }
-                return prev;
-             });
-          }
-        });
-        return () => dataRef.off('value', listener);
-      }, []);
-
-      const updateData = (updater) => {
-        setData(prev => {
-          const nextData = typeof updater === 'function' ? updater(prev) : updater;
-          localStorage.setItem('real_estate_core_data', JSON.stringify(nextData));
-          db.ref('companyData').set(nextData);
-          return nextData;
-        });
-      };
-
-      // --- إدارة المستخدمين ---
-      const [currentUserData, setCurrentUserData] = useState(null);
-      const [userDataLoading, setUserDataLoading] = useState(true); // لمنع وميض شاشة الأدمن
-      const [isUploading, setIsUploading] = useState(false);
-      const [dbUsers, setDbUsers] = useState([]);
-      const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: '' });
-      const [isCreatingUser, setIsCreatingUser] = useState(false);
-
-      useEffect(() => {
-        const usersRef = db.ref('systemUsers');
-        usersRef.on('value', snap => {
-          const vals = snap.val();
-          if(vals) {
-            const arr = Object.keys(vals).map(k => ({ uid: k, ...vals[k] }));
-            setDbUsers(arr);
-            if(user?.uid) {
-               const me = arr.find(u => u.uid === user.uid);
-               setCurrentUserData(me || { role: 'admin', name: 'المدير' });
-            }
-          } else {
-            setDbUsers([]);
-            setCurrentUserData({ role: 'admin', name: 'المدير' });
-          }
-          setUserDataLoading(false);
-        });
-        return () => usersRef.off();
-      }, [user]);
-
-      const userRole = currentUserData?.role || 'admin';
-      const isCustodyRole = userRole === 'custody' || userRole === 'engineer'; // معاملة المهندس كمشرف موقع
-      const isPartnerRole = userRole === 'partner';
-
-      const allUsersOptionsForCustody = useMemo(() => {
-        const adminName = currentUserData?.name || 'المدير';
-        const rawUsers = [{ name: adminName, role: 'admin' }, ...dbUsers];
-        const uniqueUsers = rawUsers.filter((u, index, self) => index === self.findIndex((t) => t.name === u.name));
-        return uniqueUsers.map(u => ({ value: u.name, label: `${u.name} - ${u.role === 'admin' ? 'مدير' : u.role === 'partner' ? 'شريك' : u.role === 'engineer' ? 'مهندس' : 'مشرف موقع'}` }));
-      }, [dbUsers, currentUserData]);
-
-      const handleMigrateData = () => {
-        setAppModal({ show: true, type: 'CONFIRM', props: { title: 'الترحيل للسحابة ☁️', message: 'هل أنت متأكد من رفع البيانات الحالية للسيرفر لتصبح متاحة لجميع المستخدمين؟', onConfirm: async () => { setIsUploading(true); try { await db.ref('companyData').set(data); showMsg('تم رفع ومزامنة كافة البيانات على السيرفر بنجاح! ✅'); } catch(err) { showMsg('حدث خطأ أثناء الرفع: ' + err.message, true); } setIsUploading(false); } } });
-      };
-
-      const handleCreateUser = async (e) => {
-        e.preventDefault(); 
-        if(!newUser.role) { showMsg('يرجى اختيار الصلاحية', true); return; }
-        setIsCreatingUser(true);
-        try {
-          const secApp = getSecondaryApp(); const res = await secApp.auth().createUserWithEmailAndPassword(newUser.email, newUser.password);
-          await db.ref('systemUsers/' + res.user.uid).set({ name: newUser.name, email: newUser.email, role: newUser.role, createdAt: todayDateStr });
-          await secApp.auth().signOut(); setNewUser({ name: '', email: '', password: '', role: '' }); showMsg('تم إنشاء حساب الموظف بنجاح! ✅');
-        } catch(err) { showMsg('خطأ: ' + err.message, true); } setIsCreatingUser(false);
-      };
-
-      const handleDeleteUser = async (uid) => { setAppModal({ show:true, type:'CONFIRM', props:{ title: 'حذف موظف', message: 'هل متأكد من حذف صلاحيات هذا الموظف نهائياً؟', onConfirm: async () => { await db.ref('systemUsers/' + uid).remove(); showMsg('تم الحذف بنجاح'); } } }); };
-
-      const [activeTab, setActiveTab] = useState('dashboard');
-      const [toast, setToast] = useState({ show: false, msg: '', isError: false });
-      const [appModal, setAppModal] = useState({ show: false, type: '', props: {} });
-      const [editingTxId, setEditingTxId] = useState(null);
-      const [editingContractId, setEditingContractId] = useState(null);
-      const [globalSearch, setGlobalSearch] = useState('');
-      const [showContractsList, setShowContractsList] = useState(false);
-      
-      const [newContract, setNewContract] = useState({ clientName: '', unitId: '', totalAmount: '', downPayment: '', custodyId: '', installmentsCount: '', firstInstallmentDate: '', interval: '1' });
-      const [newBuilding, setNewBuilding] = useState('');
-      const [newBuildingPartner, setNewBuildingPartner] = useState(false);
-      const [newBuildingPartnerPercent, setNewBuildingPartnerPercent] = useState('');
-      const [newBuildingPartnerName, setNewBuildingPartnerName] = useState('');
-      const [newUnit, setNewUnit] = useState({ buildingId: '', unitNumber: '', price: '' });
-      const [newCategory, setNewCategory] = useState('');
-      const [newCustody, setNewCustody] = useState({ personName: '', custodyName: '', totalAmount: '', notes: '' });
-      const [newTransaction, setNewTransaction] = useState({ type: 'income', amount: '', categoryId: '', buildingId: '', custodyId: '', toCustodyId: '', description: '', date: todayDateStr });
-      
-      const [reportType, setReportType] = useState('transactions'); 
-      const [reportFilter, setReportFilter] = useState({ startDate: '', endDate: '', custodyIds: [], buildingIds: [] });
-      const [reportSort, setReportSort] = useState('date');
-      const [selectedPartnerR, setSelectedPartnerR] = useState(''); 
-      const [showPartnerDetails, setShowPartnerDetails] = useState(false);
-      
-      const [selectedResponsibles, setSelectedResponsibles] = useState([]); 
-      const [dashboardCustodyFilter, setDashboardCustodyFilter] = useState(() => { try { const s=localStorage.getItem('real_estate_last_custody'); if(!s) return []; const p = JSON.parse(s); return Array.isArray(p) ? p : [p].filter(Boolean); }catch(e){return [];} });
-      const [selectedCustodies, setSelectedCustodies] = useState([]);
-      const [custodyTabSub, setCustodyTabSub] = useState('income');
-      const [custodySearch, setCustodySearch] = useState('');
-      const [descFocus, setDescFocus] = useState(false);
-      const [showMonthDetails, setShowMonthDetails] = useState(false);
-      const [expandedBuildings, setExpandedBuildings] = useState({});
-      const [showOverdue, setShowOverdue] = useState(false);
-
-      const [expandedSettings, setExpandedSettings] = useState({});
-      const toggleSetting = (sec) => setExpandedSettings(p => ({...p, [sec]: !p[sec]}));
-
-      useEffect(() => { localStorage.setItem('real_estate_core_data', JSON.stringify(data)); }, [data]);
-      useEffect(() => { localStorage.setItem('real_estate_last_custody', JSON.stringify(dashboardCustodyFilter)); }, [dashboardCustodyFilter]);
-
-      const showMsg = (msg, isError = false) => { setToast({ show: true, msg, isError }); setTimeout(() => setToast(p => ({ ...p, show: false })), 3500); };
-      const closeModal = () => setAppModal({ show: false, type: '', props: {} });
-      const requirePin = (onSuccess) => setAppModal({ show: true, type: 'PIN', props: { onSuccess } });
-      const formatShortDate = (d) => { if(!d) return ''; const p = d.split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0].substring(2)}` : d; };
-
-      const allDescriptions = useMemo(() => { const descs = []; for (let i = (data.transactions || []).length - 1; i >= 0; i--) { const d = data.transactions[i]?.description; if (d && !descs.includes(d)) descs.push(d); } return descs; }, [data.transactions]);
-      const filteredDescs = newTransaction.description ? allDescriptions.filter(d => (d||'').includes(newTransaction.description) && d !== newTransaction.description) : [];
-      const uniquePartnersList = useMemo(() => { const names = []; (data.buildings||[]).forEach(b => { if (b.hasPartner && b.partnerPercent > 0 && b.partnerName) { const tName = b.partnerName.trim(); if (!names.includes(tName)) names.push(tName); } }); return names; }, [data.buildings]);
-
-      // --- عزل العهد بناءً على صلاحية مسؤول العهدة ---
-      const myCustodies = useMemo(() => {
-        if (!isCustodyRole || !currentUserData) return [];
-        return (data.custodies || []).filter(c => c.personName === currentUserData.name && c.status !== 'closed');
-      }, [data.custodies, isCustodyRole, currentUserData]);
-
-      const sortedCustodies = useMemo(() => [...(data.custodies || [])].reverse(), [data.custodies]);
-      const sortedBuildings = useMemo(() => [...(data.buildings || [])].reverse(), [data.buildings]);
-      const sortedCategories = useMemo(() => [...(data.categories || [])].reverse(), [data.categories]);
-
-      // استرجاع القوائم المنسدلة للواجهات 
-      const buildingOptions = useMemo(() => [ { value: '', label: t.allBuildings }, ...sortedBuildings.map(b => ({ value: b.id, label: b.name })) ], [sortedBuildings, t.allBuildings]);
-      const categoryOptions = useMemo(() => [ { value: '', label: t.selectCat }, ...sortedCategories.map(c => ({ value: c.id, label: c.name })) ], [sortedCategories, t.selectCat]);
-
-      const getCustodyLabel = (c) => c.custodyName ? `${c.custodyName} (${c.personName})` : c.personName;
-
-      // --- خيارات تصفية المسؤولين ---
-      const responsibleOptions = useMemo(() => {
-         const names = Array.from(new Set((data.custodies||[]).filter(c=>c.status!=='closed').map(c => c.personName)));
-         return [ { id: 'ALL', label: lang === 'ar' ? '👥 جميع المسؤولين' : '👥 All Managers' }, ...names.map(n => ({ id: n, label: n })) ];
-      }, [data.custodies, lang]);
-
-      // --- خيارات العهد ديناميكية بناءً على المسؤول المختار ---
-      const custodyMultiOptions = useMemo(() => {
-        if (isCustodyRole) return myCustodies.map(c => ({ id: c.id, label: getCustodyLabel(c) }));
-        
-        let filtered = sortedCustodies;
-        if (selectedResponsibles.length > 0 && !selectedResponsibles.includes('ALL')) {
-           filtered = sortedCustodies.filter(c => selectedResponsibles.includes(c.personName));
-        }
-        
-        return [ 
-           { id: 'ALL', label: lang === 'ar' ? '🌐 جميع العهد والخزينة' : '🌐 All Custodies & Safes' }, 
-           { id: 'GENERAL_SAFE', label: lang === 'ar' ? '🏛️ الخزينة العامة' : '🏛️ General Safe' }, 
-           ...filtered.map(c => ({ id: c.id, label: getCustodyLabel(c) + (c.status === 'closed' ? (lang === 'ar' ? ' (مغلقة)' : ' (Closed)') : '') })) 
-        ];
-      }, [sortedCustodies, isCustodyRole, myCustodies, selectedResponsibles, lang]);
-
-      const custodyOptions = useMemo(() => {
-        if (isCustodyRole) return myCustodies.map(c => ({ value: c.id, label: getCustodyLabel(c) }));
-        return [ { value: '', label: t.generalSafe }, ...sortedCustodies.filter(c => c.status !== 'closed').map(c => ({ value: c.id, label: getCustodyLabel(c) })) ];
-      }, [sortedCustodies, isCustodyRole, myCustodies, t.generalSafe]);
-
-      // ضبط الفلتر الافتراضي لأمين العهدة
-      useEffect(() => {
-         if (isCustodyRole && myCustodies.length > 0 && dashboardCustodyFilter.length === 0) {
-            setDashboardCustodyFilter([myCustodies[0].id]);
-            setSelectedCustodies([myCustodies[0].id]);
-         }
-      }, [isCustodyRole, myCustodies, dashboardCustodyFilter.length]);
-
-      const isTxInSelectedCustodies = (tx, selectedIds) => {
-        if (!selectedIds || selectedIds.length === 0 || selectedIds.includes('ALL')) return true;
-        const hasGeneralSafe = selectedIds.includes('GENERAL_SAFE');
-        const specificIds = selectedIds.filter(id => id !== 'ALL' && id !== 'GENERAL_SAFE');
-        if (hasGeneralSafe) { if (!tx.custodyId && !tx.toCustodyId) return true; if (tx.type === 'transfer' && (!tx.custodyId || !tx.toCustodyId)) return true; }
-        if (specificIds.length > 0) { if (tx.custodyId && specificIds.includes(tx.custodyId)) return true; if (tx.toCustodyId && specificIds.includes(tx.toCustodyId)) return true; }
-        return false;
-      };
-
-      const custodyCalculations = useMemo(() => {
-        return (data.custodies || []).map(c => {
-          const expenses = (data.transactions || []).filter(tx => (tx.type === 'expense' && tx.custodyId === c.id) || (tx.type === 'transfer' && tx.custodyId === c.id)).reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
-          const incomes = (data.transactions || []).filter(tx => (tx.type === 'income' && tx.custodyId === c.id) || (tx.type === 'transfer' && tx.toCustodyId === c.id)).reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
-          return { ...c, used: expenses, incomes, remaining: Number(c.totalAmount || 0) + incomes - expenses };
-        });
-      }, [data]);
-
-      let dashboardNet = 0;
-      if (!dashboardCustodyFilter || dashboardCustodyFilter.length === 0 || dashboardCustodyFilter.includes('ALL')) {
-         const inc = (data.transactions||[]).filter(tx=>tx.type==='income').reduce((s,tx)=>s+Number(tx.amount||0),0);
-         const exp = (data.transactions||[]).filter(tx=>tx.type==='expense').reduce((s,tx)=>s+Number(tx.amount||0),0);
-         const initCust = (data.custodies||[]).reduce((s,c)=>s+Number(c.totalAmount||0),0);
-         dashboardNet = initCust + inc - exp;
-      } else {
-         let net = 0;
-         if (dashboardCustodyFilter.includes('GENERAL_SAFE')) {
-            const inc = (data.transactions||[]).filter(tx => (tx.type==='income' && !tx.custodyId) || (tx.type==='transfer' && !tx.toCustodyId)).reduce((s,tx)=>s+Number(tx.amount||0),0);
-            const exp = (data.transactions||[]).filter(tx => (tx.type==='expense' && !tx.custodyId) || (tx.type==='transfer' && !tx.custodyId)).reduce((s,tx)=>s+Number(tx.amount||0),0);
-            net += (inc - exp);
-         }
-         const specIds = dashboardCustodyFilter.filter(id => id !== 'ALL' && id !== 'GENERAL_SAFE');
-         if (specIds.length > 0) { net += custodyCalculations.filter(c => specIds.includes(c.id)).reduce((s, c) => s + c.remaining, 0); }
-         dashboardNet = net;
-      }
-
-      const totalOpeningBalance = useMemo(() => {
-        if (!selectedCustodies || selectedCustodies.length === 0 || selectedCustodies.includes('ALL')) { return (data.custodies || []).reduce((sum, c) => sum + Number(c.totalAmount || 0), 0); }
-        return (data.custodies || []).filter(c => selectedCustodies.includes(c.id)).reduce((sum, c) => sum + Number(c.totalAmount || 0), 0);
-      }, [data.custodies, selectedCustodies]);
-
-      const filteredCustodyTrans = useMemo(() => {
-        return (data.transactions || []).filter(tx => {
-          if (!isTxInSelectedCustodies(tx, selectedCustodies)) return false;
-          if (tx.type !== custodyTabSub && tx.type !== 'transfer') return false;
-          if (custodySearch && !(tx.description||'').includes(custodySearch)) return false;
-          return true;
-        }).sort((a,b) => new Date(b.date || 0) - new Date(a.date || 0));
-      }, [data, selectedCustodies, custodyTabSub, custodySearch]);
-
-      const reportData = useMemo(() => {
-        let openingBalance = 0;
-        let selectedCustodyObjsR = (reportFilter.custodyIds || []).length > 0 ? (data.custodies || []).filter(c => (reportFilter.custodyIds || []).includes(c.id)) : (data.custodies || []);
-        
-        selectedCustodyObjsR.forEach(c => {
-           let bal = Number(c.totalAmount || 0);
-           if (reportFilter.startDate) {
-              const beforeTrans = (data.transactions || []).filter(tx => (tx.custodyId === c.id || tx.toCustodyId === c.id) && tx.date < reportFilter.startDate);
-              bal += beforeTrans.filter(tx => tx.type === 'income' || (tx.type === 'transfer' && tx.toCustodyId === c.id)).reduce((s, tx) => s + Number(tx.amount || 0), 0);
-              bal -= beforeTrans.filter(tx => tx.type === 'expense' || (tx.type === 'transfer' && tx.custodyId === c.id)).reduce((s, tx) => s + Number(tx.amount || 0), 0);
-           }
-           openingBalance += bal;
-        });
-
-        const custodyName = (reportFilter.custodyIds || []).length === 0 ? t.allCustodies : selectedCustodyObjsR.map(c=>getCustodyLabel(c)).join(' + ');
-        const buildingName = (reportFilter.buildingIds || []).length === 0 ? t.allBuildings : (data.buildings||[]).filter(b=>reportFilter.buildingIds.includes(b.id)).map(b=>b.name).join(' + ');
-
-        const filtered = (data.transactions || []).filter(tx => {
-          if (reportFilter.startDate && tx.date < reportFilter.startDate) return false;
-          if (reportFilter.endDate && tx.date > reportFilter.endDate) return false;
-          if (!isTxInSelectedCustodies(tx, reportFilter.custodyIds)) return false;
-          if ((reportFilter.buildingIds || []).length > 0 && !(reportFilter.buildingIds || []).includes(tx.buildingId)) return false;
-          return true;
-        }).sort((a,b) => new Date(a.date || 0) - new Date(b.date || 0));
-
-        const incomes = filtered.filter(tx => tx.type === 'income' || tx.type === 'transfer');
-        const expenses = filtered.filter(tx => tx.type === 'expense' || tx.type === 'transfer');
-        const totalIncomes = incomes.reduce((s,tx) => s + Number(tx.amount || 0), 0);
-        const totalExpenses = expenses.reduce((s,tx) => s + Number(tx.amount || 0), 0);
-        
-        return { openingBalance, incomes, expenses, totalIncomes, totalExpenses, finalBalance: openingBalance + totalIncomes - totalExpenses, custodyName, buildingName };
-      }, [data, reportFilter, t]);
-
-      const reportInstallments = useMemo(() => {
-        let insts = (data.installments || []).filter(i => {
-           if (i.status === 'suspended' || Number(i.amount) === 0) return false;
-           if (reportFilter.startDate && i.dueDate < reportFilter.startDate) return false;
-           if (reportFilter.endDate && i.dueDate > reportFilter.endDate) return false;
-           const contract = (data.contracts || []).find(c => c.id === i.contractId);
-           if ((reportFilter.buildingIds || []).length > 0 && !(reportFilter.buildingIds || []).includes(contract?.buildingId)) return false;
-           return true;
-        });
-        insts.sort((a,b) => new Date(a.dueDate || 0) - new Date(b.dueDate || 0));
-        return insts;
-      }, [data, reportFilter, reportSort]);
-
-      const reportContractsList = useMemo(() => {
-        if (reportType !== 'contracts') return [];
-        return (data.contracts || []).filter(c => {
-           if (c.status !== 'active') return false;
-           if (reportFilter.buildingIds.length > 0 && !reportFilter.buildingIds.includes(c.buildingId)) return false;
-           return true;
-        }).map(c => {
-           const b = (data.buildings||[]).find(bd=>bd.id===c.buildingId);
-           const u = (data.units||[]).find(un=>un.id===c.unitId);
-           const insts = (data.installments||[]).filter(i=>i.contractId===c.id);
-           const totalPaid = insts.filter(i=>i.status==='paid').reduce((s,i)=>s+Number(i.amount), 0);
-           const remaining = Number(c.totalAmount) - totalPaid;
-           const pendingInsts = insts.filter(i=>i.status==='pending' && Number(i.amount) > 0).sort((a,b)=>new Date(a.dueDate||0)-new Date(b.dueDate||0));
-           const nextDate = pendingInsts.length > 0 ? pendingInsts[0].dueDate : '--';
-           return { id: c.id, clientName: c.clientName, buildingName: b?.name, unitNumber: u?.unitNumber, totalAmount: Number(c.totalAmount), paidAmount: totalPaid, remainingAmount: remaining, nextDate };
-        });
-      }, [data, reportFilter, reportType]);
-
-      // --- حسابات الشريك (المرحلة الرابعة) ---
-      const partnerReportData = useMemo(() => {
-          const targetPartner = isPartnerRole ? currentUserData?.name : selectedPartnerR;
-          if (!targetPartner) return null;
-
-          let expected = 0; let paid = 0; let unpaid = 0; let pending = 0;
-          const tp = targetPartner.trim();
-          const bds = (data.buildings||[]).filter(b => b.hasPartner && (b.partnerName||'').trim() === tp);
-          const bdsIds = bds.map(b => b.id);
-          const activeContracts = (data.contracts||[]).filter(c => c.status === 'active' && bdsIds.includes(c.buildingId));
-          const activeContractIds = activeContracts.map(c => c.id);
-          const allPartnerInsts = [];
-
-          (data.installments||[]).forEach(inst => {
-             if (activeContractIds.includes(inst.contractId) && inst.status !== 'suspended' && Number(inst.amount) > 0) {
-                 const c = activeContracts.find(ct => ct.id === inst.contractId);
-                 const b = bds.find(bd => bd.id === c.buildingId);
-                 const u = (data.units||[]).find(un => un.id === c.unitId);
-                 const pShare = Math.round(Number(inst.amount) * (Number(b.partnerPercent)/100));
-                 const paidToPartnerAmt = inst.partnerPaidAmount !== undefined ? Number(inst.partnerPaidAmount) : (inst.partnerPaid ? pShare : 0);
-                 
-                 expected += pShare;
-                 paid += paidToPartnerAmt;
-                 if (inst.status === 'paid') {
-                     const remainingUnpaidToPartner = Math.max(0, pShare - paidToPartnerAmt);
-                     unpaid += remainingUnpaidToPartner;
-                 } else { pending += pShare; }
-                 
-                 const clientLabel = inst.isDownPayment ? (lang === 'ar' ? `${c.clientName} (مقدم)` : `${c.clientName} (DP)`) : c.clientName;
-                 let partnerStatusText = lang === 'ar' ? 'غير محصل من العميل' : 'Not Collected';
-                 if (inst.status === 'paid') {
-                    if (paidToPartnerAmt >= pShare) partnerStatusText = lang === 'ar' ? 'تم التوريد بالكامل' : 'Fully Paid';
-                    else if (paidToPartnerAmt > 0) partnerStatusText = lang === 'ar' ? `مورد جزئي (${paidToPartnerAmt.toLocaleString()})` : `Partially Paid (${paidToPartnerAmt.toLocaleString()})`;
-                    else partnerStatusText = lang === 'ar' ? 'مستحق للتوريد (مُحصل)' : 'Due (Collected)';
-                 }
-                 allPartnerInsts.push({ id: inst.id, client: clientLabel, building: `${b.name} - ${u?.unitNumber || ''}`, date: inst.dueDate, totalAmount: Number(inst.amount), share: pShare, paidToPartner: paidToPartnerAmt, dueToPartner: Math.max(0, pShare - paidToPartnerAmt), instStatus: inst.status, partnerStatus: partnerStatusText });
-             }
-          });
-          allPartnerInsts.sort((a,b) => new Date(a.date || 0) - new Date(b.date || 0));
-          return { expected, paid, unpaid, pending, instsDetails: allPartnerInsts };
-      }, [data, selectedPartnerR, isPartnerRole, currentUserData, lang]);
-
-      const handlePrint = () => {
-        const originalTitle = document.title;
-        let printName = t.repCustodyTitle;
-        if (reportType === 'installments') printName = t.repSalesTitle;
-        if (reportType === 'contracts') printName = t.repContractsTitle;
-        if (isPartnerRole || reportType === 'partners') printName = t.partnerReportTitle;
-        document.title = `${printName.replace(/\s+/g, '_')}_${todayDateStr}.pdf`;
-        setTimeout(() => { window.print(); document.title = originalTitle; }, 100);
-      };
-
-      const handleExportExcel = () => {
-        let exportData = [];
-        let fileName = 'Report';
-        if (isPartnerRole || reportType === 'partners') {
-           if (partnerReportData) {
-               fileName = `Partner_${selectedPartnerR || currentUserData?.name}_${todayDateStr}`;
-               partnerReportData.instsDetails.forEach(d => {
-                  exportData.push({ [t.client]: d.client, [t.building]: d.building, [t.amount]: d.share, [t.dueDate]: formatShortDate(d.date) });
-               });
-           }
-        } else if (reportType === 'transactions') {
-           fileName = `Statement_${todayDateStr}`;
-           exportData.push({ [t.date]: '--', [t.desc]: t.opBalance, [t.amount]: reportData.openingBalance });
-           reportData.incomes.forEach(tx => exportData.push({ [t.date]: formatShortDate(tx.date), [t.desc]: tx.description, [t.amount]: tx.amount }));
-           reportData.expenses.forEach(tx => exportData.push({ [t.date]: formatShortDate(tx.date), [t.desc]: tx.description, [t.amount]: -Math.abs(tx.amount) }));
-           exportData.push({});
-           exportData.push({ [t.date]: '', [t.desc]: t.totalIncomes, [t.amount]: reportData.totalIncomes + reportData.openingBalance });
-           exportData.push({ [t.date]: '', [t.desc]: t.totalExpenses, [t.amount]: reportData.totalExpenses });
-           exportData.push({ [t.date]: '', [t.desc]: t.currentNet, [t.amount]: reportData.finalBalance });
-        } else if (reportType === 'installments') {
-           fileName = `Installments_${todayDateStr}`;
-           reportInstallments.forEach(i => {
-              const c = (data.contracts||[]).find(ct=>ct.id===i.contractId);
-              const b = (data.buildings||[]).find(bd=>bd.id===c?.buildingId);
-              const totalAmt = Math.round(Number(i.amount));
-              const hasPartner = b?.hasPartner && b.partnerPercent > 0;
-              const partnerShare = hasPartner ? Math.round(totalAmt * (b.partnerPercent/100)) : 0;
-              const myShare = totalAmt - partnerShare;
-              const partnerDue = (hasPartner && !i.partnerPaid) ? partnerShare : 0;
-              const partnerPaidStat = (hasPartner && i.partnerPaid) ? partnerShare : 0;
-              exportData.push({ [t.dueDate]: formatShortDate(i.dueDate), [t.client]: c?.clientName, [t.building]: `${b?.name} - ${c?.unitId}`, [t.amount]: totalAmt, [t.myShare]: myShare, [t.partnerDue]: partnerDue, [t.partnerPaidStatus]: partnerPaidStat, [t.status]: i.status==='paid'?t.paid:t.pending });
-           });
-        } else if (reportType === 'contracts') {
-           fileName = `ClientsStatus_${todayDateStr}`;
-           reportContractsList.forEach(c => {
-              exportData.push({ [t.client]: c.clientName, [t.building]: `${c.buildingName} - ${c.unitNumber}`, [t.totalUnit]: c.totalAmount, [t.paidAmt]: c.paidAmount, [t.remAmt]: c.remainingAmount, [t.nextDue]: c.nextDate==='--'?'--':formatShortDate(c.nextDate) });
-           });
-           exportData.push({});
-           exportData.push({ [t.client]: '', [t.building]: t.total, [t.totalUnit]: reportContractsList.reduce((s,c)=>s+c.totalAmount,0), [t.paidAmt]: reportContractsList.reduce((s,c)=>s+c.paidAmount,0), [t.remAmt]: reportContractsList.reduce((s,c)=>s+c.remainingAmount,0), [t.nextDue]: '' });
-        }
-        const ws = XLSX.utils.json_to_sheet(exportData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Data");
-        XLSX.writeFile(wb, `${fileName}.xlsx`);
-        showMsg(t.success);
-      };
-
-      const handleTxClick = (tx) => { if(tx) setAppModal({ show: true, type: 'TX_ACTION', props: { tx } }); };
-
-      const handleSaveTransaction = (e) => {
-        e.preventDefault();
-        if(!newTransaction.amount) return;
-        if (newTransaction.type === 'transfer' && newTransaction.custodyId === newTransaction.toCustodyId) { showMsg(lang === 'ar' ? 'لا يمكن التحويل لنفس العهدة' : 'Cannot transfer to same custody', true); return; }
-        if (editingTxId) { updateData(prev => ({ ...prev, transactions: prev.transactions.map(tx => tx.id === editingTxId ? { ...tx, ...newTransaction, amount: Number(newTransaction.amount) } : tx) })); setEditingTxId(null); showMsg(t.success); } 
-        else { const item = { id: 't_' + Date.now(), ...newTransaction, amount: Number(newTransaction.amount) }; updateData(prev => ({ ...prev, transactions: [...(prev.transactions || []), item] })); showMsg(t.success); }
-        setNewTransaction(prev => ({ ...prev, amount: '', description: '', date: getTodayStr(), toCustodyId: '' })); 
-      };
-
-      const handleAddFromDashboard = (type) => {
-         const targetCustody = (dashboardCustodyFilter.length === 1 && !['ALL','GENERAL_SAFE'].includes(dashboardCustodyFilter[0])) ? dashboardCustodyFilter[0] : (isCustodyRole && myCustodies.length > 0 ? myCustodies[0].id : '');
-         setNewTransaction({...newTransaction, type, custodyId: targetCustody});
-         setActiveTab('transactions');
-      };
-
-      const handleResetFactory = () => { requirePin(() => { setAppModal({show: true, type: 'CONFIRM', props: { title: t.dangerZone, message: t.resetDesc, onConfirm: () => { const currentPin = data.pinCode || '0000'; localStorage.clear(); const emptyData = { ...initialData, pinCode: currentPin }; db.ref('companyData').set(emptyData); window.location.reload(); } }}); }); };
-      const addBuilding = (e) => { e.preventDefault(); const pPercent = newBuildingPartner ? Number(newBuildingPartnerPercent) : 0; const pName = newBuildingPartnerName || (lang==='ar'?'شريك ':'Partner ') + newBuilding; updateData(p=>({...p, buildings: [...(p.buildings||[]), {id: 'b_'+Date.now(), name: newBuilding, hasPartner: newBuildingPartner, partnerPercent: pPercent, partnerName: pName}]})); setNewBuilding(''); setNewBuildingPartner(false); setNewBuildingPartnerPercent(''); setNewBuildingPartnerName(''); showMsg(t.success); };
-      const addUnit = (e) => { e.preventDefault(); updateData(p => ({ ...p, units: [...(p.units || []), { id: 'u_' + Date.now(), ...newUnit, status: 'available' }] })); setNewUnit({ buildingId: '', unitNumber: '', price: '' }); showMsg(t.success); };
-      
-      const addContract = (e) => { 
-         e.preventDefault(); const unit = (data.units || []).find(u => u.id === newContract.unitId); if (!unit) return; 
-         const dp = Number(newContract.downPayment); const total = Number(newContract.totalAmount); const count = Number(newContract.installmentsCount); const interval = Number(newContract.interval);
-
-         updateData(prev => {
-            let updatedContracts = [...(prev.contracts || [])]; let updatedInstallments = [...(prev.installments || [])]; let updatedTransactions = [...(prev.transactions || [])]; let contractId;
-            if (editingContractId) {
-               contractId = editingContractId; const oldContract = updatedContracts.find(c => c.id === contractId); const oldInsts = updatedInstallments.filter(i => i.contractId === contractId);
-               const totalOldPaid = oldInsts.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.amount), 0);
-               updatedInstallments = updatedInstallments.filter(i => i.contractId !== contractId);
-               if (totalOldPaid > 0) { updatedTransactions.push({ id: 't_rev_' + Date.now(), type: 'expense', amount: totalOldPaid, buildingId: oldContract.buildingId, custodyId: '', description: (lang==='ar'?`تسوية لإلغاء مدفوعات سابقة بسبب تعديل عقد: ${newContract.clientName}`:`Adjustment for modified contract: ${newContract.clientName}`), date: todayDateStr }); }
-               const contractIndex = updatedContracts.findIndex(c => c.id === contractId);
-               updatedContracts[contractIndex] = { ...oldContract, clientName: newContract.clientName, unitId: unit.id, buildingId: unit.buildingId, totalAmount: total, downPayment: dp, installmentsCount: count, interval: interval, suspendedAmount: 0 };
-            } else {
-               contractId = 'cont_' + Date.now(); updatedContracts.push({ id: contractId, clientName: newContract.clientName, unitId: unit.id, buildingId: unit.buildingId, totalAmount: total, downPayment: dp, date: todayDateStr, status: 'active', installmentsCount: count, interval: interval, attachments: [], suspendedAmount: 0 });
-            }
-            const newInsts = []; if (dp > 0) { newInsts.push({ id: 'inst_dp_' + Date.now(), contractId, amount: dp, dueDate: todayDateStr, status: 'paid', partnerPaid: false, partnerPaidAmount: 0, isDownPayment: true }); }
-            let curDate = new Date(newContract.firstInstallmentDate); const baseInstAmount = count > 0 ? Math.floor((total - dp) / count) : 0; let remainder = (total - dp) - (baseInstAmount * count);
-            for(let i=0; i<count; i++) { let currentAmt = baseInstAmount; if (i === count - 1) currentAmt += remainder; newInsts.push({ id: 'inst_' + Date.now() + '_' + i, contractId, amount: currentAmt, dueDate: curDate.toISOString().split('T')[0], status: 'pending', partnerPaid: false, partnerPaidAmount: 0 }); curDate.setMonth(curDate.getMonth() + interval); } 
-            updatedInstallments.push(...newInsts);
-            if (dp > 0) { updatedTransactions.push({ id: 't_dp_' + Date.now(), type: 'income', amount: dp, buildingId: unit.buildingId, custodyId: newContract.custodyId || '', description: (lang==='ar'?`مقدم تعاقد ${editingContractId ? '(معدل)' : ''}: ${newContract.clientName}`:`Down payment ${editingContractId ? '(Modified)' : ''}: ${newContract.clientName}`), date: todayDateStr }); }
-            const updatedUnits = (prev.units || []).map(u => { if(u.id === unit.id) return { ...u, status: 'sold' }; if(editingContractId) { const oldC = prev.contracts.find(c => c.id === editingContractId); if (oldC && oldC.unitId === u.id && oldC.unitId !== unit.id) return { ...u, status: 'available' }; } return u; });
-            return { ...prev, contracts: updatedContracts, installments: updatedInstallments, transactions: updatedTransactions, units: updatedUnits };
-         });
-         setNewContract({ clientName: '', unitId: '', totalAmount: '', downPayment: '', custodyId: '', installmentsCount: '', firstInstallmentDate: '', interval: '1' }); setEditingContractId(null); showMsg(t.success); 
-      };
-
-      const editInstallment = (instId, newAmountNum, newDueDate) => {
-        const newAmt = Number(newAmountNum);
-        updateData(prev => {
-          const instIndex = (prev.installments || []).findIndex(i => i.id === instId); if (instIndex === -1) return prev;
-          const oldInst = prev.installments[instIndex]; const oldAmt = Number(oldInst.amount || 0); const diff = oldAmt - newAmt;
-          let updatedInsts = [...prev.installments]; let updatedContracts = [...prev.contracts]; const contractIndex = updatedContracts.findIndex(c => c.id === oldInst.contractId);
-          let currentSuspended = (contractIndex > -1 ? Number(updatedContracts[contractIndex].suspendedAmount || 0) : 0);
-          if (newAmt <= 0) { updatedInsts = updatedInsts.filter(i => i.id !== instId); currentSuspended += oldAmt; } else { updatedInsts[instIndex] = { ...oldInst, amount: newAmt, dueDate: newDueDate || oldInst.dueDate, status: 'pending' }; if (diff > 0) { currentSuspended += diff; } else if (diff < 0) { const increase = Math.abs(diff); currentSuspended = Math.max(0, currentSuspended - increase); } }
-          if (contractIndex > -1) { updatedContracts[contractIndex] = { ...updatedContracts[contractIndex], suspendedAmount: currentSuspended }; }
-          return { ...prev, installments: updatedInsts, contracts: updatedContracts };
-        }); showMsg(t.success);
-      };
-
-      const addManualInstallment = (contractId, amtNum, dateStr) => {
-        const amt = Number(amtNum); if(!amt || amt <= 0) return;
-        updateData(prev => {
-          const contractIndex = prev.contracts.findIndex(c => c.id === contractId); let updatedContracts = [...prev.contracts];
-          if (contractIndex > -1) { const currentSuspended = Number(updatedContracts[contractIndex].suspendedAmount || 0); const newSuspended = Math.max(0, currentSuspended - amt); updatedContracts[contractIndex] = { ...updatedContracts[contractIndex], suspendedAmount: newSuspended }; }
-          const newInst = { id: 'inst_man_' + Date.now(), contractId: contractId, amount: amt, dueDate: dateStr || todayDateStr, status: 'pending', partnerPaid: false, partnerPaidAmount: 0 };
-          return { ...prev, contracts: updatedContracts, installments: [...prev.installments, newInst] };
-        }); showMsg(t.success);
-      };
-
-      const convertSuspendedToInstallment = (contractId, amtNum, dateStr) => {
-        const amt = Number(amtNum); if (!amt || amt <= 0) return;
-        updateData(prev => {
-          const contractIndex = prev.contracts.findIndex(c => c.id === contractId); let updatedContracts = [...prev.contracts];
-          if (contractIndex > -1) { const currentSuspended = Number(updatedContracts[contractIndex].suspendedAmount || 0); const deductAmt = Math.min(amt, currentSuspended); const newSuspended = Math.max(0, currentSuspended - deductAmt); updatedContracts[contractIndex] = { ...updatedContracts[contractIndex], suspendedAmount: newSuspended }; }
-          const newInst = { id: 'inst_conv_' + Date.now(), contractId: contractId, amount: amt, dueDate: dateStr || todayDateStr, status: 'pending', partnerPaid: false, partnerPaidAmount: 0 };
-          return { ...prev, contracts: updatedContracts, installments: [...prev.installments, newInst] };
-        }); showMsg(t.success);
-      };
-
-      const payInstallment = (instId, clientName, buildingId, paidAmount, date, custodyId) => {
-        const paid = Number(paidAmount);
-        updateData(prev => {
-          let updatedInsts = [...(prev.installments || [])]; const instIndex = updatedInsts.findIndex(i => i.id === instId);
-          if(instIndex > -1) {
-              const instToUpdate = updatedInsts[instIndex]; const fullAmount = Number(instToUpdate.amount);
-              if (paid <= 0) { updatedInsts[instIndex] = { ...instToUpdate, amount: 0, status: 'suspended' }; } 
-              else if (paid >= fullAmount) { updatedInsts[instIndex] = { ...instToUpdate, status: 'paid', amount: paid }; } 
-              else { const remaining = fullAmount - paid; updatedInsts[instIndex] = { ...instToUpdate, status: 'paid', amount: paid }; updatedInsts.push({ id: 'inst_rem_' + Date.now(), contractId: instToUpdate.contractId, amount: remaining, dueDate: instToUpdate.dueDate, status: 'pending', partnerPaid: false, partnerPaidAmount: 0 }); }
-              let updatedTrans = [...(prev.transactions || [])]; if (paid > 0) { updatedTrans.push({ id: 't_' + Date.now(), type: 'income', amount: paid, buildingId, custodyId: custodyId || '', description: (lang==='ar'?`تحصيل قسط ${paid < fullAmount ? '(جزئي)' : ''}: ${clientName}`:`Installment Collection ${paid < fullAmount ? '(Partial)' : ''}: ${clientName}`), date: date || todayDateStr }); }
-              return { ...prev, installments: updatedInsts, transactions: updatedTrans };
-          } return prev;
-        }); showMsg(t.success);
-      };
-
-      const payPartnerShare = (instId, actualPaidAmt, clientName, buildingName, custodyId, date) => {
-        const paidAmtNum = Number(actualPaidAmt); if(!paidAmtNum || paidAmtNum <= 0) return;
-        updateData(prev => {
-          const updatedInsts = prev.installments.map(i => {
-            if (i.id === instId) {
-              const b = (prev.buildings||[]).find(bd => bd.id === (prev.contracts||[]).find(c=>c.id===i.contractId)?.buildingId);
-              const totalPartnerShare = Math.round(Number(i.amount) * (Number(b?.partnerPercent || 0)/100)); const currentPaid = i.partnerPaidAmount !== undefined ? Number(i.partnerPaidAmount) : (i.partnerPaid ? totalPartnerShare : 0); const newPaid = currentPaid + paidAmtNum; const isFullyPaid = newPaid >= totalPartnerShare;
-              return { ...i, partnerPaidAmount: newPaid, partnerPaid: isFullyPaid };
-            } return i;
-          });
-          const trans = { id: 't_' + Date.now(), type: 'expense', amount: paidAmtNum, buildingId: '', custodyId: custodyId || '', description: (lang==='ar'?`توريد نصيب الشريك (${paidAmtNum.toLocaleString()} ج.م) - ${clientName} - ${buildingName}`:`Pay Partner Share (${paidAmtNum.toLocaleString()}) - ${clientName} - ${buildingName}`), date: date || getTodayStr() };
-          return { ...prev, installments: updatedInsts, transactions: [...(prev.transactions || []), trans] };
-        }); showMsg(t.success);
-      };
-
-      // --- دوال وإجراءات مسؤول العهدة وطلبات الاستعاضة ---
-      const liquidateCustody = (custId) => {
-         const calc = custodyCalculations.find(c => c.id === custId);
-         const rem = calc ? calc.remaining : 0;
-         updateData(prev => {
-            let txs = [...(prev.transactions||[])];
-            if (rem > 0) {
-               txs.push({ id: 't_liq_'+Date.now(), type: 'transfer', amount: rem, custodyId: custId, toCustodyId: '', description: lang==='ar'?'تصفية العهدة وتحويل الرصيد المتبقي للخزينة العامة':'Liquidate custody and transfer remaining balance to General Safe', date: getTodayStr() });
-            }
-            let custs = prev.custodies.map(c => c.id === custId ? {...c, status: 'closed'} : c);
-            return { ...prev, transactions: txs, custodies: custs };
-         });
-         showMsg(lang === 'ar' ? 'تم تصفية العهدة بنجاح، وتحويل المتبقي للخزينة.' : 'Custody liquidated successfully.');
-      };
-
-      const approveRequest = (req) => {
-         updateData(prev => {
-            let reqs = (prev.requests||[]).map(r => r.id === req.id ? {...r, status: 'approved'} : r);
-            let txs = [...(prev.transactions||[]), {
-               id: 't_req_'+Date.now(), type: 'transfer', amount: Number(req.amount), custodyId: '', toCustodyId: req.custodyId, description: (lang==='ar'?`صرف استعاضة مالية لعهدة: ${req.personName}`:`Funds request approved for: ${req.personName}`), date: getTodayStr()
-            }];
-            return { ...prev, requests: reqs, transactions: txs };
-         });
-         showMsg(lang === 'ar' ? 'تمت الموافقة وتم تحويل المبلغ للعهدة بنجاح' : 'Request approved and amount transferred.');
-      };
-
-      const rejectRequest = (req) => {
-         updateData(prev => ({ ...prev, requests: (prev.requests||[]).map(r => r.id === req.id ? {...r, status: 'rejected'} : r) }));
-         showMsg(lang === 'ar' ? 'تم رفض طلب الاستعاضة' : 'Request rejected.');
-      };
-
-      const pendingRequests = (data.requests || []).filter(r => r.status === 'pending');
-
-      const thisMonth = new Date().toISOString().substring(0, 7);
-      const monthInstallments = (data.installments || []).filter(i => i.status === 'pending' && Number(i.amount) > 0 && i.dueDate?.startsWith(thisMonth)).sort((a,b)=>new Date(a.dueDate||0)-new Date(b.dueDate||0));
-      const overdueInstallments = (data.installments || []).filter(i => i.status === 'pending' && Number(i.amount) > 0 && i.dueDate < todayDateStr).sort((a,b)=>new Date(a.dueDate||0)-new Date(b.dueDate||0));
-      const filteredContracts = (data.contracts || []).filter(c => c.status === 'active' && (!globalSearch || c.clientName.includes(globalSearch)));
-      const isContractsListOpen = showContractsList || globalSearch.trim().length > 0;
-      const lastCustodyNet = sortedCustodies.length > 0 ? ((custodyCalculations.find(c => c.id === sortedCustodies[0].id) || {}).remaining || 0) : 0;
-
-      // --- نظام الصلاحيات وعزل الشاشات ---
-      const allTabs = [
-        { id: 'dashboard', label: t.tab_dash, roles: ['admin', 'custody', 'partner', 'engineer'] }, 
-        { id: 'transactions', label: t.tab_tx, roles: ['admin', 'custody', 'engineer'] },
-        { id: 'custody', label: t.tab_cust, roles: ['admin', 'custody', 'engineer'] }, 
-        { id: 'inventory', label: t.tab_inv, roles: ['admin'] },
-        { id: 'sales', label: t.tab_sales, roles: ['admin'] }, 
-        { id: 'reports', label: t.tab_rep, roles: ['admin', 'custody', 'engineer'] } 
-      ];
-      const visibleTabs = allTabs.filter(tab => tab.roles.includes(userRole));
-
-            return (
+          return (
         <div className="min-h-screen flex flex-col bg-slate-100 pb-10">
           <header className="bg-slate-900 text-white p-4 shadow-lg print-hide flex justify-between items-center relative z-40">
             <h1 className="text-xl font-bold tracking-wide flex items-center gap-2">🏢 <span className="hidden sm:inline">{t.appTitle}</span></h1>
@@ -676,42 +148,174 @@
             ))}
           </nav>
 
-          {toast.show && ( <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-[200] animate-slide-up print-hide w-[90%] max-w-sm"><div className={`px-6 py-4 rounded-2xl shadow-2xl font-bold text-white flex items-center justify-center gap-3 ${toast.isError ? 'bg-red-600' : 'bg-emerald-600'}`}><span className="text-2xl">{toast.isError ? '⚠️' : '✅'}</span><span className="text-lg">{toast.msg}</span></div></div> )}
+          {toast.show && ( 
+             <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-[200] animate-slide-up print-hide w-[90%] max-w-sm">
+                <div className={`px-6 py-4 rounded-2xl shadow-2xl font-bold text-white flex items-center justify-center gap-3 ${toast.isError ? 'bg-red-600' : 'bg-emerald-600'}`}>
+                   <span className="text-2xl">{toast.isError ? '⚠️' : '✅'}</span><span className="text-lg">{toast.msg}</span>
+                </div>
+             </div> 
+          )}
 
           {appModal.show && (
             <div className={`fixed inset-0 bg-slate-900 bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-[100] animate-fade-in p-4 ${appModal.type !== 'RECEIPT' ? 'print-hide' : 'print-receipt-wrapper'}`} onClick={closeModal}>
-              {appModal.type === 'LOGOUT' && ( <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-slide-up" onClick={e=>e.stopPropagation()}><div className="bg-red-600 text-white p-4 text-center font-bold text-lg">{lang === 'ar' ? 'تسجيل الخروج' : 'Logout'}</div><div className="p-6 text-center text-slate-700 font-medium">{lang === 'ar' ? 'هل أنت متأكد من رغبتك في تسجيل الخروج من النظام؟' : 'Are you sure you want to log out?'}</div><div className="flex border-t"><button onClick={()=>{auth.signOut(); closeModal();}} className="flex-1 p-4 font-bold text-red-600 hover:bg-red-50 border-x">{t.yes}</button><button onClick={closeModal} className="flex-1 p-4 font-bold text-slate-500 hover:bg-slate-100">{t.no}</button></div></div> )}
-              {appModal.type === 'TX_ACTION' && appModal.props.tx && ( <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}><div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div><h3 className="font-bold text-lg mb-2 text-center text-slate-800 border-b pb-2">{t.action}</h3><p className="text-center text-sm text-slate-500 mb-6 bg-slate-50 p-2 rounded">{appModal.props.tx?.description} <br/> <span className="font-bold text-lg text-slate-800">{Number(appModal.props.tx?.amount || 0).toLocaleString()}</span></p><button onClick={() => { closeModal(); setNewTransaction({...appModal.props.tx}); setEditingTxId(appModal.props.tx?.id); setActiveTab('transactions'); }} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow hover:bg-blue-700 transition">✏️ {t.edit}</button><button onClick={() => { closeModal(); requirePin(() => { setAppModal({ show: true, type: 'CONFIRM', props: { title: t.delete, message: t.confirmDelTx, onConfirm: () => { updateData(p => ({...p, transactions: (p.transactions||[]).filter(tx => tx.id !== appModal.props.tx?.id)})); showMsg(t.success); closeModal(); } }}); }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button></div> )}
-              {appModal.type === 'CAT_ACTION' && appModal.props.cat && ( <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}><div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div><h3 className="font-bold text-lg mb-4 text-center text-slate-800 border-b pb-2">{t.action}</h3><input type="text" id="catEditInput" defaultValue={appModal.props.cat.name} className="w-full border-2 border-slate-300 p-3 rounded-xl mb-4 font-bold text-center focus:border-blue-500 outline-none" /><button onClick={() => { const val = document.getElementById('catEditInput').value; if(val) { updateData(p => ({...p, categories: p.categories.map(c => c.id === appModal.props.cat.id ? {...c, name: val} : c)})); closeModal(); showMsg(t.success); } }} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow hover:bg-blue-700 transition">✏️ {t.edit}</button><button onClick={() => { requirePin(() => { updateData(p => ({...p, categories: p.categories.filter(c => c.id !== appModal.props.cat.id)})); closeModal(); showMsg(t.success); }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button></div> )}
-              {appModal.type === 'BUILDING_ACTION' && appModal.props.b && ( <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}><div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div><h3 className="font-bold text-lg mb-4 text-center text-slate-800 border-b pb-2">{t.action}</h3><input type="text" id="buildEditInput" defaultValue={appModal.props.b.name} className="w-full border-2 border-slate-300 p-3 rounded-xl mb-4 font-bold text-center focus:border-blue-500 outline-none" /><button onClick={() => { const val = document.getElementById('buildEditInput').value; if(val) { updateData(p => ({...p, buildings: p.buildings.map(b => b.id === appModal.props.b.id ? {...b, name: val} : b)})); closeModal(); showMsg(t.success); } }} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow hover:bg-blue-700 transition">✏️ {t.edit}</button><button onClick={() => { requirePin(() => { setAppModal({show: true, type: 'CONFIRM', props: { title: t.delete, message: t.confirmDelBuild, onConfirm: () => { updateData(p => ({...p, buildings: p.buildings.filter(b => b.id !== appModal.props.b.id)})); closeModal(); showMsg(t.success); } }}) }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button></div> )}
-              {appModal.type === 'UNIT_ACTION' && appModal.props.u && ( <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}><div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div><h3 className="font-bold text-lg mb-4 text-center text-slate-800 border-b pb-2">{t.action}</h3><input type="text" id="unitEditInput" defaultValue={appModal.props.u.unitNumber} className="w-full border-2 border-slate-300 p-3 rounded-xl mb-4 font-bold text-center focus:border-blue-500 outline-none" /><button onClick={() => { const val = document.getElementById('unitEditInput').value; if(val) { updateData(p => ({...p, units: p.units.map(u => u.id === appModal.props.u.id ? {...u, unitNumber: val} : u)})); closeModal(); showMsg(t.success); } }} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow hover:bg-blue-700 transition">✏️ {t.edit}</button><button onClick={() => { requirePin(() => { setAppModal({show: true, type: 'CONFIRM', props: { title: t.delete, message: t.confirmDelUnit, onConfirm: () => { updateData(p => ({...p, units: p.units.filter(u => u.id !== appModal.props.u.id)})); closeModal(); showMsg(t.success); } }}) }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button></div> )}
-              {appModal.type === 'IMAGE_VIEW' && ( <div className="bg-black p-2 rounded-2xl w-full max-w-2xl relative shadow-2xl animate-fade-in flex flex-col items-center justify-center" onClick={e=>e.stopPropagation()}><button onClick={closeModal} className="absolute top-4 right-4 bg-red-600 text-white w-10 h-10 rounded-full font-black text-xl hover:bg-red-700 shadow z-50">X</button><img src={appModal.props.src} className="w-full h-auto rounded-xl max-h-[85vh] object-contain border border-slate-800" /></div> )}
-              {appModal.type === 'PIN' && ( <div className="bg-white w-full max-w-xs rounded-2xl overflow-hidden shadow-2xl animate-slide-up" onClick={e=>e.stopPropagation()}><div className="bg-red-600 text-white p-4 text-center font-bold">🔒</div><div className="p-6"><p className="text-center text-sm mb-4">{lang === 'ar' ? 'أدخل الرمز السري لتأكيد الإجراء' : 'Enter PIN to confirm action'}</p><input type="password" inputMode="numeric" pattern="[0-9]*" maxLength="4" autoFocus className="w-full border-b-2 border-red-400 p-2 text-center text-3xl tracking-[0.5em] font-bold outline-none focus:border-red-600 transition-colors bg-slate-50" onChange={e => { const val = e.target.value; if(val.length === 4) { const currentPin = data.pinCode || '0000'; if (val === currentPin) { const successCallback = appModal.props.onSuccess; closeModal(); setTimeout(() => { if(successCallback) successCallback(); }, 100); } else { showMsg(lang === 'ar' ? 'الرمز غير صحيح' : 'Incorrect PIN', true); e.target.value = ''; } } }} /></div><button onClick={closeModal} className="w-full p-4 bg-slate-100 text-slate-600 font-bold hover:bg-slate-200">{t.no}</button></div> )}
-              {appModal.type === 'RECEIPT' && ( <div className="bg-white w-full max-w-md rounded-2xl overflow-hidden shadow-2xl animate-slide-up print-show" onClick={e=>e.stopPropagation()}><div id="receipt-area" className="p-6 bg-white text-black text-center receipt-print-area"><p className="text-base font-black mb-4 text-slate-800 border-b-2 border-slate-800 pb-2">{lang === 'ar' ? 'إيصال استلام نقدية' : 'Cash Receipt'}</p><div className="text-right space-y-2.5 mb-5 text-sm bg-slate-50 p-4 rounded-xl border border-slate-200" dir={lang === 'ar' ? 'rtl' : 'ltr'}><div className="flex justify-between border-b pb-1.5"><span className="text-gray-600 font-bold">{lang === 'ar' ? 'تاريخ الاستلام:' : 'Receipt Date:'}</span><span className="font-mono font-bold text-slate-900">{appModal.props.date || formatShortDate(todayDateStr)}</span></div>{appModal.props.dueDate && ( <div className="flex justify-between border-b pb-1.5"><span className="text-gray-600 font-bold">{lang === 'ar' ? 'تاريخ استحقاق القسط:' : 'Installment Due Date:'}</span><span className="font-mono font-bold text-blue-800">{appModal.props.dueDate}</span></div> )}<div className="flex justify-between border-b pb-1.5"><span className="text-gray-600 font-bold">{t.client}:</span><span className="font-bold text-slate-900">{appModal.props.clientName}</span></div><div className="flex justify-between border-b pb-1.5"><span className="text-gray-600 font-bold">{lang === 'ar' ? 'البيان / الوحدة:' : 'Details / Unit:'}</span><span className="font-bold text-slate-900">{appModal.props.buildingName}</span></div><div className="flex justify-between pt-1 text-base text-emerald-700"><span className="font-black">{lang === 'ar' ? 'المبلغ المستلم:' : 'Amount Received:'}</span><span className="font-black">{Number(appModal.props.amount).toLocaleString()}</span></div></div>{appModal.props.unitPrice !== undefined && ( <div className="bg-blue-50/60 p-3.5 rounded-xl border border-blue-200 text-right text-xs mb-4" dir={lang === 'ar' ? 'rtl' : 'ltr'}><p className="font-black text-blue-900 text-sm mb-2 border-b border-blue-200 pb-1 text-center">{lang === 'ar' ? '📊 إجمالي موقف الوحدة' : '📊 Unit Summary'}</p><div className="grid grid-cols-3 gap-2 text-center font-bold"><div className="bg-white p-2 rounded-lg border border-blue-100"><span className="text-gray-500 block text-[10px]">{lang === 'ar' ? 'سعر الوحدة' : 'Unit Price'}</span><span className="text-slate-900 text-xs font-black">{Number(appModal.props.unitPrice).toLocaleString()}</span></div><div className="bg-white p-2 rounded-lg border border-blue-100"><span className="text-emerald-600 block text-[10px]">{lang === 'ar' ? 'إجمالي المدفوع' : 'Total Paid'}</span><span className="text-emerald-700 text-xs font-black">{Number(appModal.props.totalPaid).toLocaleString()}</span></div><div className="bg-white p-2 rounded-lg border border-blue-100"><span className="text-red-600 block text-[10px]">{lang === 'ar' ? 'المتبقي' : 'Remaining'}</span><span className="text-red-700 text-xs font-black">{Number(appModal.props.remainingAmount).toLocaleString()}</span></div></div></div> )}<p className="text-xs text-gray-500 mt-2 font-bold">{lang === 'ar' ? 'تم الاستلام. شكراً لثقتكم.' : 'Received. Thank you.'}</p></div><div className="p-4 flex gap-2 bg-slate-100 print-hide"><button onClick={()=>{ window.print(); }} className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow hover:bg-blue-700">{t.printPdf}</button><button onClick={closeModal} className="flex-1 bg-slate-300 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-400">{lang === 'ar' ? 'إغلاق' : 'Close'}</button></div></div> )}
-              {appModal.type === 'CONFIRM' && ( <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-slide-up" onClick={e=>e.stopPropagation()}><div className="bg-slate-900 text-white p-4 text-center font-bold text-lg">{appModal.props.title || t.action}</div><div className="p-6 text-center text-slate-700 font-medium">{appModal.props.message}</div><div className="flex border-t"><button onClick={()=>{appModal.props.onConfirm && appModal.props.onConfirm(); closeModal();}} className="flex-1 p-4 font-bold text-blue-700 hover:bg-blue-50 border-x">{t.yes}</button><button onClick={closeModal} className="flex-1 p-4 font-bold text-slate-500 hover:bg-slate-100">{t.no}</button></div></div> )}
-              {appModal.type === 'PROMPT_INST' && ( <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl animate-slide-up p-6 relative" onClick={e=>e.stopPropagation()}><div className="bg-blue-800 text-white p-3 -mx-6 -mt-6 mb-4 text-center font-bold rounded-t-2xl">{appModal.props.title}</div><form onSubmit={e => { e.preventDefault(); appModal.props.onConfirm(document.getElementById('promptAmtInput').value.replace(/[^0-9]/g, ''), appModal.props.promptDate || appModal.props.defaultDate || todayDateStr, appModal.props.promptCustodyVal || ''); closeModal(); }} className="space-y-4">{appModal.props.showDate && ( <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.date}</label><CustomDateInput value={appModal.props.promptDate || appModal.props.defaultDate || todayDateStr} onChange={(d) => setAppModal(p => ({ ...p, props: { ...p.props, promptDate: d } }))} /></div> )}<div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.amount}</label><input type="number" id="promptAmtInput" required defaultValue={appModal.props.defaultAmount} className="w-full border-2 border-blue-400 p-3 rounded-xl font-bold text-xl text-center outline-none focus:border-blue-600" /></div>{appModal.props.showCustody && ( <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.promptCustody}</label><CustomSelect options={custodyOptions} value={appModal.props.promptCustodyVal || ''} onChange={(v) => setAppModal(p => ({ ...p, props: { ...p.props, promptCustodyVal: v } }))} placeholder={t.generalSafe} /></div> )}<div className="flex gap-2 pt-2"><button type="submit" className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow hover:bg-blue-700">{t.save}</button><button type="button" onClick={closeModal} className="flex-1 bg-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-300">{t.no}</button></div></form></div> )}
-              {appModal.type === 'PAY_PARTNER' && ( <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl relative" onClick={e=>e.stopPropagation()}><h3 className="font-bold text-lg mb-2 text-center text-purple-800 border-b pb-2">{t.payPartnerTitle}</h3><p className="text-center text-sm text-slate-500 mb-2">{t.payPartnerDesc}</p><form onSubmit={e => { e.preventDefault(); const amt = Number(e.target.partnerAmt.value.replace(/[^0-9]/g, '')); if(!amt || amt <= 0) return; appModal.props.onConfirm(amt, appModal.props.partnerDateVal || todayDateStr, appModal.props.partnerCustodyVal || ''); closeModal(); }} className="space-y-4"><div><label className="text-xs font-bold text-slate-500 mb-1 block text-center">{lang === 'ar' ? 'المبلغ المراد توريده للشريك' : 'Amount to pay to partner'}</label><NumberInput name="partnerAmt" required defaultValue={appModal.props.partnerAmt} className="w-full border-2 border-purple-300 p-3 text-2xl font-black text-center text-purple-800 rounded-xl outline-none focus:border-purple-600 bg-purple-50" /><span className="text-[11px] text-slate-400 block text-center mt-1">{lang === 'ar' ? `المستحق الحالي لهذا القسط: ${Number(appModal.props.partnerAmt).toLocaleString()}` : `Current Due: ${Number(appModal.props.partnerAmt).toLocaleString()}`}</span></div><div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.date}</label><CustomDateInput value={appModal.props.partnerDateVal || todayDateStr} onChange={(d) => setAppModal(p => ({ ...p, props: { ...p.props, partnerDateVal: d } }))} /></div><div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.deductFromSafe}</label><CustomSelect options={custodyOptions} value={appModal.props.partnerCustodyVal || ''} onChange={(v) => setAppModal(p => ({ ...p, props: { ...p.props, partnerCustodyVal: v } }))} placeholder={t.generalSafe} /></div><div className="flex gap-2 pt-2"><button type="submit" className="flex-1 bg-purple-600 text-white py-3 rounded-xl font-bold shadow hover:bg-purple-700">{t.save}</button><button type="button" onClick={closeModal} className="flex-1 bg-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-300">{t.no}</button></div></form></div> )}
+              
+              {appModal.type === 'LOGOUT' && ( 
+                <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-slide-up" onClick={e=>e.stopPropagation()}>
+                   <div className="bg-red-600 text-white p-4 text-center font-bold text-lg">{lang === 'ar' ? 'تسجيل الخروج' : 'Logout'}</div>
+                   <div className="p-6 text-center text-slate-700 font-medium">{lang === 'ar' ? 'هل أنت متأكد من رغبتك في تسجيل الخروج من النظام؟' : 'Are you sure you want to log out?'}</div>
+                   <div className="flex border-t">
+                      <button onClick={()=>{auth.signOut(); closeModal();}} className="flex-1 p-4 font-bold text-red-600 hover:bg-red-50 border-x">{t.yes}</button>
+                      <button onClick={closeModal} className="flex-1 p-4 font-bold text-slate-500 hover:bg-slate-100">{t.no}</button>
+                   </div>
+                </div> 
+              )}
+
+              {appModal.type === 'TX_ACTION' && appModal.props.tx && ( 
+                <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}>
+                   <div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div>
+                   <h3 className="font-bold text-lg mb-2 text-center text-slate-800 border-b pb-2">{t.action}</h3>
+                   <p className="text-center text-sm text-slate-500 mb-6 bg-slate-50 p-2 rounded">{appModal.props.tx?.description} <br/> <span className="font-bold text-lg text-slate-800">{Number(appModal.props.tx?.amount || 0).toLocaleString()}</span></p>
+                   <button onClick={() => { closeModal(); setNewTransaction({...appModal.props.tx}); setEditingTxId(appModal.props.tx?.id); setActiveTab('transactions'); }} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow hover:bg-blue-700 transition">✏️ {t.edit}</button>
+                   <button onClick={() => { closeModal(); requirePin(() => { setAppModal({ show: true, type: 'CONFIRM', props: { title: t.delete, message: t.confirmDelTx, onConfirm: () => { updateData(p => ({...p, transactions: (p.transactions||[]).filter(tx => tx.id !== appModal.props.tx?.id)})); showMsg(t.success); closeModal(); } }}); }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button>
+                </div> 
+              )}
+
+              {appModal.type === 'CAT_ACTION' && appModal.props.cat && ( 
+                <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}>
+                   <div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div>
+                   <h3 className="font-bold text-lg mb-4 text-center text-slate-800 border-b pb-2">{t.action}</h3>
+                   <input type="text" id="catEditInput" defaultValue={appModal.props.cat.name} className="w-full border-2 border-slate-300 p-3 rounded-xl mb-4 font-bold text-center focus:border-blue-500 outline-none" />
+                   <button onClick={() => { const val = document.getElementById('catEditInput').value; if(val) { updateData(p => ({...p, categories: p.categories.map(c => c.id === appModal.props.cat.id ? {...c, name: val} : c)})); closeModal(); showMsg(t.success); } }} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow hover:bg-blue-700 transition">✏️ {t.edit}</button>
+                   <button onClick={() => { requirePin(() => { updateData(p => ({...p, categories: p.categories.filter(c => c.id !== appModal.props.cat.id)})); closeModal(); showMsg(t.success); }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button>
+                </div> 
+              )}
+
+              {appModal.type === 'BUILDING_ACTION' && appModal.props.b && ( 
+                <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}>
+                   <div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div>
+                   <h3 className="font-bold text-lg mb-4 text-center text-slate-800 border-b pb-2">{t.action}</h3>
+                   <input type="text" id="buildEditInput" defaultValue={appModal.props.b.name} className="w-full border-2 border-slate-300 p-3 rounded-xl mb-4 font-bold text-center focus:border-blue-500 outline-none" />
+                   <button onClick={() => { const val = document.getElementById('buildEditInput').value; if(val) { updateData(p => ({...p, buildings: p.buildings.map(b => b.id === appModal.props.b.id ? {...b, name: val} : b)})); closeModal(); showMsg(t.success); } }} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow hover:bg-blue-700 transition">✏️ {t.edit}</button>
+                   <button onClick={() => { requirePin(() => { setAppModal({show: true, type: 'CONFIRM', props: { title: t.delete, message: t.confirmDelBuild, onConfirm: () => { updateData(p => ({...p, buildings: p.buildings.filter(b => b.id !== appModal.props.b.id)})); closeModal(); showMsg(t.success); } }}) }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button>
+                </div> 
+              )}
+
+              {appModal.type === 'UNIT_ACTION' && appModal.props.u && ( 
+                <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}>
+                   <div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div>
+                   <h3 className="font-bold text-lg mb-4 text-center text-slate-800 border-b pb-2">{t.action}</h3>
+                   <input type="text" id="unitEditInput" defaultValue={appModal.props.u.unitNumber} className="w-full border-2 border-slate-300 p-3 rounded-xl mb-4 font-bold text-center focus:border-blue-500 outline-none" />
+                   <button onClick={() => { const val = document.getElementById('unitEditInput').value; if(val) { updateData(p => ({...p, units: p.units.map(u => u.id === appModal.props.u.id ? {...u, unitNumber: val} : u)})); closeModal(); showMsg(t.success); } }} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow hover:bg-blue-700 transition">✏️ {t.edit}</button>
+                   <button onClick={() => { requirePin(() => { setAppModal({show: true, type: 'CONFIRM', props: { title: t.delete, message: t.confirmDelUnit, onConfirm: () => { updateData(p => ({...p, units: p.units.filter(u => u.id !== appModal.props.u.id)})); closeModal(); showMsg(t.success); } }}) }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button>
+                </div> 
+              )}
+
+              {appModal.type === 'IMAGE_VIEW' && ( 
+                <div className="bg-black p-2 rounded-2xl w-full max-w-2xl relative shadow-2xl animate-fade-in flex flex-col items-center justify-center" onClick={e=>e.stopPropagation()}>
+                   <button onClick={closeModal} className="absolute top-4 right-4 bg-red-600 text-white w-10 h-10 rounded-full font-black text-xl hover:bg-red-700 shadow z-50">X</button>
+                   <img src={appModal.props.src} className="w-full h-auto rounded-xl max-h-[85vh] object-contain border border-slate-800" />
+                </div> 
+              )}
+
+              {appModal.type === 'PIN' && ( 
+                <div className="bg-white w-full max-w-xs rounded-2xl overflow-hidden shadow-2xl animate-slide-up" onClick={e=>e.stopPropagation()}>
+                   <div className="bg-red-600 text-white p-4 text-center font-bold">🔒</div>
+                   <div className="p-6">
+                      <p className="text-center text-sm mb-4">{lang === 'ar' ? 'أدخل الرمز السري لتأكيد الإجراء' : 'Enter PIN to confirm action'}</p>
+                      <input type="password" inputMode="numeric" pattern="[0-9]*" maxLength="4" autoFocus className="w-full border-b-2 border-red-400 p-2 text-center text-3xl tracking-[0.5em] font-bold outline-none focus:border-red-600 transition-colors bg-slate-50" onChange={e => { const val = e.target.value; if(val.length === 4) { const currentPin = data.pinCode || '0000'; if (val === currentPin) { const successCallback = appModal.props.onSuccess; closeModal(); setTimeout(() => { if(successCallback) successCallback(); }, 100); } else { showMsg(lang === 'ar' ? 'الرمز غير صحيح' : 'Incorrect PIN', true); e.target.value = ''; } } }} />
+                   </div>
+                   <button onClick={closeModal} className="w-full p-4 bg-slate-100 text-slate-600 font-bold hover:bg-slate-200">{t.no}</button>
+                </div> 
+              )}
+
+              {appModal.type === 'RECEIPT' && ( 
+                <div className="bg-white w-full max-w-md rounded-2xl overflow-hidden shadow-2xl animate-slide-up print-show" onClick={e=>e.stopPropagation()}>
+                   <div id="receipt-area" className="p-6 bg-white text-black text-center receipt-print-area">
+                      <p className="text-base font-black mb-4 text-slate-800 border-b-2 border-slate-800 pb-2">{lang === 'ar' ? 'إيصال استلام نقدية' : 'Cash Receipt'}</p>
+                      <div className="text-right space-y-2.5 mb-5 text-sm bg-slate-50 p-4 rounded-xl border border-slate-200" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+                         <div className="flex justify-between border-b pb-1.5"><span className="text-gray-600 font-bold">{lang === 'ar' ? 'تاريخ الاستلام:' : 'Receipt Date:'}</span><span className="font-mono font-bold text-slate-900">{appModal.props.date || formatShortDate(todayDateStr)}</span></div>
+                         {appModal.props.dueDate && ( <div className="flex justify-between border-b pb-1.5"><span className="text-gray-600 font-bold">{lang === 'ar' ? 'تاريخ استحقاق القسط:' : 'Installment Due Date:'}</span><span className="font-mono font-bold text-blue-800">{appModal.props.dueDate}</span></div> )}
+                         <div className="flex justify-between border-b pb-1.5"><span className="text-gray-600 font-bold">{t.client}:</span><span className="font-bold text-slate-900">{appModal.props.clientName}</span></div>
+                         <div className="flex justify-between border-b pb-1.5"><span className="text-gray-600 font-bold">{lang === 'ar' ? 'البيان / الوحدة:' : 'Details / Unit:'}</span><span className="font-bold text-slate-900">{appModal.props.buildingName}</span></div>
+                         <div className="flex justify-between pt-1 text-base text-emerald-700"><span className="font-black">{lang === 'ar' ? 'المبلغ المستلم:' : 'Amount Received:'}</span><span className="font-black">{Number(appModal.props.amount).toLocaleString()}</span></div>
+                      </div>
+                      {appModal.props.unitPrice !== undefined && ( 
+                         <div className="bg-blue-50/60 p-3.5 rounded-xl border border-blue-200 text-right text-xs mb-4" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+                            <p className="font-black text-blue-900 text-sm mb-2 border-b border-blue-200 pb-1 text-center">{lang === 'ar' ? '📊 إجمالي موقف الوحدة' : '📊 Unit Summary'}</p>
+                            <div className="grid grid-cols-3 gap-2 text-center font-bold">
+                               <div className="bg-white p-2 rounded-lg border border-blue-100"><span className="text-gray-500 block text-[10px]">{lang === 'ar' ? 'سعر الوحدة' : 'Unit Price'}</span><span className="text-slate-900 text-xs font-black">{Number(appModal.props.unitPrice).toLocaleString()}</span></div>
+                               <div className="bg-white p-2 rounded-lg border border-blue-100"><span className="text-emerald-600 block text-[10px]">{lang === 'ar' ? 'إجمالي المدفوع' : 'Total Paid'}</span><span className="text-emerald-700 text-xs font-black">{Number(appModal.props.totalPaid).toLocaleString()}</span></div>
+                               <div className="bg-white p-2 rounded-lg border border-blue-100"><span className="text-red-600 block text-[10px]">{lang === 'ar' ? 'المتبقي' : 'Remaining'}</span><span className="text-red-700 text-xs font-black">{Number(appModal.props.remainingAmount).toLocaleString()}</span></div>
+                            </div>
+                         </div> 
+                      )}
+                      <p className="text-xs text-gray-500 mt-2 font-bold">{lang === 'ar' ? 'تم الاستلام. شكراً لثقتكم.' : 'Received. Thank you.'}</p>
+                   </div>
+                   <div className="p-4 flex gap-2 bg-slate-100 print-hide">
+                      <button onClick={()=>{ window.print(); }} className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow hover:bg-blue-700">{t.printPdf}</button>
+                      <button onClick={closeModal} className="flex-1 bg-slate-300 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-400">{lang === 'ar' ? 'إغلاق' : 'Close'}</button>
+                   </div>
+                </div> 
+              )}
+
+              {appModal.type === 'CONFIRM' && ( 
+                <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-slide-up" onClick={e=>e.stopPropagation()}>
+                   <div className="bg-slate-900 text-white p-4 text-center font-bold text-lg">{appModal.props.title || t.action}</div>
+                   <div className="p-6 text-center text-slate-700 font-medium">{appModal.props.message}</div>
+                   <div className="flex border-t">
+                      <button onClick={()=>{appModal.props.onConfirm && appModal.props.onConfirm(); closeModal();}} className="flex-1 p-4 font-bold text-blue-700 hover:bg-blue-50 border-x">{t.yes}</button>
+                      <button onClick={closeModal} className="flex-1 p-4 font-bold text-slate-500 hover:bg-slate-100">{t.no}</button>
+                   </div>
+                </div> 
+              )}
+
+              {appModal.type === 'PROMPT_INST' && ( 
+                <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl animate-slide-up p-6 relative" onClick={e=>e.stopPropagation()}>
+                   <div className="bg-blue-800 text-white p-3 -mx-6 -mt-6 mb-4 text-center font-bold rounded-t-2xl">{appModal.props.title}</div>
+                   <form onSubmit={e => { e.preventDefault(); appModal.props.onConfirm(document.getElementById('promptAmtInput').value.replace(/[^0-9]/g, ''), appModal.props.promptDate || appModal.props.defaultDate || todayDateStr, appModal.props.promptCustodyVal || ''); closeModal(); }} className="space-y-4">
+                      {appModal.props.showDate && ( <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.date}</label><CustomDateInput value={appModal.props.promptDate || appModal.props.defaultDate || todayDateStr} onChange={(d) => setAppModal(p => ({ ...p, props: { ...p.props, promptDate: d } }))} /></div> )}
+                      <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.amount}</label><input type="number" id="promptAmtInput" required defaultValue={appModal.props.defaultAmount} className="w-full border-2 border-blue-400 p-3 rounded-xl font-bold text-xl text-center outline-none focus:border-blue-600" /></div>
+                      {appModal.props.showCustody && ( <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.promptCustody}</label><CustomSelect options={custodyOptions} value={appModal.props.promptCustodyVal || ''} onChange={(v) => setAppModal(p => ({ ...p, props: { ...p.props, promptCustodyVal: v } }))} placeholder={t.generalSafe} /></div> )}
+                      <div className="flex gap-2 pt-2">
+                         <button type="submit" className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow hover:bg-blue-700">{t.save}</button>
+                         <button type="button" onClick={closeModal} className="flex-1 bg-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-300">{t.no}</button>
+                      </div>
+                   </form>
+                </div> 
+              )}
+
+              {appModal.type === 'PAY_PARTNER' && ( 
+                <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl relative" onClick={e=>e.stopPropagation()}>
+                   <h3 className="font-bold text-lg mb-2 text-center text-purple-800 border-b pb-2">{t.payPartnerTitle}</h3>
+                   <p className="text-center text-sm text-slate-500 mb-2">{t.payPartnerDesc}</p>
+                   <form onSubmit={e => { e.preventDefault(); const amt = Number(e.target.partnerAmt.value.replace(/[^0-9]/g, '')); if(!amt || amt <= 0) return; appModal.props.onConfirm(amt, appModal.props.partnerDateVal || todayDateStr, appModal.props.partnerCustodyVal || ''); closeModal(); }} className="space-y-4">
+                      <div><label className="text-xs font-bold text-slate-500 mb-1 block text-center">{lang === 'ar' ? 'المبلغ المراد توريده للشريك' : 'Amount to pay to partner'}</label><NumberInput name="partnerAmt" required defaultValue={appModal.props.partnerAmt} className="w-full border-2 border-purple-300 p-3 text-2xl font-black text-center text-purple-800 rounded-xl outline-none focus:border-purple-600 bg-purple-50" /><span className="text-[11px] text-slate-400 block text-center mt-1">{lang === 'ar' ? `المستحق الحالي لهذا القسط: ${Number(appModal.props.partnerAmt).toLocaleString()}` : `Current Due: ${Number(appModal.props.partnerAmt).toLocaleString()}`}</span></div>
+                      <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.date}</label><CustomDateInput value={appModal.props.partnerDateVal || todayDateStr} onChange={(d) => setAppModal(p => ({ ...p, props: { ...p.props, partnerDateVal: d } }))} /></div>
+                      <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.deductFromSafe}</label><CustomSelect options={custodyOptions} value={appModal.props.partnerCustodyVal || ''} onChange={(v) => setAppModal(p => ({ ...p, props: { ...p.props, partnerCustodyVal: v } }))} placeholder={t.generalSafe} /></div>
+                      <div className="flex gap-2 pt-2">
+                         <button type="submit" className="flex-1 bg-purple-600 text-white py-3 rounded-xl font-bold shadow hover:bg-purple-700">{t.save}</button>
+                         <button type="button" onClick={closeModal} className="flex-1 bg-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-300">{t.no}</button>
+                      </div>
+                   </form>
+                </div> 
+              )}
+
               {appModal.type === 'REQUEST_FUNDS' && (
                 <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl relative" onClick={e=>e.stopPropagation()}>
                    <h3 className="font-bold text-lg mb-2 text-center text-blue-800 border-b pb-2">{lang === 'ar' ? 'طلب استعاضة مالية' : 'Request Funds'}</h3>
-                   <form onSubmit={e => {
-                      e.preventDefault();
-                      const amt = Number(e.target.reqAmt.value.replace(/[^0-9]/g, ''));
-                      if(!amt) return;
-                      updateData(p => ({
-                         ...p, requests: [...(p.requests||[]), { id: 'req_'+Date.now(), custodyId: appModal.props.custId, personName: currentUserData.name, amount: amt, date: getTodayStr(), status: 'pending' }]
-                      }));
-                      closeModal(); showMsg(lang === 'ar' ? 'تم إرسال الطلب للمدير بنجاح' : 'Request sent to manager successfully');
-                   }} className="space-y-4">
+                   <form onSubmit={e => { e.preventDefault(); const amt = Number(e.target.reqAmt.value.replace(/[^0-9]/g, '')); if(!amt) return; updateData(p => ({ ...p, requests: [...(p.requests||[]), { id: 'req_'+Date.now(), custodyId: appModal.props.custId, personName: currentUserData.name, amount: amt, date: getTodayStr(), status: 'pending' }] })); closeModal(); showMsg(lang === 'ar' ? 'تم إرسال الطلب للمدير بنجاح' : 'Request sent to manager successfully'); }} className="space-y-4">
                       <div><label className="text-xs font-bold text-slate-500 mb-1 block">{lang === 'ar' ? 'المبلغ المطلوب من الخزينة العامة' : 'Amount requested from General Safe'}:</label><NumberInput name="reqAmt" required className="w-full border-2 border-blue-300 p-3 text-2xl font-black text-center text-blue-800 rounded-xl outline-none focus:border-blue-600 bg-blue-50" /></div>
-                      <div className="flex gap-2 pt-2"><button type="submit" className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow hover:bg-blue-700">{lang === 'ar' ? 'إرسال الطلب' : 'Send Request'}</button><button type="button" onClick={closeModal} className="flex-1 bg-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-300">{t.no}</button></div>
+                      <div className="flex gap-2 pt-2">
+                         <button type="submit" className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow hover:bg-blue-700">{lang === 'ar' ? 'إرسال الطلب' : 'Send Request'}</button>
+                         <button type="button" onClick={closeModal} className="flex-1 bg-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-300">{t.no}</button>
+                      </div>
                    </form>
                 </div>
               )}
             </div>
           )}
 
-          {userDataLoading ? (
+                    {userDataLoading ? (
             <div className="flex-grow flex flex-col items-center justify-center p-10"><div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4 shadow"></div><p className="font-bold text-slate-600 animate-pulse">{lang === 'ar' ? 'جاري تحميل الصلاحيات والبيانات...' : 'Loading permissions and data...'}</p></div>
           ) : (
           <main className={`flex-grow p-4 mx-auto w-full max-w-7xl relative z-10 ${appModal.type === 'RECEIPT' ? 'print-hide' : ''}`}>
@@ -991,7 +595,7 @@
               </div>
             )}
 
-                          {activeTab === 'inventory' && userRole === 'admin' && (
+            {activeTab === 'inventory' && userRole === 'admin' && (
               <div className="space-y-6 print-hide animate-fade-in">
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-md mx-auto mb-6">
                   <h3 className="font-bold mb-5 text-center text-lg text-slate-800">{t.addBuildingTitle}</h3>
@@ -1035,7 +639,7 @@
               </div>
             )}
 
-            {activeTab === 'sales' && userRole === 'admin' && (
+                        {activeTab === 'sales' && userRole === 'admin' && (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print-hide animate-fade-in">
                 <div className={`bg-white p-6 rounded-2xl shadow-sm border-2 h-fit transition-colors ${editingContractId ? 'border-amber-400 shadow-md' : 'border-slate-200'}`}>
                   <h3 className="font-bold mb-5 border-b pb-2 text-lg text-slate-800">{editingContractId ? (lang==='ar'?'تعديل بيانات العقد الشامل':'Edit Contract Details') : t.newContractTitle}</h3>
@@ -1467,16 +1071,25 @@
 
     function AppWrapper() {
       const [user, setUser] = useState(null);
+      const [userData, setUserData] = useState(null);
       const [loading, setLoading] = useState(true);
 
       useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged((currentUser) => { setUser(currentUser); setLoading(false); });
+        const unsubscribe = auth.onAuthStateChanged((currentUser) => { 
+            if (currentUser) {
+                setUser(currentUser);
+                db.ref(`systemUsers/${currentUser.uid}`).once('value').then(snap => {
+                    setUserData(snap.val());
+                    setLoading(false);
+                });
+            } else { setUser(null); setUserData(null); setLoading(false); }
+        });
         return () => unsubscribe();
       }, []);
 
       if (loading) return ( <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white flex-col gap-4"><div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div><p className="font-bold text-lg tracking-widest">جاري التحميل...</p></div> );
-      if (!user) return <LoginScreen />;
-      return <MainApp user={user} />;
+      if (!user || !userData) return <AuthScreen />;
+      return <MainApp user={user} currentUserData={userData} />;
     }
 
     ReactDOM.createRoot(document.getElementById('root')).render( <ErrorBoundary><AppWrapper /></ErrorBoundary> );

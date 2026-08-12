@@ -35,7 +35,7 @@
     const getTodayStr = () => new Date().toISOString().substring(0, 10);
     const todayDateStr = getTodayStr();
 
-        const compressImage = (file, callback) => { const reader = new FileReader(); reader.onerror = () => alert('حدث خطأ في قراءة الملف'); reader.readAsDataURL(file); reader.onload = event => { const img = new Image(); img.onerror = () => alert('ملف الصورة غير مدعوم أو تالف'); img.onload = () => { try { const canvas = document.createElement('canvas'); const MAX_WIDTH = 800; let width = img.width; let height = img.height; if (width > MAX_WIDTH) { height = height * (MAX_WIDTH / width); width = MAX_WIDTH; } canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height); callback(canvas.toDataURL('image/jpeg', 0.6)); } catch(err) { alert('خطأ في معالجة الصورة'); } }; img.src = event.target.result; } };
+    const compressImage = (file, callback) => { const reader = new FileReader(); reader.onerror = () => alert('حدث خطأ في قراءة الملف'); reader.readAsDataURL(file); reader.onload = event => { const img = new Image(); img.onerror = () => alert('ملف الصورة غير مدعوم أو تالف'); img.onload = () => { try { const canvas = document.createElement('canvas'); const MAX_WIDTH = 800; let width = img.width; let height = img.height; if (width > MAX_WIDTH) { height = height * (MAX_WIDTH / width); width = MAX_WIDTH; } canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height); callback(canvas.toDataURL('image/jpeg', 0.6)); } catch(err) { alert('خطأ في معالجة الصورة'); } }; img.src = event.target.result; } };
 
     const dict = { 
       ar: { appTitle: "RealStateApp", tab_dash: "الرئيسية", tab_tx: "إيراد/مصروف", tab_cust: "العهد", tab_inv: "الوحدات", tab_sales: "المبيعات", tab_rep: "التقارير", income: "إيراد", expense: "مصروف", transfer: "تحويل", addIncome: "➕ إيراد", addExpense: "➖ مصروف", addTransfer: "🔄 تحويل عهد", date: "التاريخ", amount: "المبلغ (ج.م)", desc: "البيان (التفاصيل)", custody: "العهدة / الخزينة", building: "العمارة", unit: "الوحدة", category: "تصنيف المصروف", save: "حفظ", update: "تحديث", cancel: "إلغاء", edit: "تعديل", delete: "حذف", allCustodies: "-- جميع العهد والخزينة --", generalSafe: "-- الخزينة العامة --", allBuildings: "-- جميع العمارات --", selectCat: "-- اختر التصنيف --", monthDues: "مستحق هذا الشهر", activeCustody: "أرصدة العهد", net: "الصافي", addCat: "إضافة تصنيف مصروفات", newCustody: "👤 فتح عهدة جديدة", newCustodyTitle: "استلام عهدة", backup: "النسخ الاحتياطي", reset: "إعادة ضبط المصنع", lang: "لغة البرنامج / Language", yes: "نعم متأكد", no: "إلغاء", txTitle: "تسجيل حركة نقدية", showDetails: "التفاصيل ▼", hideDetails: "إخفاء ▲", opBalance: "رصيد أول المدة", hasPartner: "يوجد شريك؟", partnerPercent: "نسبة الشريك (%)", partnerNameInput: "اسم الشريك (اختياري)", myShare: "نسبتي", partnerShare: "للشريك", payPartnerBtn: "توريد للشريك", payPartnerTitle: "تأكيد توريد مبلغ الشريك", payPartnerDesc: "يمكنك توريد المبلغ كاملاً أو جزء منه وخصمه كـ (مصروف)", deductFromSafe: "خصم من عهدة / الخزينة", selectSafe: "-- اختر العهدة --", sortBy: "ترتيب حسب:", sortDate: "التاريخ", sortClient: "العميل", sortBuilding: "العمارة", detailsMonthDues: "تفاصيل أقساط الشهر", client: "العميل", dueDate: "الاستحقاق", action: "إجراء", noDues: "لا توجد أقساط مستحقة هذا الشهر", collect: "تحصيل", saveTx: "💾 حفظ الحركة", updateTx: "🔄 تحديث الحركة", searchDesc: "🔍 ابحث في البيان...", incomes: "الإيرادات ⬇", expenses: "المصروفات ⬆", total: "الإجمالي", noMatches: "لا توجد حركات مطابقة", addBuildingTitle: "🏢 إضافة عمارة/مشروع", buildingName: "اسم العمارة...", saveBuilding: "حفظ العمارة", addUnitTitle: "🔑 إضافة وحدة عقارية", unitName: "رقم أو اسم الوحدة", saveUnit: "حفظ الوحدة", newContractTitle: "إنشاء عقد جديد", clientName: "اسم العميل", selectUnit: "-- اختر الوحدة --", totalAmount: "الإجمالي (ج.م)", downPayment: "المقدم المدفوع", instCount: "عدد الأقساط", paySystem: "نظام الدفع", firstInstDate: "تاريخ أول قسط", saveContract: "تسجيل العقد وإنشاء الأقساط", overdueTitle: "⚠️ أقساط متأخرة ومستحقة", cancelContract: "فسخ العقد", status: "الحالة", paid: "مدفوع", pending: "مستحق", suspended: "معلق (0)", addManualInst: "➕ إضافة قسط يدوي", addAttachment: "📎 إرفاق مستند (صورة)", attachments: "المرفقات", noContracts: "لا توجد عقود نشطة", repCustodyTitle: "تقرير كشف حساب", repSalesTitle: "بيان أقساط ومستحقات", periodFrom: "من", periodTo: "إلى", start: "البداية", now: "الآن", repOpBalance: "رصيد بداية المدة المُرَحَّل", incTable: "جدول الإيرادات", expTable: "جدول المصروفات", totalIncomes: "إجمالي الإيرادات", totalExpenses: "إجمالي المصروفات", currentNet: "صافي العهدة الحالي", repInstTitle: "تقرير الأقساط", repCustodyBtn: "كشف حساب العهد", repSalesBtn: "تقرير الأقساط", repContractsBtn: "موقف العملاء والوحدات", repPartnersBtn: "حسابات الشركاء", repContractsTitle: "تقرير موقف العملاء والوحدات", partnerReportTitle: "كشف حساب المستثمر / الشريك", totalUnit: "إجمالي الوحدة", paidAmt: "المدفوع", remAmt: "المتبقي", nextDue: "القسط القادم", partnerDue: "مستحق للشريك", partnerPaidStatus: "مدفوع للشريك", totalExpected: "إجمالي الأرباح المتوقعة", totalCollectedNotPaid: "مستحق للتوريد (مُحصل)", totalPaidToPartner: "تم توريده للشريك", totalPending: "باقي في السوق (لم يُحصل)", printPdf: "🖨️ طباعة PDF", exportExcel: "📊 تصدير Excel", langTitle: "اللغة / Language", addCatTitle: "🏷️ إضافة تصنيف", catName: "اسم التصنيف...", addCatBtn: "إضافة", respName: "اختر المسؤول عن العهدة...", initAmount: "الرصيد الافتتاحي (إن وُجد)", saveCustody: "حفظ العهدة", suggestedNet: "مقترح: صافي آخر عهدة", backupTitle: "💾 النسخ الاحتياطي", backupDesc: "احتفظ بنسخة من بياناتك بانتظام", exportBtn: "⬇️ تحميل نسخة", importBtn: "⬆️ استرجاع نسخة", dangerZone: "⚠️ منطقة الخطر", resetDesc: "سيتم مسح كافة البيانات نهائياً. هل أنت متأكد؟", resetBtn: "🗑️ ضبط المصنع", sys1: "شهري", sys2: "كل شهرين", sys3: "ربع سنوي", sys4: "كل 4 شهور", sys6: "نصف سنوي", sys12: "سنوي", promptCollect: "تحصيل قسط", promptEditInst: "تعديل قسط", promptManual: "قسط يدوي", promptCustody: "إيداع في عهدة (اختياري)", confirmCancel: "متأكد من فسخ العقد؟", confirmDelCat: "حذف التصنيف؟", confirmDelBuild: "حذف العمارة؟", confirmDelUnit: "حذف الوحدة؟", confirmDelTx: "حذف الحركة؟", success: "تم بنجاح", compName: "اسم الشركة / الكيان", compOwner: "اسم المالك / المدير", phone: "رقم التليفون", address: "عنوان الشركة", registerTab: "تسجيل شركة جديدة", loginTab: "تسجيل دخول", createCompBtn: "إنشاء حساب الشركة", backToLogin: "لديك حساب؟ تسجيل دخول" },
@@ -43,98 +43,6 @@
     };
 
     function AuthScreen() {
-      const lang = localStorage.getItem('real_estate_lang') || 'ar';
-      const t = dict[lang] || dict['ar'];
-      const [isLogin, setIsLogin] = useState(true);
-      const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); 
-      const [confirmPassword, setConfirmPassword] = useState('');
-      const [rememberMe, setRememberMe] = useState(true);
-      const [compName, setCompName] = useState(''); const [compOwner, setCompOwner] = useState('');
-      const [compPhone, setCompPhone] = useState(''); const [compAddress, setCompAddress] = useState('');
-      const [error, setError] = useState(''); const [loading, setLoading] = useState(false);
-
-            
-      const handleAuth = async (e) => { 
-          e.preventDefault(); 
-          setLoading(true); 
-          setError(''); 
-          
-          if (!isLogin && password !== confirmPassword) {
-              setError(lang === 'ar' ? 'كلمات المرور غير متطابقة ⚠️' : 'Passwords do not match ⚠️');
-              setLoading(false);
-              return;
-          }
-
-          try {
-              // تحديد حالة البقاء متصلاً بطريقة آمنة
-              if (!rememberMe) {
-                 await auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
-              } else {
-                 await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-              }
-              
-              if (isLogin) {
-                  await auth.signInWithEmailAndPassword(email, password);
-                  // ملاحظة: لا نضع setLoading(false) عند النجاح لأن AppWrapper سيقوم بإظهار شاشة التحميل الزرقاء
-              } else {
-                  const res = await auth.createUserWithEmailAndPassword(email, password);
-                  const newCompId = 'COMP_' + Date.now();
-                  await db.ref(`systemUsers/${res.user.uid}`).set({ name: compOwner, email: email, role: 'admin', companyId: newCompId, createdAt: new Date().toISOString() });
-                  await db.ref(`companies/${newCompId}/info`).set({ companyName: compName, ownerName: compOwner, phone: compPhone, address: compAddress, createdAt: new Date().toISOString() });
-              }
-          } catch (err) {
-              console.error("Auth Error:", err);
-              let errorMsg = lang === 'ar' ? 'حدث خطأ أثناء الاتصال ❌' : 'Connection error ❌';
-              
-              // معالجة كل أخطاء فايربيز لضمان عدم تعليق الزرار
-              if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-email') {
-                  errorMsg = lang === 'ar' ? 'الإيميل أو كلمة المرور غير صحيحة ❌' : 'Invalid email or password ❌';
-              } else if (err.code === 'auth/email-already-in-use') {
-                  errorMsg = lang === 'ar' ? 'هذا الإيميل مسجل مسبقاً ❌' : 'Email already in use ❌';
-              } else if (err.code === 'auth/network-request-failed') {
-                  errorMsg = lang === 'ar' ? 'تأكد من اتصالك بالإنترنت 🌐' : 'Check your internet connection 🌐';
-              } else {
-                  errorMsg = err.message;
-              }
-              
-              setError(errorMsg);
-              setLoading(false); // فك التعليق يتم فقط عند حدوث خطأ فعلي
-          }
-      };
-
-
-      return ( 
-          <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
-              <div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-md animate-slide-up">
-                  <div className="text-center mb-6"><h1 className="text-3xl font-black text-slate-800 mb-2">RealStateApp</h1></div>
-                  <div className="flex bg-slate-100 p-1.5 rounded-xl mb-6 shadow-inner">
-                    <button type="button" onClick={() => {setIsLogin(true); setError('');}} className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${isLogin ? 'bg-white text-blue-800 shadow border border-slate-200' : 'text-slate-500 hover:text-slate-800'}`}>{t.loginTab}</button>
-                    <button type="button" onClick={() => {setIsLogin(false); setError('');}} className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${!isLogin ? 'bg-white text-blue-800 shadow border border-slate-200' : 'text-slate-500 hover:text-slate-800'}`}>{t.registerTab}</button>
-                  </div>
-                  {error && <div className="bg-red-50 text-red-600 p-3 rounded-xl font-bold mb-4 text-center text-sm border border-red-200 animate-fade-in">{error}</div>}
-                  <form onSubmit={handleAuth} className="space-y-4">
-                      {!isLogin && (
-                          <div className="space-y-4 animate-fade-in border-b border-slate-100 pb-4 mb-2">
-                             <div><label className="block text-xs font-bold text-slate-600 mb-1">{t.compName} <span className="text-red-500">*</span></label><input type="text" required className="w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 outline-none focus:border-blue-500 font-bold" value={compName} onChange={e => setCompName(e.target.value)} /></div>
-                             <div><label className="block text-xs font-bold text-slate-600 mb-1">{t.compOwner} <span className="text-red-500">*</span></label><input type="text" required className="w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 outline-none focus:border-blue-500 font-bold" value={compOwner} onChange={e => setCompOwner(e.target.value)} /></div>
-                             <div className="grid grid-cols-2 gap-3">
-                                <div><label className="block text-xs font-bold text-slate-600 mb-1">{t.phone} <span className="text-red-500">*</span></label><input type="tel" required className="w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 outline-none focus:border-blue-500 font-bold text-left" dir="ltr" value={compPhone} onChange={e => setCompPhone(e.target.value)} /></div>
-                                <div><label className="block text-xs font-bold text-slate-600 mb-1">{t.address} <span className="text-red-500">*</span></label><input type="text" required className="w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 outline-none focus:border-blue-500 font-bold" value={compAddress} onChange={e => setCompAddress(e.target.value)} /></div>
-                             </div>
-                          </div>
-                      )}
-                      <div><label className="block text-xs font-bold text-slate-600 mb-1">{lang === 'ar' ? 'البريد الإلكتروني / Email' : 'Email'} <span className="text-red-500">*</span></label><input type="email" required className="w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 outline-none focus:border-blue-500 font-bold text-left" dir="ltr" value={email} onChange={e => setEmail(e.target.value)} /></div>
-                      <div>
-                          <label className="block text-xs font-bold text-slate-600 mb-1">{lang === 'ar' ? 'كلمة المرور / Password' : 'Password'} <span className="text-red-500">*</span></label><input type="password" required minLength="6" className="w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 outline-none focus:border-blue-500 font-black tracking-widest text-left" dir="ltr" value={password} onChange={e => setPassword(e.target.value)} />
-                      </div>
-                      {!isLogin && (
-                          <div className="animate-fade-in">
-                              <label className="block text-xs font-bold text-slate-600 mb-1">{lang === 'ar' ? 'تأكيد كلمة المرور' : 'Confirm Password'} <span className="text-red-500">*</span></label><input type="password" required minLength="6" className="w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 outline-none focus:border-blue-500 font-black tracking-widest text-left" dir="ltr" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
-                          </div>
-                      )}
-                      {isLogin && (
-   
-       function AuthScreen() {
       const [lang, setLang] = useState(() => localStorage.getItem('real_estate_lang') || 'ar');
       const t = dict[lang] || dict['ar'];
       const [isLogin, setIsLogin] = useState(true);
@@ -223,7 +131,6 @@
       );
     }
 
-        
     class ErrorBoundary extends React.Component { constructor(props) { super(props); this.state = { hasError: false, error: null }; } static getDerivedStateFromError(error) { return { hasError: true, error }; } render() { if (this.state.hasError) { return ( <div className="p-6 m-4 bg-red-50 border-2 border-red-500 rounded-2xl text-red-900 shadow-xl"><h2 className="text-2xl font-black mb-3">⚠️ حدث خطأ في النظام</h2><p className="text-sm font-bold mb-4">{String(this.state.error)}</p><button onClick={() => { localStorage.clear(); window.location.reload(); }} className="w-full bg-red-600 text-white py-4 rounded-xl font-black">🔄 مسح الذاكرة المؤقتة وإعادة التشغيل</button></div> ); } return this.props.children; } }
 
     function NumberInput({ name, value, onChange, placeholder, className, required, id, defaultValue }) { const [internalVal, setInternalVal] = useState(defaultValue !== undefined ? defaultValue : value); useEffect(() => { if (value !== undefined) setInternalVal(value); }, [value]); const displayVal = (internalVal !== '' && internalVal !== undefined && internalVal !== null && !isNaN(internalVal)) ? Number(internalVal).toLocaleString('en-US') : ''; return ( <input type="text" id={id} name={name} inputMode="numeric" value={displayVal} placeholder={placeholder} required={required} className={className} onChange={(e) => { const raw = e.target.value.replace(/[^0-9]/g, ''); setInternalVal(raw); if(onChange) onChange(raw); }} /> ); }
@@ -277,7 +184,7 @@
       const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: '' });
       const [isCreatingUser, setIsCreatingUser] = useState(false);
 
-            useEffect(() => {
+      useEffect(() => {
         if(currentUserData.role === 'admin') {
             const usersRef = db.ref('systemUsers');
             const listener = usersRef.orderByChild('companyId').equalTo(currentUserData.companyId).on('value', snap => {
@@ -312,7 +219,7 @@
         } catch(err) { showMsg('خطأ: ' + err.message, true); } setIsCreatingUser(false);
       };
 
-            const handleDeleteUser = async (uid) => { setAppModal({ show:true, type:'CONFIRM', props:{ title: lang === 'ar' ? 'حظر الموظف' : 'Block User', message: lang === 'ar' ? 'هل أنت متأكد من حظر هذا الموظف ومنعه من الدخول للنظام نهائياً؟' : 'Are you sure you want to completely block this user?', onConfirm: async () => { await db.ref('systemUsers/' + uid).update({ status: 'disabled' }); showMsg(lang === 'ar' ? 'تم حظر الموظف بنجاح' : 'User blocked successfully'); } } }); };
+      const handleDeleteUser = async (uid) => { setAppModal({ show:true, type:'CONFIRM', props:{ title: lang === 'ar' ? 'حظر الموظف' : 'Block User', message: lang === 'ar' ? 'هل أنت متأكد من حظر هذا الموظف ومنعه من الدخول للنظام نهائياً؟' : 'Are you sure you want to completely block this user?', onConfirm: async () => { await db.ref('systemUsers/' + uid).update({ status: 'disabled' }); showMsg(lang === 'ar' ? 'تم حظر الموظف بنجاح' : 'User blocked successfully'); } } }); };
 
       const [activeTab, setActiveTab] = useState('dashboard');
       const [toast, setToast] = useState({ show: false, msg: '', isError: false });
@@ -1562,7 +1469,7 @@
       );
     }
 
-          function AppWrapper() {
+    function AppWrapper() {
       const [user, setUser] = useState(null);
       const [userData, setUserData] = useState(null);
       const [loading, setLoading] = useState(true);
@@ -1629,7 +1536,6 @@
       if (!user || !userData) return <AuthScreen />;
       return <MainApp user={user} currentUserData={userData} />;
     }
-      
 
     ReactDOM.createRoot(document.getElementById('root')).render( <ErrorBoundary><AppWrapper /></ErrorBoundary> );
   </script>

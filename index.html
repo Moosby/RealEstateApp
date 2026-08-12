@@ -49,7 +49,8 @@
     function CustomDateInput({ value, onChange, className }) { const [isOpen, setIsOpen] = useState(false); const dateObj = value ? new Date(value) : new Date(); const [viewYear, setViewYear] = useState(dateObj.getFullYear() || new Date().getFullYear()); const [viewMonth, setViewMonth] = useState(dateObj.getMonth() || new Date().getMonth()); const ref = useRef(null); useEffect(() => { if(value) { const d = new Date(value); if(!isNaN(d.getTime())) { setViewYear(d.getFullYear()); setViewMonth(d.getMonth()); } } }, [value]); useEffect(() => { const handleClickOutside = (e) => { if (ref.current && !ref.current.contains(e.target)) setIsOpen(false); }; document.addEventListener('mousedown', handleClickOutside); return () => document.removeEventListener('mousedown', handleClickOutside); }, []); const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate(); const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay(); const monthsNames = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]; const handleSelectDay = (day) => { const m = String(viewMonth + 1).padStart(2, '0'); const d = String(day).padStart(2, '0'); const selectedStr = `${viewYear}-${m}-${d}`; onChange(selectedStr); setIsOpen(false); }; const formatDisplay = (dStr) => { if(!dStr) return 'اختر التاريخ...'; const p = dStr.split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : dStr; }; return ( <div className={`relative w-full ${isOpen ? 'z-50' : 'z-10'}`} ref={ref}> <div onClick={() => setIsOpen(!isOpen)} className={`cursor-pointer font-mono font-bold flex justify-between items-center ${className || 'w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 text-slate-800'}`}> <span>{formatDisplay(value)}</span> <span className="text-slate-400 text-sm">📅</span> </div> {isOpen && ( <div className="absolute top-full right-0 w-full max-w-xs bg-white border-2 border-slate-200 mt-1 p-3 shadow-2xl z-50 rounded-2xl animate-fade-in text-slate-800" onClick={e=>e.stopPropagation()}> <div className="flex justify-between items-center mb-3"> <button type="button" onClick={() => { if(viewMonth === 0) { setViewMonth(11); setViewYear(viewYear-1); } else setViewMonth(viewMonth-1); }} className="p-1 px-2.5 bg-slate-100 rounded-lg text-slate-700 font-bold hover:bg-slate-200">▶</button> <span className="font-bold text-sm text-slate-800">{monthsNames[viewMonth]} {viewYear}</span> <button type="button" onClick={() => { if(viewMonth === 11) { setViewMonth(0); setViewYear(viewYear+1); } else setViewMonth(viewMonth+1); }} className="p-1 px-2.5 bg-slate-100 rounded-lg text-slate-700 font-bold hover:bg-slate-200">◀</button> </div> <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 mb-2"> <span>أحد</span><span>إثن</span><span>ثلا</span><span>أرب</span><span>خميس</span><span>جمعة</span><span>سبت</span> </div> <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold"> {Array.from({ length: firstDayOfWeek }).map((_, i) => <div key={'empty_'+i}></div>)} {Array.from({ length: daysInMonth }).map((_, i) => { const day = i + 1; const m = String(viewMonth + 1).padStart(2, '0'); const d = String(day).padStart(2, '0'); const curStr = `${viewYear}-${m}-${d}`; const isSelected = value === curStr; const isToday = todayDateStr === curStr; return ( <button key={day} type="button" onClick={() => handleSelectDay(day)} className={`p-2 rounded-xl transition font-mono ${isSelected ? 'bg-blue-600 text-white font-black shadow' : isToday ? 'bg-blue-100 text-blue-800 border border-blue-300' : 'hover:bg-slate-100 text-slate-700'}`}> {day} </button> ); })} </div> </div> )} </div> ); }
     function MultiSelectDropdown({ options, selected, onChange, placeholder }) { const [isOpen, setIsOpen] = useState(false); const dropdownRef = useRef(null); useEffect(() => { const handleClickOutside = (e) => { if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setIsOpen(false); }; document.addEventListener('mousedown', handleClickOutside); return () => document.removeEventListener('mousedown', handleClickOutside); }, []); const isAll = (selected || []).includes('ALL'); const selectedLabels = (selected || []).map(id => options.find(o => o.id === id)?.label).filter(Boolean); let displayTxt = placeholder || '-- جميع العهد والخزينة --'; if (isAll) { displayTxt = '-- جميع العهد والخزينة --'; } else if (selectedLabels.length > 0) { displayTxt = selectedLabels.length <= 2 ? selectedLabels.join(' + ') : `(${selectedLabels.length} عهد مختارة)`; } return ( <div className={`relative w-full ${isOpen ? 'z-50' : 'z-20'}`} ref={dropdownRef}> <div className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl bg-white cursor-pointer font-bold flex justify-between items-center shadow-sm hover:border-blue-400 transition text-slate-800" onClick={() => setIsOpen(!isOpen)}> <span className="truncate">{displayTxt}</span><span className="text-xs text-blue-600">▼</span> </div> {isOpen && ( <div className="absolute top-full right-0 w-full bg-white border-2 border-slate-200 mt-1 shadow-2xl max-h-56 overflow-y-auto z-50 p-2 space-y-1 rounded-xl animate-fade-in text-slate-800"> {(options || []).map(opt => { const checked = (selected || []).includes(opt.id); return ( <label key={opt.id} className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-50 p-2 rounded-lg transition text-slate-800 font-bold border-b border-slate-100 last:border-none"> <input type="checkbox" checked={checked} className="w-4 h-4 text-blue-600 rounded" onChange={(e) => { if (opt.id === 'ALL') { onChange(e.target.checked ? ['ALL'] : []); } else { let next = (selected || []).filter(id => id !== 'ALL'); if (e.target.checked) { next.push(opt.id); } else { next = next.filter(id => id !== opt.id); } onChange(next); } }} /> <span>{opt.label}</span> </label> ); })} </div> )} </div> ); }
 
-    const initialData = { pinCode: '0000', buildings: [], units: [], categories: [], contracts: [], installments: [], custodies: [], transactions: [] };
+    // تمت إضافة requests: [] للمصفوفات الأساسية
+    const initialData = { pinCode: '0000', buildings: [], units: [], categories: [], contracts: [], installments: [], custodies: [], transactions: [], requests: [] };
 
     function MainApp({ user }) {
       const [lang, setLang] = useState(() => localStorage.getItem('real_estate_lang') || 'ar');
@@ -63,7 +64,7 @@
         return initialData;
       });
 
-      // --- المرحلة 2: المزامنة اللحظية (Real-time Cloud Sync) ---
+      // --- المزامنة اللحظية السحابية ---
       useEffect(() => {
         const dataRef = db.ref('companyData');
         const listener = dataRef.on('value', (snapshot) => {
@@ -117,6 +118,7 @@
       }, [user]);
 
       const userRole = currentUserData?.role || 'admin';
+      const isCustodyRole = userRole === 'custody';
 
       const handleMigrateData = () => {
         setAppModal({ show: true, type: 'CONFIRM', props: { title: 'الترحيل للسحابة ☁️', message: 'هل أنت متأكد من رفع البيانات الحالية للسيرفر لتصبح متاحة لجميع المستخدمين؟', onConfirm: async () => { setIsUploading(true); try { await db.ref('companyData').set(data); showMsg('تم رفع ومزامنة كافة البيانات على السيرفر بنجاح! ✅'); } catch(err) { showMsg('حدث خطأ أثناء الرفع: ' + err.message, true); } setIsUploading(false); } } });
@@ -132,12 +134,6 @@
       };
 
       const handleDeleteUser = async (uid) => { setAppModal({ show:true, type:'CONFIRM', props:{ title: 'حذف موظف', message: 'هل متأكد من حذف صلاحيات هذا الموظف نهائياً؟', onConfirm: async () => { await db.ref('systemUsers/' + uid).remove(); showMsg('تم الحذف بنجاح'); } } }); };
-
-      useEffect(() => {
-        let needsUpdate = false; let updatedInsts = [...(data.installments || [])];
-        (data.contracts || []).forEach(c => { if (Number(c.downPayment) > 0) { const hasDpInst = updatedInsts.some(i => i.contractId === c.id && i.isDownPayment); if (!hasDpInst) { updatedInsts.push({ id: 'inst_dp_mig_' + c.id, contractId: c.id, amount: Number(c.downPayment), dueDate: c.date || todayDateStr, status: 'paid', partnerPaid: false, partnerPaidAmount: 0, isDownPayment: true }); needsUpdate = true; } } });
-        if (needsUpdate) setData(prev => ({ ...prev, installments: updatedInsts }));
-      }, []);
 
       const [activeTab, setActiveTab] = useState(userRole === 'partner' ? 'reports' : 'dashboard');
       const [toast, setToast] = useState({ show: false, msg: '', isError: false });
@@ -180,14 +176,36 @@
       const filteredDescs = newTransaction.description ? allDescriptions.filter(d => (d||'').includes(newTransaction.description) && d !== newTransaction.description) : [];
       const uniquePartnersList = useMemo(() => { const names = []; (data.buildings||[]).forEach(b => { if (b.hasPartner && b.partnerPercent > 0 && b.partnerName) { const tName = b.partnerName.trim(); if (!names.includes(tName)) names.push(tName); } }); return names; }, [data.buildings]);
 
+      // --- عزل العهد بناءً على صلاحية أمين العهدة ---
+      const myCustodies = useMemo(() => {
+        if (!isCustodyRole || !currentUserData) return [];
+        return (data.custodies || []).filter(c => c.personName === currentUserData.name && c.status !== 'closed');
+      }, [data.custodies, isCustodyRole, currentUserData]);
+
       const sortedCustodies = useMemo(() => [...(data.custodies || [])].reverse(), [data.custodies]);
       const sortedBuildings = useMemo(() => [...(data.buildings || [])].reverse(), [data.buildings]);
       const sortedCategories = useMemo(() => [...(data.categories || [])].reverse(), [data.categories]);
 
-      const custodyOptions = useMemo(() => [ { value: '', label: t.generalSafe }, ...sortedCustodies.map(c => ({ value: c.id, label: c.personName })) ], [sortedCustodies, t.generalSafe]);
-      const custodyMultiOptions = useMemo(() => [ { id: 'ALL', label: '🌐 جميع العهد والخزينة' }, { id: 'GENERAL_SAFE', label: '🏛️ الخزينة العامة' }, ...sortedCustodies.map(c => ({ id: c.id, label: c.personName })) ], [sortedCustodies]);
-      const buildingOptions = useMemo(() => [ { value: '', label: t.allBuildings }, ...sortedBuildings.map(b => ({ value: b.id, label: b.name })) ], [sortedBuildings, t.allBuildings]);
-      const categoryOptions = useMemo(() => [ { value: '', label: t.selectCat }, ...sortedCategories.map(c => ({ value: c.id, label: c.name })) ], [sortedCategories, t.selectCat]);
+      const custodyOptions = useMemo(() => {
+        if (isCustodyRole) return myCustodies.map(c => ({ value: c.id, label: c.personName }));
+        return [ { value: '', label: t.generalSafe }, ...sortedCustodies.filter(c => c.status !== 'closed').map(c => ({ value: c.id, label: c.personName })) ];
+      }, [sortedCustodies, isCustodyRole, myCustodies, t.generalSafe]);
+
+      const custodyMultiOptions = useMemo(() => {
+        if (isCustodyRole) return myCustodies.map(c => ({ id: c.id, label: c.personName }));
+        return [ { id: 'ALL', label: '🌐 جميع العهد والخزينة' }, { id: 'GENERAL_SAFE', label: '🏛️ الخزينة العامة' }, ...sortedCustodies.map(c => ({ id: c.id, label: c.personName + (c.status === 'closed' ? ' (مغلقة)' : '') })) ];
+      }, [sortedCustodies, isCustodyRole, myCustodies]);
+
+      // ضبط الفلتر الافتراضي لأمين العهدة
+      useEffect(() => {
+         if (isCustodyRole && myCustodies.length > 0) {
+            setDashboardCustodyFilter([myCustodies[0].id]);
+            setSelectedCustodies([myCustodies[0].id]);
+            if (activeTab === 'transactions' && !editingTxId) {
+               setNewTransaction(prev => ({ ...prev, custodyId: myCustodies[0].id }));
+            }
+         }
+      }, [isCustodyRole, myCustodies.length, activeTab]);
 
       const isTxInSelectedCustodies = (tx, selectedIds) => {
         if (!selectedIds || selectedIds.length === 0 || selectedIds.includes('ALL')) return true;
@@ -499,14 +517,45 @@
         }); showMsg(t.success);
       };
 
-      // --- المتغيرات اللي كانت محذوفة (مهم جداً للرئيسية والمبيعات) ---
+      // --- دوال وإجراءات أمين العهدة وطلبات الاستعاضة ---
+      const liquidateCustody = (custId) => {
+         const calc = custodyCalculations.find(c => c.id === custId);
+         const rem = calc ? calc.remaining : 0;
+         updateData(prev => {
+            let txs = [...(prev.transactions||[])];
+            if (rem > 0) {
+               txs.push({ id: 't_liq_'+Date.now(), type: 'transfer', amount: rem, custodyId: custId, toCustodyId: '', description: 'تصفية العهدة وتحويل الرصيد المتبقي للخزينة العامة', date: getTodayStr() });
+            }
+            let custs = prev.custodies.map(c => c.id === custId ? {...c, status: 'closed'} : c);
+            return { ...prev, transactions: txs, custodies: custs };
+         });
+         showMsg('تم تصفية العهدة بنجاح، وتحويل المتبقي للخزينة.');
+      };
+
+      const approveRequest = (req) => {
+         updateData(prev => {
+            let reqs = (prev.requests||[]).map(r => r.id === req.id ? {...r, status: 'approved'} : r);
+            let txs = [...(prev.transactions||[]), {
+               id: 't_req_'+Date.now(), type: 'transfer', amount: Number(req.amount), custodyId: '', toCustodyId: req.custodyId, description: `صرف استعاضة مالية لعهدة: ${req.personName}`, date: getTodayStr()
+            }];
+            return { ...prev, requests: reqs, transactions: txs };
+         });
+         showMsg('تمت الموافقة وتم تحويل المبلغ للعهدة بنجاح');
+      };
+
+      const rejectRequest = (req) => {
+         updateData(prev => ({ ...prev, requests: (prev.requests||[]).map(r => r.id === req.id ? {...r, status: 'rejected'} : r) }));
+         showMsg('تم رفض طلب الاستعاضة');
+      };
+
+      const pendingRequests = (data.requests || []).filter(r => r.status === 'pending');
+
       const thisMonth = new Date().toISOString().substring(0, 7);
       const monthInstallments = (data.installments || []).filter(i => i.status === 'pending' && Number(i.amount) > 0 && i.dueDate?.startsWith(thisMonth)).sort((a,b)=>new Date(a.dueDate||0)-new Date(b.dueDate||0));
       const overdueInstallments = (data.installments || []).filter(i => i.status === 'pending' && Number(i.amount) > 0 && i.dueDate < todayDateStr).sort((a,b)=>new Date(a.dueDate||0)-new Date(b.dueDate||0));
       const filteredContracts = (data.contracts || []).filter(c => c.status === 'active' && (!globalSearch || c.clientName.includes(globalSearch)));
       const isContractsListOpen = showContractsList || globalSearch.trim().length > 0;
       const lastCustodyNet = sortedCustodies.length > 0 ? ((custodyCalculations.find(c => c.id === sortedCustodies[0].id) || {}).remaining || 0) : 0;
-      // -------------------------------------------------------------
 
       // --- نظام الصلاحيات وعزل الشاشات ---
       const allTabs = [
@@ -558,6 +607,23 @@
               {appModal.type === 'CONFIRM' && ( <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-slide-up" onClick={e=>e.stopPropagation()}><div className="bg-slate-900 text-white p-4 text-center font-bold text-lg">{appModal.props.title || t.action}</div><div className="p-6 text-center text-slate-700 font-medium">{appModal.props.message}</div><div className="flex border-t"><button onClick={()=>{appModal.props.onConfirm && appModal.props.onConfirm(); closeModal();}} className="flex-1 p-4 font-bold text-blue-700 hover:bg-blue-50 border-x">{t.yes}</button><button onClick={closeModal} className="flex-1 p-4 font-bold text-slate-500 hover:bg-slate-100">{t.no}</button></div></div> )}
               {appModal.type === 'PROMPT_INST' && ( <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl animate-slide-up p-6 relative" onClick={e=>e.stopPropagation()}><div className="bg-blue-800 text-white p-3 -mx-6 -mt-6 mb-4 text-center font-bold rounded-t-2xl">{appModal.props.title}</div><form onSubmit={e => { e.preventDefault(); appModal.props.onConfirm(document.getElementById('promptAmtInput').value.replace(/[^0-9]/g, ''), appModal.props.promptDate || appModal.props.defaultDate || todayDateStr, appModal.props.promptCustodyVal || ''); closeModal(); }} className="space-y-4">{appModal.props.showDate && ( <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.date}</label><CustomDateInput value={appModal.props.promptDate || appModal.props.defaultDate || todayDateStr} onChange={(d) => setAppModal(p => ({ ...p, props: { ...p.props, promptDate: d } }))} /></div> )}<div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.amount}</label><input type="number" id="promptAmtInput" required defaultValue={appModal.props.defaultAmount} className="w-full border-2 border-blue-400 p-3 rounded-xl font-bold text-xl text-center outline-none focus:border-blue-600" /></div>{appModal.props.showCustody && ( <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.promptCustody}</label><CustomSelect options={custodyOptions} value={appModal.props.promptCustodyVal || ''} onChange={(v) => setAppModal(p => ({ ...p, props: { ...p.props, promptCustodyVal: v } }))} placeholder={t.generalSafe} /></div> )}<div className="flex gap-2 pt-2"><button type="submit" className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow hover:bg-blue-700">{t.save}</button><button type="button" onClick={closeModal} className="flex-1 bg-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-300">{t.no}</button></div></form></div> )}
               {appModal.type === 'PAY_PARTNER' && ( <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl relative" onClick={e=>e.stopPropagation()}><h3 className="font-bold text-lg mb-2 text-center text-purple-800 border-b pb-2">{t.payPartnerTitle}</h3><p className="text-center text-sm text-slate-500 mb-2">{t.payPartnerDesc}</p><form onSubmit={e => { e.preventDefault(); const amt = Number(e.target.partnerAmt.value.replace(/[^0-9]/g, '')); if(!amt || amt <= 0) return; appModal.props.onConfirm(amt, appModal.props.partnerDateVal || todayDateStr, appModal.props.partnerCustodyVal || ''); closeModal(); }} className="space-y-4"><div><label className="text-xs font-bold text-slate-500 mb-1 block text-center">المبلغ المراد توريده للشريك (ج.م):</label><NumberInput name="partnerAmt" required defaultValue={appModal.props.partnerAmt} className="w-full border-2 border-purple-300 p-3 text-2xl font-black text-center text-purple-800 rounded-xl outline-none focus:border-purple-600 bg-purple-50" /><span className="text-[11px] text-slate-400 block text-center mt-1">المستحق الحالي لهذا القسط: {Number(appModal.props.partnerAmt).toLocaleString()} ج.م</span></div><div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.date}</label><CustomDateInput value={appModal.props.partnerDateVal || todayDateStr} onChange={(d) => setAppModal(p => ({ ...p, props: { ...p.props, partnerDateVal: d } }))} /></div><div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.deductFromSafe}</label><CustomSelect options={custodyOptions} value={appModal.props.partnerCustodyVal || ''} onChange={(v) => setAppModal(p => ({ ...p, props: { ...p.props, partnerCustodyVal: v } }))} placeholder={t.generalSafe} /></div><div className="flex gap-2 pt-2"><button type="submit" className="flex-1 bg-purple-600 text-white py-3 rounded-xl font-bold shadow hover:bg-purple-700">{t.save}</button><button type="button" onClick={closeModal} className="flex-1 bg-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-300">{t.no}</button></div></form></div> )}
+              {appModal.type === 'REQUEST_FUNDS' && (
+                <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl relative" onClick={e=>e.stopPropagation()}>
+                   <h3 className="font-bold text-lg mb-2 text-center text-blue-800 border-b pb-2">طلب استعاضة مالية</h3>
+                   <form onSubmit={e => {
+                      e.preventDefault();
+                      const amt = Number(e.target.reqAmt.value.replace(/[^0-9]/g, ''));
+                      if(!amt) return;
+                      updateData(p => ({
+                         ...p, requests: [...(p.requests||[]), { id: 'req_'+Date.now(), custodyId: appModal.props.custId, personName: currentUserData.name, amount: amt, date: getTodayStr(), status: 'pending' }]
+                      }));
+                      closeModal(); showMsg('تم إرسال الطلب للمدير بنجاح');
+                   }} className="space-y-4">
+                      <div><label className="text-xs font-bold text-slate-500 mb-1 block">المبلغ المطلوب من الخزينة العامة (ج.م):</label><NumberInput name="reqAmt" required className="w-full border-2 border-blue-300 p-3 text-2xl font-black text-center text-blue-800 rounded-xl outline-none focus:border-blue-600 bg-blue-50" /></div>
+                      <div className="flex gap-2 pt-2"><button type="submit" className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow hover:bg-blue-700">إرسال الطلب</button><button type="button" onClick={closeModal} className="flex-1 bg-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-300">إلغاء</button></div>
+                   </form>
+                </div>
+              )}
             </div>
           )}
 
@@ -565,29 +631,92 @@
             
             {activeTab === 'dashboard' && (
               <div className="space-y-6 print-hide animate-fade-in">
-                <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {userRole === 'admin' && (
-                        <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-5 rounded-2xl border border-blue-200 shadow-inner cursor-pointer hover:shadow-md transition" onClick={() => setShowMonthDetails(!showMonthDetails)}>
-                          <div className="flex justify-between items-center mb-2">
-                            <p className="text-sm text-blue-800 font-bold">{t.monthDues}</p>
-                            <span className="text-blue-600 bg-white px-3 py-1 rounded-lg text-xs font-bold shadow-sm">{showMonthDetails ? t.hideDetails : t.showDetails}</span>
-                          </div>
-                          <p className="text-4xl font-black text-blue-900 mt-2">{monthInstallments.reduce((sum, i) => sum + Number(i.amount||0), 0).toLocaleString()} <span className="text-lg font-bold">ج.م</span></p>
-                        </div>
+                
+                {/* --- لوحة تحكم المدير --- */}
+                {userRole === 'admin' && (
+                   <>
+                     {pendingRequests.length > 0 && (
+                       <div className="bg-white p-5 rounded-2xl shadow-sm border border-amber-200 animate-slide-up">
+                         <h3 className="font-bold mb-4 border-b pb-2 text-amber-800 text-lg flex items-center gap-2">⚠️ طلبات استعاضة معلقة ({pendingRequests.length})</h3>
+                         <div className="space-y-3">
+                           {pendingRequests.map(req => (
+                              <div key={req.id} className="flex justify-between items-center bg-amber-50 p-4 rounded-xl border border-amber-100 flex-wrap gap-4">
+                                <div>
+                                  <p className="font-bold text-slate-800">أمين العهدة: <span className="text-amber-900">{req.personName}</span></p>
+                                  <p className="text-sm font-black text-amber-700 mt-1">المبلغ المطلوب: {Number(req.amount).toLocaleString()} ج.م</p>
+                                  <p className="text-xs text-slate-500 mt-1 font-mono">{formatShortDate(req.date)}</p>
+                                </div>
+                                <div className="flex gap-2 flex-col sm:flex-row w-full sm:w-auto">
+                                  <button onClick={() => approveRequest(req)} className="bg-emerald-500 text-white px-4 py-2.5 rounded-xl font-bold shadow hover:bg-emerald-600 transition flex-1 sm:flex-none">✅ موافقة وتحويل</button>
+                                  <button onClick={() => rejectRequest(req)} className="bg-red-100 text-red-600 px-4 py-2.5 rounded-xl font-bold shadow-sm hover:bg-red-200 transition flex-1 sm:flex-none">❌ رفض</button>
+                                </div>
+                              </div>
+                           ))}
+                         </div>
+                       </div>
+                     )}
+
+                     <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                         <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-5 rounded-2xl border border-blue-200 shadow-inner cursor-pointer hover:shadow-md transition" onClick={() => setShowMonthDetails(!showMonthDetails)}>
+                           <div className="flex justify-between items-center mb-2">
+                             <p className="text-sm text-blue-800 font-bold">{t.monthDues}</p>
+                             <span className="text-blue-600 bg-white px-3 py-1 rounded-lg text-xs font-bold shadow-sm">{showMonthDetails ? t.hideDetails : t.showDetails}</span>
+                           </div>
+                           <p className="text-4xl font-black text-blue-900 mt-2">{monthInstallments.reduce((sum, i) => sum + Number(i.amount||0), 0).toLocaleString()} <span className="text-lg font-bold">ج.م</span></p>
+                         </div>
+                         <div className="bg-gradient-to-br from-amber-50 to-orange-100 p-5 rounded-2xl border border-amber-200 shadow-inner">
+                           <p className="text-sm text-amber-900 mb-2 font-bold">{t.activeCustody}</p>
+                           <MultiSelectDropdown options={custodyMultiOptions} selected={dashboardCustodyFilter} onChange={setDashboardCustodyFilter} placeholder={t.allCustodies} />
+                           <p className="text-3xl font-black text-amber-600 mt-4">{t.net}: {dashboardNet.toLocaleString()} <span className="text-lg font-bold">ج.م</span></p>
+                           <div className="flex gap-3 mt-5 pt-4 border-t border-amber-200/60">
+                             <button onClick={() => { setActiveTab('transactions'); setNewTransaction({...newTransaction, type: 'income'}); }} className="flex-1 bg-emerald-500 text-white py-3 rounded-xl text-sm font-bold shadow-md hover:bg-emerald-600 transition">➕</button>
+                             <button onClick={() => { setActiveTab('transactions'); setNewTransaction({...newTransaction, type: 'expense'}); }} className="flex-1 bg-red-500 text-white py-3 rounded-xl text-sm font-bold shadow-md hover:bg-red-600 transition">➖</button>
+                           </div>
+                         </div>
+                       </div>
+                     </div>
+                   </>
+                )}
+
+                {/* --- لوحة تحكم أمين العهدة المخصصة --- */}
+                {isCustodyRole && (
+                  <div className="space-y-6">
+                    {myCustodies.length === 0 ? (
+                       <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm text-center">
+                          <span className="text-6xl mb-4 block">📭</span>
+                          <h3 className="font-bold text-xl text-slate-800 mb-2">لا توجد لديك عهد مالية نشطة!</h3>
+                          <p className="text-slate-500">تم تصفية جميع عهدك السابقة أو لم يقم المدير بتعيين عهدة لك بعد.</p>
+                       </div>
+                    ) : (
+                       myCustodies.map(cust => {
+                          const calc = custodyCalculations.find(c => c.id === cust.id);
+                          const rem = calc ? calc.remaining : 0;
+                          const init = Number(cust.totalAmount || 0);
+                          const isLow = init > 0 && rem < (init * 0.1);
+                          return (
+                             <div key={cust.id} className="bg-white p-6 md:p-8 rounded-3xl shadow-lg border border-slate-200 relative overflow-hidden">
+                                {isLow && <div className="absolute top-0 left-0 w-full bg-red-600 text-white text-center py-2 font-bold text-sm animate-pulse z-10 shadow-md">⚠️ تنبيه: رصيد العهدة انخفض عن 10% من الرصيد الافتتاحي</div>}
+                                <div className={`flex flex-col md:flex-row justify-between items-start md:items-center mt-6 gap-6 ${isLow ? 'pt-4' : ''}`}>
+                                  <div>
+                                    <h3 className="font-black text-3xl text-slate-800 mb-2">عهدة: {cust.personName}</h3>
+                                    <span className="inline-block bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg text-sm font-bold border border-slate-200">الرصيد الافتتاحي: {init.toLocaleString()} ج.م</span>
+                                  </div>
+                                  <div className={`p-6 rounded-2xl border-2 w-full md:w-auto text-center shadow-inner ${isLow ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-emerald-200'}`}>
+                                    <p className={`text-sm font-bold mb-2 ${isLow ? 'text-red-800' : 'text-emerald-800'}`}>الرصيد الفعلي المتبقي الآن</p>
+                                    <p className={`text-5xl font-black tracking-tight ${isLow ? 'text-red-600' : 'text-emerald-600'}`}>{rem.toLocaleString()} <span className="text-2xl font-bold">ج.م</span></p>
+                                  </div>
+                                </div>
+                                <div className="flex flex-col sm:flex-row gap-4 mt-8 pt-6 border-t border-slate-100">
+                                   <button onClick={() => setAppModal({ show: true, type: 'REQUEST_FUNDS', props: { custId: cust.id } })} className="flex-1 bg-blue-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-blue-700 transition hover:-translate-y-1">💰 طلب استعاضة مالية من الخزينة</button>
+                                   <button onClick={() => setAppModal({ show: true, type: 'CONFIRM', props: { title: 'تصفية العهدة وإغلاقها', message: `سيتم تصفير عهدتك وتحويل المبلغ المتبقي (${rem.toLocaleString()}) كإيراد للخزينة العامة، ثم تغيير حالتها إلى "مغلقة". هل أنت متأكد؟`, onConfirm: () => liquidateCustody(cust.id) } })} className="flex-1 bg-white text-red-600 border-2 border-red-200 py-4 rounded-xl font-bold text-lg hover:bg-red-50 transition shadow-sm">🛑 تصفية وإغلاق العهدة</button>
+                                </div>
+                             </div>
+                          );
+                       })
                     )}
-                    
-                    <div className={`bg-gradient-to-br from-amber-50 to-orange-100 p-5 rounded-2xl border border-amber-200 shadow-inner ${userRole !== 'admin' ? 'md:col-span-2' : ''}`}>
-                      <p className="text-sm text-amber-900 mb-2 font-bold">{t.activeCustody}</p>
-                      <MultiSelectDropdown options={custodyMultiOptions} selected={dashboardCustodyFilter} onChange={setDashboardCustodyFilter} placeholder={t.allCustodies} />
-                      <p className="text-3xl font-black text-amber-600 mt-4">{t.net}: {dashboardNet.toLocaleString()} <span className="text-lg font-bold">ج.م</span></p>
-                      <div className="flex gap-3 mt-5 pt-4 border-t border-amber-200/60">
-                        <button onClick={() => goToTransaction('income')} className="flex-1 bg-emerald-500 text-white py-3 rounded-xl text-sm font-bold shadow-md hover:bg-emerald-600 transition">➕</button>
-                        <button onClick={() => goToTransaction('expense')} className="flex-1 bg-red-500 text-white py-3 rounded-xl text-sm font-bold shadow-md hover:bg-red-600 transition">➖</button>
-                      </div>
-                    </div>
                   </div>
-                </div>
+                )}
 
                 {showMonthDetails && userRole === 'admin' && (
                   <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 animate-slide-up">
@@ -631,7 +760,8 @@
                   <div className="flex gap-2 p-1.5 bg-slate-100 rounded-xl border border-slate-200 shadow-inner">
                     <label className={`flex-1 flex items-center justify-center p-2.5 rounded-lg cursor-pointer font-bold text-xs transition-all ${newTransaction.type === 'income' ? 'bg-emerald-500 text-white shadow' : 'text-slate-600 hover:bg-slate-200'}`}><input type="radio" className="hidden" checked={newTransaction.type === 'income'} onChange={()=>setNewTransaction({...newTransaction, type:'income'})}/> {t.addIncome}</label>
                     <label className={`flex-1 flex items-center justify-center p-2.5 rounded-lg cursor-pointer font-bold text-xs transition-all ${newTransaction.type === 'expense' ? 'bg-red-500 text-white shadow' : 'text-slate-600 hover:bg-slate-200'}`}><input type="radio" className="hidden" checked={newTransaction.type === 'expense'} onChange={()=>setNewTransaction({...newTransaction, type:'expense'})}/> {t.addExpense}</label>
-                    <label className={`flex-1 flex items-center justify-center p-2.5 rounded-lg cursor-pointer font-bold text-xs transition-all ${newTransaction.type === 'transfer' ? 'bg-purple-600 text-white shadow' : 'text-slate-600 hover:bg-slate-200'}`}><input type="radio" className="hidden" checked={newTransaction.type === 'transfer'} onChange={()=>setNewTransaction({...newTransaction, type:'transfer'})}/> {t.addTransfer}</label>
+                    {/* إخفاء تحويل العهد لأمين العهدة */}
+                    {!isCustodyRole && <label className={`flex-1 flex items-center justify-center p-2.5 rounded-lg cursor-pointer font-bold text-xs transition-all ${newTransaction.type === 'transfer' ? 'bg-purple-600 text-white shadow' : 'text-slate-600 hover:bg-slate-200'}`}><input type="radio" className="hidden" checked={newTransaction.type === 'transfer'} onChange={()=>setNewTransaction({...newTransaction, type:'transfer'})}/> {t.addTransfer}</label>}
                   </div>
                   <div><label className="text-sm font-bold text-slate-500 mb-1 block">{t.date}</label><CustomDateInput value={newTransaction.date} onChange={(d) => setNewTransaction({ ...newTransaction, date: d })} /></div>
                   <div><label className="text-sm font-bold text-slate-500 mb-1 block">{t.amount}</label><NumberInput required value={newTransaction.amount} onChange={v=>setNewTransaction({...newTransaction, amount: v})} className="w-full border-2 border-slate-300 p-3 text-xl rounded-xl font-black text-slate-800 bg-white focus:border-blue-500 outline-none transition" /></div>
@@ -649,7 +779,7 @@
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-3 border-t border-slate-100 pt-3">
-                      <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.custody}</label><CustomSelect options={custodyOptions} value={newTransaction.custodyId} onChange={(v) => setNewTransaction({ ...newTransaction, custodyId: v })} placeholder={t.generalSafe} /></div>
+                      <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.custody}</label><CustomSelect options={custodyOptions} value={newTransaction.custodyId} onChange={(v) => setNewTransaction({ ...newTransaction, custodyId: v })} placeholder={isCustodyRole ? 'لا يوجد عهدة' : t.generalSafe} /></div>
                       {userRole === 'admin' && (<div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.building}</label><CustomSelect options={buildingOptions} value={newTransaction.buildingId} onChange={(v) => setNewTransaction({ ...newTransaction, buildingId: v })} placeholder={t.allBuildings} /></div>)}
                     </div>
                   )}
@@ -657,17 +787,26 @@
                     <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.category}</label><CustomSelect options={categoryOptions} value={newTransaction.categoryId} onChange={(v) => setNewTransaction({ ...newTransaction, categoryId: v })} placeholder={t.selectCat} /></div>
                   )}
                   <button className={`w-full text-white py-4 rounded-xl text-xl font-black shadow-lg transition hover:-translate-y-1 ${editingTxId ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-600 hover:bg-blue-700'}`}>{editingTxId ? t.updateTx : t.saveTx}</button>
-                  {editingTxId && <button type="button" onClick={()=>{setEditingTxId(null); setNewTransaction({ type: 'income', amount: '', categoryId: '', buildingId: '', custodyId: '', toCustodyId: '', description: '', date: todayDateStr });}} className="w-full mt-2 text-slate-500 font-bold py-2 hover:bg-slate-100 rounded-xl transition">{t.cancel}</button>}
+                  {editingTxId && <button type="button" onClick={()=>{setEditingTxId(null); setNewTransaction({ type: 'income', amount: '', categoryId: '', buildingId: '', custodyId: (isCustodyRole && myCustodies.length>0 ? myCustodies[0].id : ''), toCustodyId: '', description: '', date: todayDateStr });}} className="w-full mt-2 text-slate-500 font-bold py-2 hover:bg-slate-100 rounded-xl transition">{t.cancel}</button>}
                 </form>
               </div>
             )}
 
             {activeTab === 'custody' && (
               <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 print-hide animate-fade-in">
-                <div className="mb-5 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <label className="font-bold block mb-2 text-slate-800 text-sm">{t.activeCustody}:</label>
-                  <MultiSelectDropdown options={custodyMultiOptions} selected={selectedCustodies} onChange={setSelectedCustodies} placeholder={t.allCustodies} />
-                </div>
+                {/* إخفاء اختيار العهدة المتعدد عن أمين العهدة ليتم فرض عهدته فقط */}
+                {!isCustodyRole && (
+                   <div className="mb-5 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                     <label className="font-bold block mb-2 text-slate-800 text-sm">{t.activeCustody}:</label>
+                     <MultiSelectDropdown options={custodyMultiOptions} selected={selectedCustodies} onChange={setSelectedCustodies} placeholder={t.allCustodies} />
+                   </div>
+                )}
+                {isCustodyRole && myCustodies.length > 0 && (
+                   <div className="mb-5 bg-blue-50 p-4 rounded-xl border border-blue-200">
+                      <span className="font-bold text-blue-900 block text-sm">أنت تتصفح حالياً: عهدة {myCustodies[0].personName}</span>
+                   </div>
+                )}
+                
                 <div className="mb-5"><input type="text" placeholder={t.searchDesc} className="w-full border-2 border-slate-300 focus:border-blue-400 p-3 rounded-xl text-md font-bold outline-none transition bg-white shadow-sm" value={custodySearch} onChange={e => setCustodySearch(e.target.value)} /></div>
                 <div className="flex bg-slate-100 p-1.5 rounded-xl mb-4 shadow-inner">
                   <button onClick={() => setCustodyTabSub('income')} className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${custodyTabSub === 'income' ? 'bg-white text-emerald-700 shadow border border-slate-200' : 'text-slate-500'}`}>{t.incomes}</button>
@@ -936,7 +1075,8 @@
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6 bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner">
                       <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.periodFrom}</label><CustomDateInput value={reportFilter.startDate} onChange={(d) => setReportFilter({ ...reportFilter, startDate: d })} /></div>
                       <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.periodTo}</label><CustomDateInput value={reportFilter.endDate} onChange={(d) => setReportFilter({ ...reportFilter, endDate: d })} /></div>
-                      {reportType === 'transactions' && <div className="relative z-30"><label className="text-xs font-bold text-slate-500 mb-1 block">{t.custody}</label><MultiSelectDropdown options={custodyMultiOptions} selected={reportFilter.custodyIds} onChange={(newIds) => setReportFilter({...reportFilter, custodyIds: newIds})} placeholder={t.allCustodies} /></div>}
+                      {/* إظهار جميع العهد للمدير فقط في التقرير، وإخفاء الخزينة العامة عن أمين العهدة */}
+                      {reportType === 'transactions' && <div className="relative z-30"><label className="text-xs font-bold text-slate-500 mb-1 block">{t.custody}</label><MultiSelectDropdown options={custodyMultiOptions} selected={reportFilter.custodyIds} onChange={(newIds) => setReportFilter({...reportFilter, custodyIds: newIds})} placeholder={isCustodyRole ? 'لا يوجد' : t.allCustodies} /></div>}
                       {userRole === 'admin' && <div className="relative z-20"><label className="text-xs font-bold text-slate-500 mb-1 block">{t.building}</label><MultiSelectDropdown options={sortedBuildings.map(b => ({ id: b.id, label: b.name }))} selected={reportFilter.buildingIds} onChange={(newIds) => setReportFilter({...reportFilter, buildingIds: newIds})} placeholder={t.allBuildings} /></div>}
                     </div>
                   )}
@@ -951,17 +1091,18 @@
                 {/* الإعدادات المتاحة للجميع */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200 md:col-span-2 flex flex-col md:flex-row justify-between items-center gap-4 bg-gradient-to-r from-slate-800 to-slate-900 text-white"><h4 className="font-bold text-lg">{t.langTitle}</h4><div className="flex bg-slate-700 p-1 rounded-xl"><button onClick={() => setLang('ar')} className={`px-6 py-2 rounded-lg font-bold transition ${lang === 'ar' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-300 hover:text-white'}`}>عربي</button><button onClick={() => setLang('en')} className={`px-6 py-2 rounded-lg font-bold transition ${lang === 'en' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-300 hover:text-white'}`}>English</button></div></div>
-                  <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200"><h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">{t.addCatTitle}</h4><form onSubmit={(e)=>{e.preventDefault(); updateData(p=>({...p, categories: [...(p.categories || []), {id: 'c_'+Date.now(), name: newCategory}]})); setNewCategory(''); showMsg(t.success);}} className="flex flex-col gap-3 mb-4"><input required type="text" placeholder={t.catName} className="border-2 p-3 text-md w-full rounded-xl font-bold focus:border-blue-500 outline-none bg-slate-50" value={newCategory} onChange={e=>setNewCategory(e.target.value)}/><button className="bg-slate-800 text-white p-3 rounded-xl text-md font-bold shadow hover:bg-slate-900 transition">{t.addCatBtn}</button></form><div className="flex flex-wrap gap-2">{sortedCategories.map(c => ( <span key={c.id} onClick={() => setAppModal({ show: true, type: 'CAT_ACTION', props: { cat: c } })} className="bg-slate-100 border border-slate-200 p-2 px-3 rounded-lg text-xs font-bold text-slate-700 shadow-sm cursor-pointer hover:bg-blue-50 transition">{c.name}</span> ))}</div></div>
-                  <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200"><h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">{t.newCustodyTitle}</h4><form onSubmit={(e)=>{e.preventDefault(); updateData(p=>({...p, custodies: [...(p.custodies || []), {id: 'cus_'+Date.now(), ...newCustody}]})); setNewCustody({personName:'', totalAmount:'', notes:''}); showMsg(t.success);}} className="space-y-4 relative">
-                    <div className="relative">
-                      <CustomSelect options={dbUsers.length > 0 ? [...dbUsers.map(u => ({ value: u.name, label: `${u.name} - ${u.role === 'admin'?'مدير':u.role==='partner'?'شريك':'أمين عهدة'}` }))] : [{value: '', label: 'لا يوجد موظفين مسجلين'}]} value={newCustody.personName} onChange={v => setNewCustody({...newCustody, personName: v})} placeholder={t.respName} />
-                    </div>
-                    <div><NumberInput placeholder={t.initAmount} className="border-2 p-3 text-sm w-full rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCustody.totalAmount} onChange={v=>setNewCustody({...newCustody, totalAmount:v})}/>{lastCustodyNet > 0 && <span onClick={() => setNewCustody({...newCustody, totalAmount: lastCustodyNet.toString()})} className="block text-xs font-bold text-blue-600 mt-2 cursor-pointer hover:underline bg-blue-50 p-2 rounded-lg text-center border border-blue-100 shadow-sm transition hover:bg-blue-100">💡 {t.suggestedNet} ({lastCustodyNet.toLocaleString()})</span>}</div><button className="bg-slate-800 text-white p-4 rounded-xl w-full text-md font-bold shadow-lg hover:bg-slate-900 transition">{t.saveCustody}</button></form></div>
+                  <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200 md:col-span-2"><h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">{t.addCatTitle}</h4><form onSubmit={(e)=>{e.preventDefault(); updateData(p=>({...p, categories: [...(p.categories || []), {id: 'c_'+Date.now(), name: newCategory}]})); setNewCategory(''); showMsg(t.success);}} className="flex flex-col gap-3 mb-4"><input required type="text" placeholder={t.catName} className="border-2 p-3 text-md w-full rounded-xl font-bold focus:border-blue-500 outline-none bg-slate-50" value={newCategory} onChange={e=>setNewCategory(e.target.value)}/><button className="bg-slate-800 text-white p-3 rounded-xl text-md font-bold shadow hover:bg-slate-900 transition">{t.addCatBtn}</button></form><div className="flex flex-wrap gap-2">{sortedCategories.map(c => ( <span key={c.id} onClick={() => setAppModal({ show: true, type: 'CAT_ACTION', props: { cat: c } })} className="bg-slate-100 border border-slate-200 p-2 px-3 rounded-lg text-xs font-bold text-slate-700 shadow-sm cursor-pointer hover:bg-blue-50 transition">{c.name}</span> ))}</div></div>
                 </div>
 
                 {/* الإعدادات الخاصة بالمدير فقط (Admin Only) */}
                 {userRole === 'admin' && (
                   <>
+                    <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200"><h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">{t.newCustodyTitle}</h4><form onSubmit={(e)=>{e.preventDefault(); updateData(p=>({...p, custodies: [...(p.custodies || []), {id: 'cus_'+Date.now(), ...newCustody, status: 'active'}]})); setNewCustody({personName:'', totalAmount:'', notes:''}); showMsg(t.success);}} className="space-y-4 relative">
+                      <div className="relative">
+                        <CustomSelect options={dbUsers.length > 0 ? [...dbUsers.map(u => ({ value: u.name, label: `${u.name} - ${u.role === 'admin'?'مدير':u.role==='partner'?'شريك':'أمين عهدة'}` }))] : [{value: '', label: 'لا يوجد موظفين مسجلين'}]} value={newCustody.personName} onChange={v => setNewCustody({...newCustody, personName: v})} placeholder={t.respName} />
+                      </div>
+                      <div><NumberInput placeholder={t.initAmount} className="border-2 p-3 text-sm w-full rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCustody.totalAmount} onChange={v=>setNewCustody({...newCustody, totalAmount:v})}/>{lastCustodyNet > 0 && <span onClick={() => setNewCustody({...newCustody, totalAmount: lastCustodyNet.toString()})} className="block text-xs font-bold text-blue-600 mt-2 cursor-pointer hover:underline bg-blue-50 p-2 rounded-lg text-center border border-blue-100 shadow-sm transition hover:bg-blue-100">💡 {t.suggestedNet} ({lastCustodyNet.toLocaleString()})</span>}</div><button className="bg-slate-800 text-white p-4 rounded-xl w-full text-md font-bold shadow-lg hover:bg-slate-900 transition">{t.saveCustody}</button></form></div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
                         <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200 md:col-span-2"><h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">تغيير رمز PIN للحماية</h4><form onSubmit={(e)=>{ e.preventDefault(); const formTarget = e.target; const oldPinVal = formTarget.oldPin.value; const newPinVal = formTarget.newPin.value; if (oldPinVal !== (data.pinCode || '0000')) { showMsg(lang === 'ar' ? 'الرمز الحالي غير صحيح' : 'Incorrect current PIN', true); return; } updateData(p => { return {...p, pinCode: newPinVal}; }); showMsg(lang === 'ar' ? 'تم تغيير الرمز بنجاح' : 'PIN changed successfully'); formTarget.reset(); }} className="flex flex-col gap-4"><div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-lg mx-auto w-full"><div><label className="text-xs font-bold text-slate-500 mb-1 block">الرمز الحالي (المستخدم الآن):</label><input name="oldPin" type="password" inputMode="numeric" maxLength="4" pattern="[0-9]{4}" placeholder="****" className="border-2 p-3 text-center tracking-[1em] text-2xl w-full rounded-xl font-bold focus:border-red-500 outline-none bg-slate-50" required /></div><div><label className="text-xs font-bold text-slate-500 mb-1 block">الرمز الجديد:</label><input name="newPin" type="password" inputMode="numeric" maxLength="4" pattern="[0-9]{4}" placeholder="****" className="border-2 p-3 text-center tracking-[1em] text-2xl w-full rounded-xl font-bold focus:border-blue-500 outline-none bg-slate-50" required /></div></div><button className="bg-slate-800 text-white p-3 rounded-xl text-md font-bold shadow hover:bg-slate-900 transition mt-2 max-w-lg mx-auto w-full">تحديث الرمز السري</button></form></div>
                         <div className="bg-white p-8 shadow-sm rounded-2xl md:col-span-2 text-center border-2 border-dashed border-blue-400 relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-2 bg-blue-500"></div><h4 className="font-black mb-3 text-blue-900 text-2xl">{t.backupTitle}</h4><p className="text-sm mb-6 text-slate-600 font-bold bg-blue-50 inline-block p-2 rounded-lg">{t.backupDesc}</p><div className="flex flex-col sm:flex-row gap-4 justify-center mt-6"><button onClick={()=>{const b=new Blob([JSON.stringify(data)],{type:'application/json'});const l=document.createElement('a');l.href=URL.createObjectURL(b);l.download=`backup_${todayDateStr}.json`;l.click(); showMsg(t.success);}} className="bg-blue-600 text-white px-8 py-4 rounded-xl font-black text-lg shadow-lg hover:bg-blue-700 transition hover:-translate-y-1">{t.exportBtn}</button><label className="bg-amber-500 text-white px-8 py-4 rounded-xl font-black text-lg shadow-lg hover:bg-amber-600 transition cursor-pointer hover:-translate-y-1">{t.importBtn}<input type="file" accept=".json" className="hidden" onChange={(e)=>{ const r = new FileReader(); r.onload = (ev) => { try { const imported = JSON.parse(ev.target.result); updateData(p => { return { ...imported, pinCode: p.pinCode || '0000' }; }); showMsg(t.success); } catch { showMsg('Invalid File', true); } }; if(e.target.files[0]) r.readAsText(e.target.files[0]); }}/></label></div></div>

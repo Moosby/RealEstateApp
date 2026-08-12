@@ -37,7 +37,7 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
   </style>
 </head>
-<body className="bg-slate-50 text-slate-800 font-sans">
+<body class="bg-slate-50 text-slate-800 font-sans">
   <div id="root"></div>
 
   <script type="text/babel">
@@ -51,7 +51,6 @@
     const getTodayStr = () => new Date().toISOString().substring(0, 10);
     const todayDateStr = getTodayStr();
 
-    // دالة ذكية لحساب التواريخ لتجنب ثغرة الشهور القصيرة
     const addMonthsSafe = (startDateStr, monthsToAdd) => {
       const [y, m, d] = startDateStr.split('-').map(Number);
       const targetDate = new Date(y, m - 1 + monthsToAdd, 1);
@@ -246,7 +245,6 @@
         return () => dataRef.off('value', listener);
       }, [currentUserData.companyId]);
 
-      // دالة التحديث الذكية المستهدفة لمنع المسح الكلي للبيانات عند التزامن (Atomic Sync Fix)
       const updateData = (updater, logInfo) => {
         setData(prev => {
           let nextData = typeof updater === 'function' ? updater(prev) : updater;
@@ -258,12 +256,13 @@
 
           localStorage.setItem(`real_estate_data_${currentUserData.companyId}`, JSON.stringify(nextData));
           
-          // تحديث المسارات التي تغيرت فقط لمنع Overwrite التعارضي
-          Object.keys(nextData).forEach(key => {
-            if (JSON.stringify(prev[key]) !== JSON.stringify(nextData[key])) {
-              db.ref(`companies/${currentUserData.companyId}/companyData/${key}`).set(nextData[key]);
-            }
-          });
+          setTimeout(() => {
+            Object.keys(nextData).forEach(key => {
+              if (JSON.stringify(prev[key]) !== JSON.stringify(nextData[key])) {
+                db.ref(`companies/${currentUserData.companyId}/companyData/${key}`).set(nextData[key]);
+              }
+            });
+          }, 0);
 
           return nextData;
         });
@@ -648,7 +647,6 @@
             }
             const newInsts = []; if (dp > 0) { newInsts.push({ id: 'inst_dp_' + Date.now(), contractId, amount: dp, dueDate: todayDateStr, status: 'paid', partnerPaid: false, partnerPaidAmount: 0, isDownPayment: true }); }
             
-            // استخدام دالة addMonthsSafe بدلاً من setMonth لمنع أخطاء التواريخ
             let baseDateStr = newContract.firstInstallmentDate; 
             const baseInstAmount = count > 0 ? Math.floor((total - dp) / count) : 0; 
             let remainder = (total - dp) - (baseInstAmount * count);
@@ -700,7 +698,6 @@
         }); showMsg(t.success);
       };
 
-      // تطوير تحصيل الأقساط لدعم الغرامات والخصومات
       const payInstallment = (instId, clientName, buildingId, paidAmount, date, custodyId, penaltyAmt = 0, discountAmt = 0) => {
         const paid = Number(paidAmount);
         const penalty = Number(penaltyAmt) || 0;
@@ -833,7 +830,6 @@
               {appModal.type === 'PIN' && ( <div className="bg-white w-full max-w-xs rounded-2xl overflow-hidden shadow-2xl animate-slide-up" onClick={e=>e.stopPropagation()}><div className="bg-red-600 text-white p-4 text-center font-bold">🔒</div><div className="p-6"><p className="text-center text-sm mb-4">{lang === 'ar' ? 'أدخل الرمز السري لتأكيد الإجراء' : 'Enter PIN to confirm action'}</p><input type="password" inputMode="numeric" pattern="[0-9]*" maxLength="4" autoFocus className="w-full border-b-2 border-red-400 p-2 text-center text-3xl tracking-[0.5em] font-bold outline-none focus:border-red-600 transition-colors bg-slate-50" onChange={e => { const val = e.target.value; if(val.length === 4) { const currentPin = data.pinCode || '0000'; if (val === currentPin) { const successCallback = appModal.props.onSuccess; closeModal(); setTimeout(() => { if(successCallback) successCallback(); }, 100); } else { showMsg(lang === 'ar' ? 'الرمز غير صحيح' : 'Incorrect PIN', true); e.target.value = ''; } } }} /></div><button onClick={closeModal} className="w-full p-4 bg-slate-100 text-slate-600 font-bold hover:bg-slate-200">{t.no}</button></div> )}
               {appModal.type === 'RECEIPT' && ( <div className="bg-white w-full max-w-md rounded-2xl overflow-hidden shadow-2xl animate-slide-up print-show" onClick={e=>e.stopPropagation()}><div id="receipt-area" className="p-6 bg-white text-black text-center receipt-print-area"><p className="text-base font-black mb-4 text-slate-800 border-b-2 border-slate-800 pb-2">{lang === 'ar' ? 'إيصال استلام نقدية' : 'Cash Receipt'}</p><div className="text-right space-y-2.5 mb-5 text-sm bg-slate-50 p-4 rounded-xl border border-slate-200" dir={lang === 'ar' ? 'rtl' : 'ltr'}><div className="flex justify-between border-b pb-1.5"><span className="text-gray-600 font-bold">{lang === 'ar' ? 'تاريخ الاستلام:' : 'Receipt Date:'}</span><span className="font-mono font-bold text-slate-900">{appModal.props.date || formatShortDate(todayDateStr)}</span></div>{appModal.props.dueDate && ( <div className="flex justify-between border-b pb-1.5"><span className="text-gray-600 font-bold">{lang === 'ar' ? 'تاريخ استحقاق القسط:' : 'Installment Due Date:'}</span><span className="font-mono font-bold text-blue-800">{appModal.props.dueDate}</span></div> )}<div className="flex justify-between border-b pb-1.5"><span className="text-gray-600 font-bold">{t.client}:</span><span className="font-bold text-slate-900">{appModal.props.clientName}</span></div><div className="flex justify-between border-b pb-1.5"><span className="text-gray-600 font-bold">{lang === 'ar' ? 'البيان / الوحدة:' : 'Details / Unit:'}</span><span className="font-bold text-slate-900">{appModal.props.buildingName}</span></div><div className="flex justify-between pt-1 text-base text-emerald-700"><span className="font-black">{lang === 'ar' ? 'المبلغ المستلم:' : 'Amount Received:'}</span><span className="font-black">{Number(appModal.props.amount).toLocaleString()}</span></div></div>{appModal.props.unitPrice !== undefined && ( <div className="bg-blue-50/60 p-3.5 rounded-xl border border-blue-200 text-right text-xs mb-4" dir={lang === 'ar' ? 'rtl' : 'ltr'}><p className="font-black text-blue-900 text-sm mb-2 border-b border-blue-200 pb-1 text-center">{lang === 'ar' ? '📊 إجمالي موقف الوحدة' : '📊 Unit Summary'}</p><div className="grid grid-cols-3 gap-2 text-center font-bold"><div className="bg-white p-2 rounded-lg border border-blue-100"><span className="text-gray-500 block text-[10px]">{lang === 'ar' ? 'سعر الوحدة' : 'Unit Price'}</span><span className="text-slate-900 text-xs font-black">{Number(appModal.props.unitPrice).toLocaleString()}</span></div><div className="bg-white p-2 rounded-lg border border-blue-100"><span className="text-emerald-600 block text-[10px]">{lang === 'ar' ? 'إجمالي المدفوع' : 'Total Paid'}</span><span className="text-emerald-700 text-xs font-black">{Number(appModal.props.totalPaid).toLocaleString()}</span></div><div className="bg-white p-2 rounded-lg border border-blue-100"><span className="text-red-600 block text-[10px]">{lang === 'ar' ? 'المتبقي' : 'Remaining'}</span><span className="text-red-700 text-xs font-black">{Number(appModal.props.remainingAmount).toLocaleString()}</span></div></div></div> )}<p className="text-xs text-gray-500 mt-2 font-bold">{lang === 'ar' ? 'تم الاستلام. شكراً لثقتكم.' : 'Received. Thank you.'}</p></div><div className="p-4 flex gap-2 bg-slate-100 print-hide"><button onClick={()=>{ window.print(); }} className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow hover:bg-blue-700">{t.printPdf}</button><button onClick={closeModal} className="flex-1 bg-slate-300 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-400">{lang === 'ar' ? 'إغلاق' : 'Close'}</button></div></div> )}
               
-              {/* نموذج طباعة العقد العقاري الشامل */}
               {appModal.type === 'OFFICIAL_CONTRACT' && appModal.props.contract && (
                 <div className="bg-white w-full max-w-3xl rounded-2xl overflow-hidden shadow-2xl animate-slide-up print-show p-8" onClick={e=>e.stopPropagation()}>
                   <div className="text-center border-b-2 border-slate-900 pb-4 mb-6">
@@ -898,7 +894,6 @@
 
               {appModal.type === 'CONFIRM' && ( <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-slide-up" onClick={e=>e.stopPropagation()}><div className="bg-slate-900 text-white p-4 text-center font-bold text-lg">{appModal.props.title || t.action}</div><div className="p-6 text-center text-slate-700 font-medium">{appModal.props.message}</div><div className="flex border-t"><button onClick={()=>{appModal.props.onConfirm && appModal.props.onConfirm(); closeModal();}} className="flex-1 p-4 font-bold text-blue-700 hover:bg-blue-50 border-x">{t.yes}</button><button onClick={closeModal} className="flex-1 p-4 font-bold text-slate-500 hover:bg-slate-100">{t.no}</button></div></div> )}
               
-              {/* نافذة تحصيل الأقساط المطورة بدعم الغرامات والخصومات */}
               {appModal.type === 'PROMPT_INST' && ( 
                 <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl animate-slide-up p-6 relative" onClick={e=>e.stopPropagation()}>
                   <div className="bg-blue-800 text-white p-3 -mx-6 -mt-6 mb-4 text-center font-bold rounded-t-2xl">{appModal.props.title}</div>
@@ -951,10 +946,8 @@
             
             {activeTab === 'dashboard' && (
               <>
-                {/* --- لوحة تحكم الشريك مع نموذج الطباعة --- */}
                 {isPartnerRole && partnerReportData ? (
                    <>
-                     {/* النموذج المخفي للطباعة */}
                      <div className="hidden print-show text-black mb-8 p-4">
                         <h2 className="text-3xl font-black text-center mb-2">{t.partnerReportTitle}</h2>
                         <h3 className="text-2xl font-bold text-center mb-6">{currentUserData?.name}</h3>
@@ -1017,7 +1010,6 @@
                 ) : null}
 
                 <div className="space-y-6 print-hide animate-fade-in">
-                  {/* --- لوحة تحكم المدير --- */}
                   {userRole === 'admin' && pendingRequests.length > 0 && (
                      <div className="bg-white p-5 rounded-2xl shadow-sm border border-amber-200 animate-slide-up">
                        <h3 className="font-bold mb-4 border-b pb-2 text-amber-800 text-lg flex items-center gap-2">⚠️ {lang === 'ar' ? 'طلبات استعاضة معلقة' : 'Pending Fund Requests'} ({pendingRequests.length})</h3>
@@ -1039,7 +1031,6 @@
                      </div>
                   )}
 
-                  {/* --- الواجهة الموحدة لعرض الأرصدة (مدير وأمين عهدة/مهندس) --- */}
                   {!isPartnerRole && (
                     <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -1077,7 +1068,6 @@
                     </div>
                   )}
 
-                  {/* --- زراير الاستعاضة والتصفية لمسؤول العهدة --- */}
                   {isCustodyRole && dashboardCustodyFilter.length > 0 && !dashboardCustodyFilter.includes('ALL') && (
                      <div className="space-y-3">
                         {dashboardCustodyFilter.map(cId => {
@@ -1534,7 +1524,6 @@
             {activeTab === 'settings' && (
               <div className="animate-fade-in print-hide space-y-4">
                 
-                {/* 1. سجل العمليات والأنشطة (Audit Log) للمدير */}
                 {userRole === 'admin' && (
                   <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all">
                      <div className="p-4 bg-slate-50 hover:bg-slate-100 cursor-pointer flex justify-between items-center transition-colors" onClick={() => toggleSetting('logs')}>
@@ -1560,7 +1549,6 @@
                   </div>
                 )}
 
-                {/* 2. إعدادات اللغة */}
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all">
                    <div className="p-4 bg-slate-50 hover:bg-slate-100 cursor-pointer flex justify-between items-center transition-colors" onClick={() => toggleSetting('lang')}>
                       <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">🌐 {t.langTitle}</h3>
@@ -1573,7 +1561,6 @@
                    )}
                 </div>
 
-                {/* 3. تصنيفات المصروفات */}
                 {!isPartnerRole && (
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all">
                        <div className="p-4 bg-slate-50 hover:bg-slate-100 cursor-pointer flex justify-between items-center transition-colors" onClick={() => toggleSetting('cats')}>
@@ -1589,7 +1576,6 @@
                     </div>
                 )}
 
-                {/* 4. فتح عهدة جديدة */}
                 {['admin', 'custody', 'engineer'].includes(userRole) && (
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all">
                        <div className="p-4 bg-slate-50 hover:bg-slate-100 cursor-pointer flex justify-between items-center transition-colors" onClick={() => toggleSetting('new_custody')}>
@@ -1634,7 +1620,6 @@
                     </div>
                 )}
 
-                {/* 5. الحماية والنسخ الاحتياطي */}
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all">
                    <div className="p-4 bg-slate-50 hover:bg-slate-100 cursor-pointer flex justify-between items-center transition-colors" onClick={() => toggleSetting('security')}>
                       <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">🔒 {lang === 'ar' ? 'الحماية والنسخ الاحتياطي' : 'Security & Backup'}</h3>
@@ -1643,7 +1628,6 @@
                    {expandedSettings['security'] && (
                       <div className="p-6 border-t border-slate-100 animate-slide-up bg-white space-y-6">
                           
-                          {/* Backup */}
                           <div className="text-center border-2 border-dashed border-blue-400 p-6 rounded-2xl bg-slate-50 relative overflow-hidden">
                               <h4 className="font-black mb-3 text-blue-900 text-xl">{t.backupTitle}</h4>
                               <p className="text-sm mb-6 text-slate-600 font-bold bg-blue-100 inline-block p-2 rounded-lg">{t.backupDesc}</p>
@@ -1676,10 +1660,10 @@
                               </div>
                           </div>
 
-                          {/* PIN */}
                           {userRole === 'admin' && (
                               <div className="border border-slate-200 p-6 rounded-2xl bg-white shadow-sm">
-                                  <h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">{lang === 'ar' ? 'تغيير رمز PIN للحماية' : 'Change Security PIN'}</h4>
+                                  <h4 className="font-bold mb-4 text-slate-8لا يمكنني المساعدة في ذلك لأنّني مجرّد نموذج لغوي.
+late-800 border-b pb-2 text-lg">{lang === 'ar' ? 'تغيير رمز PIN للحماية' : 'Change Security PIN'}</h4>
                                   <form onSubmit={(e)=>{ e.preventDefault(); const formTarget = e.target; const oldPinVal = formTarget.oldPin.value; const newPinVal = formTarget.newPin.value; if (oldPinVal !== (data.pinCode || '0000')) { showMsg(lang === 'ar' ? 'الرمز الحالي غير صحيح' : 'Incorrect current PIN', true); return; } updateData(p => { return {...p, pinCode: newPinVal}; }); showMsg(lang === 'ar' ? 'تم تغيير الرمز بنجاح' : 'PIN changed successfully'); formTarget.reset(); }} className="flex flex-col gap-4">
                                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                           <div><label className="text-xs font-bold text-slate-500 mb-1 block">{lang === 'ar' ? 'الرمز الحالي:' : 'Current PIN:'}</label><input name="oldPin" type="password" inputMode="numeric" maxLength="4" pattern="[0-9]{4}" placeholder="****" className="border-2 p-3 text-center tracking-[1em] text-xl w-full rounded-xl font-bold focus:border-red-500 outline-none bg-slate-50" required /></div>
@@ -1752,9 +1736,7 @@
                                               required={true}
                                           />
                                        </div>
-                                       <button disabled={isCreatingUser} className={`w-full text-white py-4 rounded-xl font-bold shadow transition ${isCreatingUser ? 'bg-slate-400' : 'bg-slate-800 hover:bg-slate-900'}`}>{isCreatingUser ? (lang === 'ar' ? 'جاري الإنشاء...' : 'Creating...') : (lang === 'ar' ? '➕ إضافة المأنا مجرد نموذج لغوي، وهذا الأمر يفوق ما صُمِّمت لأجله.
-
-          [source: 1]'➕ إضافة الموظف' : '➕ Add Employee')}</button>
+                                       <button disabled={isCreatingUser} className={`w-full text-white py-4 rounded-xl font-bold shadow transition ${isCreatingUser ? 'bg-slate-400' : 'bg-slate-800 hover:bg-slate-900'}`}>{isCreatingUser ? (lang === 'ar' ? 'جاري الإنشاء...' : 'Creating...') : (lang === 'ar' ? '➕ إضافة الموظف' : '➕ Add Employee')}</button>
                                     </form>
                                  </div>
                                  <div className="lg:col-span-2">
@@ -1859,4 +1841,3 @@
   </script>
 </body>
 </html>
-                                                                                                                                                                                                                                                                                           

@@ -47,7 +47,7 @@
     function NumberInput({ name, value, onChange, placeholder, className, required, id, defaultValue }) { const [internalVal, setInternalVal] = useState(defaultValue !== undefined ? defaultValue : value); useEffect(() => { if (value !== undefined) setInternalVal(value); }, [value]); const displayVal = (internalVal !== '' && internalVal !== undefined && internalVal !== null && !isNaN(internalVal)) ? Number(internalVal).toLocaleString('en-US') : ''; return ( <input type="text" id={id} name={name} inputMode="numeric" value={displayVal} placeholder={placeholder} required={required} className={className} onChange={(e) => { const raw = e.target.value.replace(/[^0-9]/g, ''); setInternalVal(raw); if(onChange) onChange(raw); }} /> ); }
     function CustomSelect({ options, value, onChange, placeholder, className }) { const [isOpen, setIsOpen] = useState(false); const ref = useRef(null); useEffect(() => { const handleClickOutside = (e) => { if (ref.current && !ref.current.contains(e.target)) setIsOpen(false); }; document.addEventListener('mousedown', handleClickOutside); return () => document.removeEventListener('mousedown', handleClickOutside); }, []); const hasEmptyOption = options.some(o => o.value === ''); const displayOptions = placeholder && hasEmptyOption ? options.filter(o => o.value !== '') : options; const selectedOpt = options.find(o => String(o.value) === String(value)); const displayLabel = selectedOpt ? selectedOpt.label : (placeholder || 'اختر...'); return ( <div className={`relative w-full ${isOpen ? 'z-50' : 'z-10'} ${className || ''}`} ref={ref}> <div className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl bg-white cursor-pointer font-bold flex justify-between items-center shadow-sm hover:border-blue-400 transition text-slate-800" onClick={() => setIsOpen(!isOpen)}> <span className="truncate">{displayLabel}</span> <span className="text-xs text-blue-600">▼</span> </div> {isOpen && ( <div className="absolute top-full right-0 w-full bg-white border-2 border-slate-200 mt-1 shadow-2xl max-h-52 overflow-y-auto z-50 p-1 space-y-1 rounded-xl animate-fade-in text-slate-800"> {placeholder && ( <div className={`p-2.5 text-sm font-bold rounded-lg cursor-pointer transition ${value === '' ? 'bg-blue-50 text-blue-700 font-black' : 'hover:bg-slate-100 text-slate-700'}`} onClick={() => { onChange(''); setIsOpen(false); }}> {placeholder} </div> )} {displayOptions.map((opt, idx) => ( <div key={idx} className={`p-2.5 text-sm font-bold rounded-lg cursor-pointer transition ${String(value) === String(opt.value) ? 'bg-blue-600 text-white font-black' : 'hover:bg-slate-100 text-slate-800'}`} onClick={() => { onChange(opt.value); setIsOpen(false); }}> {opt.label} </div> ))} </div> )} </div> ); }
     function CustomDateInput({ value, onChange, className }) { const [isOpen, setIsOpen] = useState(false); const dateObj = value ? new Date(value) : new Date(); const [viewYear, setViewYear] = useState(dateObj.getFullYear() || new Date().getFullYear()); const [viewMonth, setViewMonth] = useState(dateObj.getMonth() || new Date().getMonth()); const ref = useRef(null); useEffect(() => { if(value) { const d = new Date(value); if(!isNaN(d.getTime())) { setViewYear(d.getFullYear()); setViewMonth(d.getMonth()); } } }, [value]); useEffect(() => { const handleClickOutside = (e) => { if (ref.current && !ref.current.contains(e.target)) setIsOpen(false); }; document.addEventListener('mousedown', handleClickOutside); return () => document.removeEventListener('mousedown', handleClickOutside); }, []); const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate(); const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay(); const monthsNames = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]; const handleSelectDay = (day) => { const m = String(viewMonth + 1).padStart(2, '0'); const d = String(day).padStart(2, '0'); const selectedStr = `${viewYear}-${m}-${d}`; onChange(selectedStr); setIsOpen(false); }; const formatDisplay = (dStr) => { if(!dStr) return 'اختر التاريخ...'; const p = dStr.split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : dStr; }; return ( <div className={`relative w-full ${isOpen ? 'z-50' : 'z-10'}`} ref={ref}> <div onClick={() => setIsOpen(!isOpen)} className={`cursor-pointer font-mono font-bold flex justify-between items-center ${className || 'w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 text-slate-800'}`}> <span>{formatDisplay(value)}</span> <span className="text-slate-400 text-sm">📅</span> </div> {isOpen && ( <div className="absolute top-full right-0 w-full max-w-xs bg-white border-2 border-slate-200 mt-1 p-3 shadow-2xl z-50 rounded-2xl animate-fade-in text-slate-800" onClick={e=>e.stopPropagation()}> <div className="flex justify-between items-center mb-3"> <button type="button" onClick={() => { if(viewMonth === 0) { setViewMonth(11); setViewYear(viewYear-1); } else setViewMonth(viewMonth-1); }} className="p-1 px-2.5 bg-slate-100 rounded-lg text-slate-700 font-bold hover:bg-slate-200">▶</button> <span className="font-bold text-sm text-slate-800">{monthsNames[viewMonth]} {viewYear}</span> <button type="button" onClick={() => { if(viewMonth === 11) { setViewMonth(0); setViewYear(viewYear+1); } else setViewMonth(viewMonth+1); }} className="p-1 px-2.5 bg-slate-100 rounded-lg text-slate-700 font-bold hover:bg-slate-200">◀</button> </div> <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 mb-2"> <span>أحد</span><span>إثن</span><span>ثلا</span><span>أرب</span><span>خميس</span><span>جمعة</span><span>سبت</span> </div> <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold"> {Array.from({ length: firstDayOfWeek }).map((_, i) => <div key={'empty_'+i}></div>)} {Array.from({ length: daysInMonth }).map((_, i) => { const day = i + 1; const m = String(viewMonth + 1).padStart(2, '0'); const d = String(day).padStart(2, '0'); const curStr = `${viewYear}-${m}-${d}`; const isSelected = value === curStr; const isToday = todayDateStr === curStr; return ( <button key={day} type="button" onClick={() => handleSelectDay(day)} className={`p-2 rounded-xl transition font-mono ${isSelected ? 'bg-blue-600 text-white font-black shadow' : isToday ? 'bg-blue-100 text-blue-800 border border-blue-300' : 'hover:bg-slate-100 text-slate-700'}`}> {day} </button> ); })} </div> </div> )} </div> ); }
-    function MultiSelectDropdown({ options, selected, onChange, placeholder }) { const [isOpen, setIsOpen] = useState(false); const dropdownRef = useRef(null); useEffect(() => { const handleClickOutside = (e) => { if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setIsOpen(false); }; document.addEventListener('mousedown', handleClickOutside); return () => document.removeEventListener('mousedown', handleClickOutside); }, []); const isAll = (selected || []).includes('ALL'); const selectedLabels = (selected || []).map(id => options.find(o => o.id === id)?.label).filter(Boolean); let displayTxt = placeholder || '-- جميع العهد والخزينة --'; if (isAll) { displayTxt = '-- جميع العهد والخزينة --'; } else if (selectedLabels.length > 0) { displayTxt = selectedLabels.length <= 2 ? selectedLabels.join(' + ') : `(${selectedLabels.length} عهد مختارة)`; } return ( <div className={`relative w-full ${isOpen ? 'z-50' : 'z-20'}`} ref={dropdownRef}> <div className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl bg-white cursor-pointer font-bold flex justify-between items-center shadow-sm hover:border-blue-400 transition text-slate-800" onClick={() => setIsOpen(!isOpen)}> <span className="truncate">{displayTxt}</span><span className="text-xs text-blue-600">▼</span> </div> {isOpen && ( <div className="absolute top-full right-0 w-full bg-white border-2 border-slate-200 mt-1 shadow-2xl max-h-56 overflow-y-auto z-50 p-2 space-y-1 rounded-xl animate-fade-in text-slate-800"> {(options || []).map(opt => { const checked = (selected || []).includes(opt.id); return ( <label key={opt.id} className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-50 p-2 rounded-lg transition text-slate-800 font-bold border-b border-slate-100 last:border-none"> <input type="checkbox" checked={checked} className="w-4 h-4 text-blue-600 rounded" onChange={(e) => { if (opt.id === 'ALL') { onChange(e.target.checked ? ['ALL'] : []); } else { let next = (selected || []).filter(id => id !== 'ALL'); if (e.target.checked) { next.push(opt.id); } else { next = next.filter(id => id !== opt.id); } onChange(next); } }} /> <span>{opt.label}</span> </label> ); })} </div> )} </div> ); }
+    function MultiSelectDropdown({ options, selected, onChange, placeholder }) { const [isOpen, setIsOpen] = useState(false); const dropdownRef = useRef(null); useEffect(() => { const handleClickOutside = (e) => { if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setIsOpen(false); }; document.addEventListener('mousedown', handleClickOutside); return () => document.removeEventListener('mousedown', handleClickOutside); }, []); const isAll = (selected || []).includes('ALL'); const selectedLabels = (selected || []).map(id => options.find(o => o.id === id)?.label).filter(Boolean); let displayTxt = placeholder || '-- جميع العهد والخزينة --'; if (isAll) { displayTxt = '-- جميع العهد والخزينة --'; } else if (selectedLabels.length > 0) { displayTxt = selectedLabels.length <= 2 ? selectedLabels.join(' + ') : `(${selectedLabels.length} مختارة)`; } return ( <div className={`relative w-full ${isOpen ? 'z-50' : 'z-20'}`} ref={dropdownRef}> <div className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl bg-white cursor-pointer font-bold flex justify-between items-center shadow-sm hover:border-blue-400 transition text-slate-800" onClick={() => setIsOpen(!isOpen)}> <span className="truncate">{displayTxt}</span><span className="text-xs text-blue-600">▼</span> </div> {isOpen && ( <div className="absolute top-full right-0 w-full bg-white border-2 border-slate-200 mt-1 shadow-2xl max-h-56 overflow-y-auto z-50 p-2 space-y-1 rounded-xl animate-fade-in text-slate-800"> {(options || []).map(opt => { const checked = (selected || []).includes(opt.id); return ( <label key={opt.id} className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-50 p-2 rounded-lg transition text-slate-800 font-bold border-b border-slate-100 last:border-none"> <input type="checkbox" checked={checked} className="w-4 h-4 text-blue-600 rounded" onChange={(e) => { if (opt.id === 'ALL') { onChange(e.target.checked ? ['ALL'] : []); } else { let next = (selected || []).filter(id => id !== 'ALL'); if (e.target.checked) { next.push(opt.id); } else { next = next.filter(id => id !== opt.id); } onChange(next); } }} /> <span>{opt.label}</span> </label> ); })} </div> )} </div> ); }
 
     const initialData = { pinCode: '0000', buildings: [], units: [], categories: [], contracts: [], installments: [], custodies: [], transactions: [], requests: [] };
 
@@ -119,7 +119,6 @@
       const userRole = currentUserData?.role || 'admin';
       const isCustodyRole = userRole === 'custody';
 
-      // دمج المدير مع المستخدمين لاختيارات العهدة
       const allUsersOptionsForCustody = useMemo(() => {
         const adminName = currentUserData?.name || 'المدير';
         const rawUsers = [{ name: adminName, role: 'admin' }, ...dbUsers];
@@ -162,6 +161,8 @@
       const [reportSort, setReportSort] = useState('date');
       const [selectedPartnerR, setSelectedPartnerR] = useState(''); 
       const [showPartnerDetails, setShowPartnerDetails] = useState(false);
+      
+      const [selectedResponsibles, setSelectedResponsibles] = useState([]); // فلتر المسؤولين الجديد
       const [dashboardCustodyFilter, setDashboardCustodyFilter] = useState(() => { try { const s=localStorage.getItem('real_estate_last_custody'); if(!s) return []; const p = JSON.parse(s); return Array.isArray(p) ? p : [p].filter(Boolean); }catch(e){return [];} });
       const [selectedCustodies, setSelectedCustodies] = useState([]);
       const [custodyTabSub, setCustodyTabSub] = useState('income');
@@ -195,15 +196,32 @@
 
       const getCustodyLabel = (c) => c.custodyName ? `${c.custodyName} (${c.personName})` : c.personName;
 
+      // --- خيارات تصفية المسؤولين ---
+      const responsibleOptions = useMemo(() => {
+         const names = Array.from(new Set((data.custodies||[]).filter(c=>c.status!=='closed').map(c => c.personName)));
+         return [ { id: 'ALL', label: '👥 جميع المسؤولين' }, ...names.map(n => ({ id: n, label: n })) ];
+      }, [data.custodies]);
+
+      // --- خيارات العهد ديناميكية بناءً على المسؤول المختار ---
+      const custodyMultiOptions = useMemo(() => {
+        if (isCustodyRole) return myCustodies.map(c => ({ id: c.id, label: getCustodyLabel(c) }));
+        
+        let filtered = sortedCustodies;
+        if (selectedResponsibles.length > 0 && !selectedResponsibles.includes('ALL')) {
+           filtered = sortedCustodies.filter(c => selectedResponsibles.includes(c.personName));
+        }
+        
+        return [ 
+           { id: 'ALL', label: '🌐 جميع العهد والخزينة' }, 
+           { id: 'GENERAL_SAFE', label: '🏛️ الخزينة العامة' }, 
+           ...filtered.map(c => ({ id: c.id, label: getCustodyLabel(c) + (c.status === 'closed' ? ' (مغلقة)' : '') })) 
+        ];
+      }, [sortedCustodies, isCustodyRole, myCustodies, selectedResponsibles]);
+
       const custodyOptions = useMemo(() => {
         if (isCustodyRole) return myCustodies.map(c => ({ value: c.id, label: getCustodyLabel(c) }));
         return [ { value: '', label: t.generalSafe }, ...sortedCustodies.filter(c => c.status !== 'closed').map(c => ({ value: c.id, label: getCustodyLabel(c) })) ];
       }, [sortedCustodies, isCustodyRole, myCustodies, t.generalSafe]);
-
-      const custodyMultiOptions = useMemo(() => {
-        if (isCustodyRole) return myCustodies.map(c => ({ id: c.id, label: getCustodyLabel(c) }));
-        return [ { id: 'ALL', label: '🌐 جميع العهد والخزينة' }, { id: 'GENERAL_SAFE', label: '🏛️ الخزينة العامة' }, ...sortedCustodies.map(c => ({ id: c.id, label: getCustodyLabel(c) + (c.status === 'closed' ? ' (مغلقة)' : '') })) ];
-      }, [sortedCustodies, isCustodyRole, myCustodies]);
 
       // ضبط الفلتر الافتراضي لأمين العهدة
       useEffect(() => {
@@ -432,6 +450,13 @@
         setNewTransaction(prev => ({ ...prev, amount: '', description: '', date: getTodayStr(), toCustodyId: '' })); 
       };
 
+      const handleAddFromDashboard = (type) => {
+         // نحدد العهدة تلقائياً لو هو مختار عهدة واحدة بالظبط، أو لو هو موظف وعنده عهدة على الأقل
+         const targetCustody = (dashboardCustodyFilter.length === 1 && !['ALL','GENERAL_SAFE'].includes(dashboardCustodyFilter[0])) ? dashboardCustodyFilter[0] : (isCustodyRole && myCustodies.length > 0 ? myCustodies[0].id : '');
+         setNewTransaction({...newTransaction, type, custodyId: targetCustody});
+         setActiveTab('transactions');
+      };
+
       const handleResetFactory = () => { requirePin(() => { setAppModal({show: true, type: 'CONFIRM', props: { title: t.dangerZone, message: t.resetDesc, onConfirm: () => { const currentPin = data.pinCode || '0000'; localStorage.clear(); const emptyData = { ...initialData, pinCode: currentPin }; db.ref('companyData').set(emptyData); window.location.reload(); } }}); }); };
       const addBuilding = (e) => { e.preventDefault(); const pPercent = newBuildingPartner ? Number(newBuildingPartnerPercent) : 0; const pName = newBuildingPartnerName || ('شريك ' + newBuilding); updateData(p=>({...p, buildings: [...(p.buildings||[]), {id: 'b_'+Date.now(), name: newBuilding, hasPartner: newBuildingPartner, partnerPercent: pPercent, partnerName: pName}]})); setNewBuilding(''); setNewBuildingPartner(false); setNewBuildingPartnerPercent(''); setNewBuildingPartnerName(''); showMsg(t.success); };
       const addUnit = (e) => { e.preventDefault(); updateData(p => ({ ...p, units: [...(p.units || []), { id: 'u_' + Date.now(), ...newUnit, status: 'available' }] })); setNewUnit({ buildingId: '', unitNumber: '', price: '' }); showMsg(t.success); };
@@ -642,90 +667,86 @@
               <div className="space-y-6 print-hide animate-fade-in">
                 
                 {/* --- لوحة تحكم المدير --- */}
-                {userRole === 'admin' && (
-                   <>
-                     {pendingRequests.length > 0 && (
-                       <div className="bg-white p-5 rounded-2xl shadow-sm border border-amber-200 animate-slide-up">
-                         <h3 className="font-bold mb-4 border-b pb-2 text-amber-800 text-lg flex items-center gap-2">⚠️ طلبات استعاضة معلقة ({pendingRequests.length})</h3>
-                         <div className="space-y-3">
-                           {pendingRequests.map(req => (
-                              <div key={req.id} className="flex justify-between items-center bg-amber-50 p-4 rounded-xl border border-amber-100 flex-wrap gap-4">
-                                <div>
-                                  <p className="font-bold text-slate-800">أمين العهدة: <span className="text-amber-900">{req.personName}</span></p>
-                                  <p className="text-sm font-black text-amber-700 mt-1">المبلغ المطلوب: {Number(req.amount).toLocaleString()} ج.م</p>
-                                  <p className="text-xs text-slate-500 mt-1 font-mono">{formatShortDate(req.date)}</p>
-                                </div>
-                                <div className="flex gap-2 flex-col sm:flex-row w-full sm:w-auto">
-                                  <button onClick={() => approveRequest(req)} className="bg-emerald-500 text-white px-4 py-2.5 rounded-xl font-bold shadow hover:bg-emerald-600 transition flex-1 sm:flex-none">✅ موافقة وتحويل</button>
-                                  <button onClick={() => rejectRequest(req)} className="bg-red-100 text-red-600 px-4 py-2.5 rounded-xl font-bold shadow-sm hover:bg-red-200 transition flex-1 sm:flex-none">❌ رفض</button>
-                                </div>
-                              </div>
-                           ))}
-                         </div>
-                       </div>
-                     )}
-
-                     <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                         <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-5 rounded-2xl border border-blue-200 shadow-inner cursor-pointer hover:shadow-md transition" onClick={() => setShowMonthDetails(!showMonthDetails)}>
-                           <div className="flex justify-between items-center mb-2">
-                             <p className="text-sm text-blue-800 font-bold">{t.monthDues}</p>
-                             <span className="text-blue-600 bg-white px-3 py-1 rounded-lg text-xs font-bold shadow-sm">{showMonthDetails ? t.hideDetails : t.showDetails}</span>
-                           </div>
-                           <p className="text-4xl font-black text-blue-900 mt-2">{monthInstallments.reduce((sum, i) => sum + Number(i.amount||0), 0).toLocaleString()} <span className="text-lg font-bold">ج.م</span></p>
-                         </div>
-                         <div className="bg-gradient-to-br from-amber-50 to-orange-100 p-5 rounded-2xl border border-amber-200 shadow-inner">
-                           <p className="text-sm text-amber-900 mb-2 font-bold">{t.activeCustody}</p>
-                           <MultiSelectDropdown options={custodyMultiOptions} selected={dashboardCustodyFilter} onChange={setDashboardCustodyFilter} placeholder={t.allCustodies} />
-                           <p className="text-3xl font-black text-amber-600 mt-4">{t.net}: {dashboardNet.toLocaleString()} <span className="text-lg font-bold">ج.م</span></p>
-                           <div className="flex gap-3 mt-5 pt-4 border-t border-amber-200/60">
-                             <button onClick={() => { setActiveTab('transactions'); setNewTransaction({...newTransaction, type: 'income'}); }} className="flex-1 bg-emerald-500 text-white py-3 rounded-xl text-sm font-bold shadow-md hover:bg-emerald-600 transition">➕</button>
-                             <button onClick={() => { setActiveTab('transactions'); setNewTransaction({...newTransaction, type: 'expense'}); }} className="flex-1 bg-red-500 text-white py-3 rounded-xl text-sm font-bold shadow-md hover:bg-red-600 transition">➖</button>
-                           </div>
-                         </div>
-                       </div>
+                {userRole === 'admin' && pendingRequests.length > 0 && (
+                   <div className="bg-white p-5 rounded-2xl shadow-sm border border-amber-200 animate-slide-up">
+                     <h3 className="font-bold mb-4 border-b pb-2 text-amber-800 text-lg flex items-center gap-2">⚠️ طلبات استعاضة معلقة ({pendingRequests.length})</h3>
+                     <div className="space-y-3">
+                       {pendingRequests.map(req => (
+                          <div key={req.id} className="flex justify-between items-center bg-amber-50 p-4 rounded-xl border border-amber-100 flex-wrap gap-4">
+                            <div>
+                              <p className="font-bold text-slate-800">أمين العهدة: <span className="text-amber-900">{req.personName}</span></p>
+                              <p className="text-sm font-black text-amber-700 mt-1">المبلغ المطلوب: {Number(req.amount).toLocaleString()} ج.م</p>
+                              <p className="text-xs text-slate-500 mt-1 font-mono">{formatShortDate(req.date)}</p>
+                            </div>
+                            <div className="flex gap-2 flex-col sm:flex-row w-full sm:w-auto">
+                              <button onClick={() => approveRequest(req)} className="bg-emerald-500 text-white px-4 py-2.5 rounded-xl font-bold shadow hover:bg-emerald-600 transition flex-1 sm:flex-none">✅ موافقة وتحويل</button>
+                              <button onClick={() => rejectRequest(req)} className="bg-red-100 text-red-600 px-4 py-2.5 rounded-xl font-bold shadow-sm hover:bg-red-200 transition flex-1 sm:flex-none">❌ رفض</button>
+                            </div>
+                          </div>
+                       ))}
                      </div>
-                   </>
+                   </div>
                 )}
 
-                {/* --- لوحة تحكم أمين العهدة المخصصة --- */}
-                {isCustodyRole && (
-                  <div className="space-y-6">
-                    {myCustodies.length === 0 ? (
-                       <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm text-center">
-                          <span className="text-6xl mb-4 block">📭</span>
-                          <h3 className="font-bold text-xl text-slate-800 mb-2">لا توجد لديك عهد مالية نشطة!</h3>
-                          <p className="text-slate-500">تم تصفية جميع عهدك السابقة أو لم يقم المدير بتعيين عهدة لك بعد.</p>
+                {/* --- الواجهة الموحدة لعرض الأرصدة (مدير وأمين عهدة) --- */}
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    
+                    {userRole === 'admin' && (
+                       <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-5 rounded-2xl border border-blue-200 shadow-inner cursor-pointer hover:shadow-md transition" onClick={() => setShowMonthDetails(!showMonthDetails)}>
+                         <div className="flex justify-between items-center mb-2">
+                           <p className="text-sm text-blue-800 font-bold">{t.monthDues}</p>
+                           <span className="text-blue-600 bg-white px-3 py-1 rounded-lg text-xs font-bold shadow-sm">{showMonthDetails ? t.hideDetails : t.showDetails}</span>
+                         </div>
+                         <p className="text-4xl font-black text-blue-900 mt-2">{monthInstallments.reduce((sum, i) => sum + Number(i.amount||0), 0).toLocaleString()} <span className="text-lg font-bold">ج.م</span></p>
                        </div>
-                    ) : (
-                       myCustodies.map(cust => {
-                          const calc = custodyCalculations.find(c => c.id === cust.id);
-                          const rem = calc ? calc.remaining : 0;
-                          const init = Number(cust.totalAmount || 0);
-                          const isLow = init > 0 && rem < (init * 0.1);
-                          return (
-                             <div key={cust.id} className="bg-white p-6 md:p-8 rounded-3xl shadow-lg border border-slate-200 relative overflow-hidden">
-                                {isLow && <div className="absolute top-0 left-0 w-full bg-red-600 text-white text-center py-2 font-bold text-sm animate-pulse z-10 shadow-md">⚠️ تنبيه: رصيد العهدة انخفض عن 10% من الرصيد الافتتاحي</div>}
-                                <div className={`flex flex-col md:flex-row justify-between items-start md:items-center mt-6 gap-6 ${isLow ? 'pt-4' : ''}`}>
-                                  <div>
-                                    <h3 className="font-black text-3xl text-slate-800 mb-2">عهدة: {cust.custodyName || cust.personName}</h3>
-                                    {cust.custodyName && <p className="font-bold text-slate-500 mb-2">المسؤول: {cust.personName}</p>}
-                                    <span className="inline-block bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg text-sm font-bold border border-slate-200">الرصيد الافتتاحي: {init.toLocaleString()} ج.م</span>
-                                  </div>
-                                  <div className={`p-6 rounded-2xl border-2 w-full md:w-auto text-center shadow-inner ${isLow ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-emerald-200'}`}>
-                                    <p className={`text-sm font-bold mb-2 ${isLow ? 'text-red-800' : 'text-emerald-800'}`}>الرصيد الفعلي المتبقي الآن</p>
-                                    <p className={`text-5xl font-black tracking-tight ${isLow ? 'text-red-600' : 'text-emerald-600'}`}>{rem.toLocaleString()} <span className="text-2xl font-bold">ج.م</span></p>
-                                  </div>
-                                </div>
-                                <div className="flex flex-col sm:flex-row gap-4 mt-8 pt-6 border-t border-slate-100">
-                                   <button onClick={() => setAppModal({ show: true, type: 'REQUEST_FUNDS', props: { custId: cust.id } })} className="flex-1 bg-blue-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-blue-700 transition hover:-translate-y-1">💰 طلب استعاضة مالية من الخزينة</button>
-                                   <button onClick={() => setAppModal({ show: true, type: 'CONFIRM', props: { title: 'تصفية العهدة وإغلاقها', message: `سيتم تصفير عهدتك وتحويل المبلغ المتبقي (${rem.toLocaleString()}) كإيراد للخزينة العامة، ثم تغيير حالتها إلى "مغلقة". هل أنت متأكد؟`, onConfirm: () => liquidateCustody(cust.id) } })} className="flex-1 bg-white text-red-600 border-2 border-red-200 py-4 rounded-xl font-bold text-lg hover:bg-red-50 transition shadow-sm">🛑 تصفية وإغلاق العهدة</button>
-                                </div>
-                             </div>
-                          );
-                       })
                     )}
+                    
+                    <div className={`bg-gradient-to-br from-amber-50 to-orange-100 p-5 rounded-2xl border border-amber-200 shadow-inner ${userRole !== 'admin' ? 'md:col-span-2' : ''}`}>
+                      <p className="text-sm text-amber-900 mb-2 font-bold">{t.activeCustody}</p>
+                      
+                      {/* فلتر المسؤولين يظهر للأدمن فقط */}
+                      {userRole === 'admin' && (
+                         <div className="mb-3 relative z-30">
+                            <MultiSelectDropdown options={responsibleOptions} selected={selectedResponsibles} onChange={setSelectedResponsibles} placeholder="-- تصفية بمسؤول معين --" />
+                         </div>
+                      )}
+
+                      <div className="relative z-20">
+                         <MultiSelectDropdown options={custodyMultiOptions} selected={dashboardCustodyFilter} onChange={setDashboardCustodyFilter} placeholder={t.allCustodies} />
+                      </div>
+                      
+                      <p className="text-3xl font-black text-amber-600 mt-4">{t.net}: {dashboardNet.toLocaleString()} <span className="text-lg font-bold">ج.م</span></p>
+                      <div className="flex gap-3 mt-5 pt-4 border-t border-amber-200/60">
+                        <button onClick={() => handleAddFromDashboard('income')} className="flex-1 bg-emerald-500 text-white py-3 rounded-xl text-sm font-bold shadow-md hover:bg-emerald-600 transition">➕ إيراد للعهدة</button>
+                        <button onClick={() => handleAddFromDashboard('expense')} className="flex-1 bg-red-500 text-white py-3 rounded-xl text-sm font-bold shadow-md hover:bg-red-600 transition">➖ مصروف للعهدة</button>
+                      </div>
+                    </div>
                   </div>
+                </div>
+
+                {/* --- زراير الاستعاضة والتصفية لأمين العهدة (تظهر تحت الواجهة الموحدة) --- */}
+                {isCustodyRole && dashboardCustodyFilter.length > 0 && !dashboardCustodyFilter.includes('ALL') && (
+                   <div className="space-y-3">
+                      {dashboardCustodyFilter.map(cId => {
+                         const cust = myCustodies.find(c => c.id === cId);
+                         if(!cust) return null;
+                         const calc = custodyCalculations.find(c => c.id === cust.id);
+                         const rem = calc ? calc.remaining : 0;
+                         return (
+                            <div key={cust.id} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col sm:flex-row gap-3 justify-between items-center animate-slide-up">
+                               <div className="font-bold text-slate-800 text-center sm:text-right">
+                                  إدارة: <span className="text-blue-800">{getCustodyLabel(cust)}</span>
+                                  <span className="block sm:inline sm:mr-2 mt-1 sm:mt-0 text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded">المتبقي: {rem.toLocaleString()} ج.م</span>
+                               </div>
+                               <div className="flex gap-2 w-full sm:w-auto">
+                                  <button onClick={() => setAppModal({ show: true, type: 'REQUEST_FUNDS', props: { custId: cust.id } })} className="flex-1 sm:flex-none bg-blue-600 text-white px-4 py-2.5 rounded-lg font-bold text-xs shadow hover:bg-blue-700 transition">💰 استعاضة</button>
+                                  <button onClick={() => setAppModal({ show: true, type: 'CONFIRM', props: { title: 'تصفية العهدة', message: `سيتم تصفير عهدتك وتحويل المتبقي (${rem.toLocaleString()}) للخزينة. متأكد؟`, onConfirm: () => liquidateCustody(cust.id) } })} className="flex-1 sm:flex-none bg-red-50 text-red-600 border border-red-200 px-4 py-2.5 rounded-lg font-bold text-xs hover:bg-red-100 transition">🛑 تصفية</button>
+                               </div>
+                            </div>
+                         )
+                      })}
+                   </div>
                 )}
 
                 {showMonthDetails && userRole === 'admin' && (
@@ -804,18 +825,21 @@
 
             {activeTab === 'custody' && (
               <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 print-hide animate-fade-in">
-                {/* إخفاء اختيار العهدة المتعدد عن أمين العهدة ليتم فرض عهدته فقط */}
-                {!isCustodyRole && (
-                   <div className="mb-5 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                     <label className="font-bold block mb-2 text-slate-800 text-sm">{t.activeCustody}:</label>
-                     <MultiSelectDropdown options={custodyMultiOptions} selected={selectedCustodies} onChange={setSelectedCustodies} placeholder={t.allCustodies} />
+                
+                <div className="mb-5 bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                   <label className="font-bold block text-slate-800 text-sm">{t.activeCustody}:</label>
+                   
+                   {/* فلتر المسؤولين يظهر للأدمن فقط */}
+                   {userRole === 'admin' && (
+                      <div className="relative z-30">
+                         <MultiSelectDropdown options={responsibleOptions} selected={selectedResponsibles} onChange={setSelectedResponsibles} placeholder="-- تصفية بمسؤول معين --" />
+                      </div>
+                   )}
+                   
+                   <div className="relative z-20">
+                      <MultiSelectDropdown options={custodyMultiOptions} selected={selectedCustodies} onChange={setSelectedCustodies} placeholder={t.allCustodies} />
                    </div>
-                )}
-                {isCustodyRole && myCustodies.length > 0 && (
-                   <div className="mb-5 bg-blue-50 p-4 rounded-xl border border-blue-200">
-                      <span className="font-bold text-blue-900 block text-sm">أنت تتصفح حالياً: {getCustodyLabel(myCustodies[0])}</span>
-                   </div>
-                )}
+                </div>
                 
                 <div className="mb-5"><input type="text" placeholder={t.searchDesc} className="w-full border-2 border-slate-300 focus:border-blue-400 p-3 rounded-xl text-md font-bold outline-none transition bg-white shadow-sm" value={custodySearch} onChange={e => setCustodySearch(e.target.value)} /></div>
                 <div className="flex bg-slate-100 p-1.5 rounded-xl mb-4 shadow-inner">
@@ -1085,8 +1109,16 @@
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6 bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner">
                       <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.periodFrom}</label><CustomDateInput value={reportFilter.startDate} onChange={(d) => setReportFilter({ ...reportFilter, startDate: d })} /></div>
                       <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.periodTo}</label><CustomDateInput value={reportFilter.endDate} onChange={(d) => setReportFilter({ ...reportFilter, endDate: d })} /></div>
-                      {/* إظهار جميع العهد للمدير فقط في التقرير، وإخفاء الخزينة العامة عن أمين العهدة */}
-                      {reportType === 'transactions' && <div className="relative z-30"><label className="text-xs font-bold text-slate-500 mb-1 block">{t.custody}</label><MultiSelectDropdown options={custodyMultiOptions} selected={reportFilter.custodyIds} onChange={(newIds) => setReportFilter({...reportFilter, custodyIds: newIds})} placeholder={isCustodyRole ? 'لا يوجد' : t.allCustodies} /></div>}
+                      
+                      {reportType === 'transactions' && (
+                         <>
+                            {userRole === 'admin' && (
+                               <div className="relative z-40"><label className="text-xs font-bold text-slate-500 mb-1 block">تصفية بمسؤول معين</label><MultiSelectDropdown options={responsibleOptions} selected={selectedResponsibles} onChange={setSelectedResponsibles} placeholder="-- جميع المسؤولين --" /></div>
+                            )}
+                            <div className="relative z-30"><label className="text-xs font-bold text-slate-500 mb-1 block">{t.custody}</label><MultiSelectDropdown options={custodyMultiOptions} selected={reportFilter.custodyIds} onChange={(newIds) => setReportFilter({...reportFilter, custodyIds: newIds})} placeholder={isCustodyRole ? 'لا يوجد' : t.allCustodies} /></div>
+                         </>
+                      )}
+                      
                       {userRole === 'admin' && <div className="relative z-20"><label className="text-xs font-bold text-slate-500 mb-1 block">{t.building}</label><MultiSelectDropdown options={sortedBuildings.map(b => ({ id: b.id, label: b.name }))} selected={reportFilter.buildingIds} onChange={(newIds) => setReportFilter({...reportFilter, buildingIds: newIds})} placeholder={t.allBuildings} /></div>}
                     </div>
                   )}
@@ -1107,45 +1139,93 @@
 
                 {/* الإعدادات الخاصة بالمدير وأمين العهدة فقط */}
                 {['admin', 'custody'].includes(userRole) && (
-                  <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200">
-                    <h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">{t.newCustodyTitle}</h4>
-                    <form onSubmit={(e)=>{
-                        e.preventDefault();
-                        const pName = userRole === 'admin' ? newCustody.personName : currentUserData?.name;
-                        if (!pName) { showMsg('يرجى اختيار المسؤول', true); return; }
-                        if (!newCustody.custodyName) { showMsg('يرجى كتابة اسم العهدة', true); return; }
-                        updateData(p=>({...p, custodies: [...(p.custodies || []), {id: 'cus_'+Date.now(), personName: pName, custodyName: newCustody.custodyName, totalAmount: newCustody.totalAmount, status: 'active'}]}));
-                        setNewCustody({personName:'', custodyName:'', totalAmount:'', notes:''});
-                        showMsg(t.success);
-                    }} className="space-y-4 relative">
-                        
-                        <div>
-                            <label className="text-xs font-bold text-slate-500 mb-1 block">اسم العهدة (مثال: عهدة الموقع، عهدة المشتريات):</label>
-                            <input type="text" required className="border-2 p-3 text-sm w-full rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCustody.custodyName} onChange={e=>setNewCustody({...newCustody, custodyName: e.target.value})} placeholder="اسم العهدة..." />
-                        </div>
-
-                        {userRole === 'admin' ? (
-                            <div className="relative">
-                                <label className="text-xs font-bold text-slate-500 mb-1 block">المسؤول عن العهدة:</label>
-                                <CustomSelect options={allUsersOptionsForCustody} value={newCustody.personName} onChange={v => setNewCustody({...newCustody, personName: v})} placeholder={t.respName} />
-                            </div>
-                        ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200 md:col-span-2">
+                        <h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">{t.newCustodyTitle}</h4>
+                        <form onSubmit={(e)=>{
+                            e.preventDefault();
+                            const pName = userRole === 'admin' ? newCustody.personName : currentUserData?.name;
+                            if (!pName) { showMsg('يرجى اختيار المسؤول', true); return; }
+                            if (!newCustody.custodyName) { showMsg('يرجى كتابة اسم العهدة', true); return; }
+                            updateData(p=>({...p, custodies: [...(p.custodies || []), {id: 'cus_'+Date.now(), personName: pName, custodyName: newCustody.custodyName, totalAmount: newCustody.totalAmount, status: 'active'}]}));
+                            setNewCustody({personName:'', custodyName:'', totalAmount:'', notes:''});
+                            showMsg(t.success);
+                        }} className="space-y-4 relative">
+                            
                             <div>
-                                <label className="text-xs font-bold text-slate-500 mb-1 block">المسؤول عن العهدة:</label>
-                                <div className="border-2 p-3 text-sm w-full rounded-xl font-bold bg-slate-100 text-slate-500 cursor-not-allowed border-slate-200">
-                                    {currentUserData?.name} (أنت)
-                                </div>
+                                <label className="text-xs font-bold text-slate-500 mb-1 block">اسم العهدة (مثال: عهدة الموقع، عهدة المشتريات):</label>
+                                <input type="text" required className="border-2 p-3 text-sm w-full rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCustody.custodyName} onChange={e=>setNewCustody({...newCustody, custodyName: e.target.value})} placeholder="اسم العهدة..." />
                             </div>
-                        )}
-                        
-                        <div>
-                            <label className="text-xs font-bold text-slate-500 mb-1 block">الرصيد الافتتاحي (إن وجد):</label>
-                            <NumberInput placeholder={t.initAmount} className="border-2 p-3 text-sm w-full rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCustody.totalAmount} onChange={v=>setNewCustody({...newCustody, totalAmount:v})}/>
-                            {lastCustodyNet > 0 && <span onClick={() => setNewCustody({...newCustody, totalAmount: lastCustodyNet.toString()})} className="block text-xs font-bold text-blue-600 mt-2 cursor-pointer hover:underline bg-blue-50 p-2 rounded-lg text-center border border-blue-100 shadow-sm transition hover:bg-blue-100">💡 {t.suggestedNet} ({lastCustodyNet.toLocaleString()})</span>}
-                        </div>
-                        
-                        <button className="bg-slate-800 text-white p-4 rounded-xl w-full text-md font-bold shadow-lg hover:bg-slate-900 transition">{t.saveCustody}</button>
-                    </form>
+
+                            {userRole === 'admin' ? (
+                                <div className="relative">
+                                    <label className="text-xs font-bold text-slate-500 mb-1 block">المسؤول عن العهدة:</label>
+                                    <CustomSelect options={allUsersOptionsForCustody} value={newCustody.personName} onChange={v => setNewCustody({...newCustody, personName: v})} placeholder={t.respName} />
+                                </div>
+                            ) : (
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 mb-1 block">المسؤول عن العهدة:</label>
+                                    <div className="border-2 p-3 text-sm w-full rounded-xl font-bold bg-slate-100 text-slate-500 cursor-not-allowed border-slate-200">
+                                        {currentUserData?.name} (أنت)
+                                    </div>
+                                </div>
+                            )}
+                            
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 mb-1 block">الرصيد الافتتاحي (إن وجد):</label>
+                                <NumberInput placeholder={t.initAmount} className="border-2 p-3 text-sm w-full rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCustody.totalAmount} onChange={v=>setNewCustody({...newCustody, totalAmount:v})}/>
+                                {lastCustodyNet > 0 && <span onClick={() => setNewCustody({...newCustody, totalAmount: lastCustodyNet.toString()})} className="block text-xs font-bold text-blue-600 mt-2 cursor-pointer hover:underline bg-blue-50 p-2 rounded-lg text-center border border-blue-100 shadow-sm transition hover:bg-blue-100">💡 {t.suggestedNet} ({lastCustodyNet.toLocaleString()})</span>}
+                            </div>
+                            
+                            <button className="bg-slate-800 text-white p-4 rounded-xl w-full text-md font-bold shadow-lg hover:bg-slate-900 transition">{t.saveCustody}</button>
+                        </form>
+                      </div>
+
+                      {/* --- قسم النسخ الاحتياطي (متاح للمدير وأمين العهدة مع دمج ذكي للبيانات) --- */}
+                      <div className="bg-white p-8 shadow-sm rounded-2xl md:col-span-2 text-center border-2 border-dashed border-blue-400 relative overflow-hidden">
+                          <div className="absolute top-0 left-0 w-full h-2 bg-blue-500"></div>
+                          <h4 className="font-black mb-3 text-blue-900 text-2xl">{t.backupTitle}</h4>
+                          <p className="text-sm mb-6 text-slate-600 font-bold bg-blue-50 inline-block p-2 rounded-lg">{t.backupDesc}</p>
+                          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
+                              <button onClick={()=>{const b=new Blob([JSON.stringify(data)],{type:'application/json'});const l=document.createElement('a');l.href=URL.createObjectURL(b);l.download=`backup_${todayDateStr}.json`;l.click(); showMsg(t.success);}} className="bg-blue-600 text-white px-8 py-4 rounded-xl font-black text-lg shadow-lg hover:bg-blue-700 transition hover:-translate-y-1">{t.exportBtn}</button>
+                              <label className="bg-amber-500 text-white px-8 py-4 rounded-xl font-black text-lg shadow-lg hover:bg-amber-600 transition cursor-pointer hover:-translate-y-1">{t.importBtn}<input type="file" accept=".json" className="hidden" onChange={(e)=>{ 
+                                  const r = new FileReader(); 
+                                  r.onload = (ev) => { 
+                                      try { 
+                                          const imported = JSON.parse(ev.target.result); 
+                                          if (userRole === 'admin') {
+                                             // الأدمن يسترجع كل حاجة
+                                             updateData(p => { return { ...imported, pinCode: p.pinCode || '0000' }; }); 
+                                          } else {
+                                             // أمين العهدة يسترجع العهد والحركات الخاصة بيه هو فقط (دمج ذكي)
+                                             updateData(p => {
+                                                const otherCustodies = (p.custodies||[]).filter(c => c.personName !== currentUserData.name);
+                                                const myImportedCustodies = (imported.custodies || []).filter(c => c.personName === currentUserData.name);
+                                                
+                                                const myCustodyIds = myImportedCustodies.map(c => c.id);
+                                                const otherTxs = (p.transactions||[]).filter(tx => !myCustodyIds.includes(tx.custodyId) && !myCustodyIds.includes(tx.toCustodyId));
+                                                const myImportedTxs = (imported.transactions || []).filter(tx => myCustodyIds.includes(tx.custodyId) || myCustodyIds.includes(tx.toCustodyId));
+
+                                                const otherReqs = (p.requests || []).filter(r => r.personName !== currentUserData.name);
+                                                const myImportedReqs = (imported.requests || []).filter(r => r.personName === currentUserData.name);
+
+                                                return {
+                                                   ...p,
+                                                   custodies: [...otherCustodies, ...myImportedCustodies],
+                                                   transactions: [...otherTxs, ...myImportedTxs],
+                                                   requests: [...otherReqs, ...myImportedReqs]
+                                                };
+                                             });
+                                          }
+                                          showMsg(t.success); 
+                                      } catch { 
+                                          showMsg('ملف غير صالح', true); 
+                                      } 
+                                  }; 
+                                  if(e.target.files[0]) r.readAsText(e.target.files[0]); 
+                              }}/></label>
+                          </div>
+                      </div>
                   </div>
                 )}
 
@@ -1154,7 +1234,6 @@
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
                         <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200 md:col-span-2"><h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">تغيير رمز PIN للحماية</h4><form onSubmit={(e)=>{ e.preventDefault(); const formTarget = e.target; const oldPinVal = formTarget.oldPin.value; const newPinVal = formTarget.newPin.value; if (oldPinVal !== (data.pinCode || '0000')) { showMsg(lang === 'ar' ? 'الرمز الحالي غير صحيح' : 'Incorrect current PIN', true); return; } updateData(p => { return {...p, pinCode: newPinVal}; }); showMsg(lang === 'ar' ? 'تم تغيير الرمز بنجاح' : 'PIN changed successfully'); formTarget.reset(); }} className="flex flex-col gap-4"><div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-lg mx-auto w-full"><div><label className="text-xs font-bold text-slate-500 mb-1 block">الرمز الحالي (المستخدم الآن):</label><input name="oldPin" type="password" inputMode="numeric" maxLength="4" pattern="[0-9]{4}" placeholder="****" className="border-2 p-3 text-center tracking-[1em] text-2xl w-full rounded-xl font-bold focus:border-red-500 outline-none bg-slate-50" required /></div><div><label className="text-xs font-bold text-slate-500 mb-1 block">الرمز الجديد:</label><input name="newPin" type="password" inputMode="numeric" maxLength="4" pattern="[0-9]{4}" placeholder="****" className="border-2 p-3 text-center tracking-[1em] text-2xl w-full rounded-xl font-bold focus:border-blue-500 outline-none bg-slate-50" required /></div></div><button className="bg-slate-800 text-white p-3 rounded-xl text-md font-bold shadow hover:bg-slate-900 transition mt-2 max-w-lg mx-auto w-full">تحديث الرمز السري</button></form></div>
-                        <div className="bg-white p-8 shadow-sm rounded-2xl md:col-span-2 text-center border-2 border-dashed border-blue-400 relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-2 bg-blue-500"></div><h4 className="font-black mb-3 text-blue-900 text-2xl">{t.backupTitle}</h4><p className="text-sm mb-6 text-slate-600 font-bold bg-blue-50 inline-block p-2 rounded-lg">{t.backupDesc}</p><div className="flex flex-col sm:flex-row gap-4 justify-center mt-6"><button onClick={()=>{const b=new Blob([JSON.stringify(data)],{type:'application/json'});const l=document.createElement('a');l.href=URL.createObjectURL(b);l.download=`backup_${todayDateStr}.json`;l.click(); showMsg(t.success);}} className="bg-blue-600 text-white px-8 py-4 rounded-xl font-black text-lg shadow-lg hover:bg-blue-700 transition hover:-translate-y-1">{t.exportBtn}</button><label className="bg-amber-500 text-white px-8 py-4 rounded-xl font-black text-lg shadow-lg hover:bg-amber-600 transition cursor-pointer hover:-translate-y-1">{t.importBtn}<input type="file" accept=".json" className="hidden" onChange={(e)=>{ const r = new FileReader(); r.onload = (ev) => { try { const imported = JSON.parse(ev.target.result); updateData(p => { return { ...imported, pinCode: p.pinCode || '0000' }; }); showMsg(t.success); } catch { showMsg('Invalid File', true); } }; if(e.target.files[0]) r.readAsText(e.target.files[0]); }}/></label></div></div>
                         <div className="bg-red-50 p-8 shadow-sm rounded-2xl md:col-span-2 border-2 border-red-300 mt-2 relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-2 bg-red-600"></div><h4 className="font-black mb-3 text-red-800 text-center text-2xl">{t.dangerZone}</h4><p className="text-sm text-center text-red-600 mb-6 font-bold">{t.resetDesc}</p><button onClick={handleResetFactory} className="w-full bg-red-600 text-white py-4 rounded-xl text-xl font-black shadow-lg hover:bg-red-700 transition hover:-translate-y-1">{t.resetBtn}</button></div>
                     </div>
     

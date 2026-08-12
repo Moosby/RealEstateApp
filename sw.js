@@ -1,4 +1,4 @@
-const CACHE_NAME = 'real-estate-offline-v70';
+[source: 3]const CACHE_NAME = 'real-estate-offline-v71';
 const urlsToCache = [
   'index.html',
   'manifest.json',
@@ -9,7 +9,8 @@ const urlsToCache = [
   'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
   'https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js',
   'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js',
-  'https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js'
+  'https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js',
+  'https://www.gstatic.com/firebasejs/10.8.1/firebase-storage-compat.js'
 ];
 
 self.addEventListener('install', event => { 

@@ -16,6 +16,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-storage-compat.js"></script>
 
   <style>
     @media print { html, body, #root, .min-h-screen, main, main > div { height: auto !important; min-height: auto !important; overflow: visible !important; position: static !important; background: white !important; margin: 0 !important; padding: 0 !important; display: block !important; } header, nav, .print-hide { display: none !important; } .print-show { display: block !important; position: static !important; width: 100% !important; visibility: visible !important; } .print-receipt-wrapper { position: static !important; display: block !important; background: transparent !important; padding: 0 !important; } .print-receipt-wrapper > div { position: static !important; box-shadow: none !important; max-width: 100% !important; width: 100% !important; margin: 0 !important; border: none !important; border-radius: 0 !important; } .receipt-print-area { padding: 0 !important; border: none !important; } @page { size: auto; margin: 8mm; } table { width: 100%; border-collapse: collapse; margin: 15px auto; page-break-inside: auto; } tr { page-break-inside: avoid; page-break-after: auto; } th, td { border: 2px solid black !important; padding: 6px 8px !important; text-align: center; color: black !important; } .print-row-text { font-size: 1rem !important; } }
@@ -30,12 +31,60 @@
     if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
     const auth = firebase.auth();
     const db = firebase.database();
+    const storage = firebase.storage();
     const getSecondaryApp = () => { const apps = firebase.apps; const secondary = apps.find(app => app.name === 'SecondaryApp'); if (secondary) return secondary; return firebase.initializeApp(firebaseConfig, 'SecondaryApp'); };
     const { useState, useEffect, useMemo, useRef } = React;
     const getTodayStr = () => new Date().toISOString().substring(0, 10);
     const todayDateStr = getTodayStr();
 
-    const compressImage = (file, callback) => { const reader = new FileReader(); reader.onerror = () => alert('حدث خطأ في قراءة الملف'); reader.readAsDataURL(file); reader.onload = event => { const img = new Image(); img.onerror = () => alert('ملف الصورة غير مدعوم أو تالف'); img.onload = () => { try { const canvas = document.createElement('canvas'); const MAX_WIDTH = 800; let width = img.width; let height = img.height; if (width > MAX_WIDTH) { height = height * (MAX_WIDTH / width); width = MAX_WIDTH; } canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height); callback(canvas.toDataURL('image/jpeg', 0.6)); } catch(err) { alert('خطأ في معالجة الصورة'); } }; img.src = event.target.result; } };
+    const compressImage = (file, callback) => { 
+      const reader = new FileReader(); 
+      reader.onerror = () => alert('حدث خطأ في قراءة الملف'); 
+      reader.readAsDataURL(file); 
+      reader.onload = event => { 
+        const img = new Image(); 
+        img.onerror = () => alert('ملف الصورة غير مدعوم أو تالف'); 
+        img.onload = () => { 
+          try { 
+            const canvas = document.createElement('canvas'); 
+            const MAX_WIDTH = 800; 
+            let width = img.width; 
+            let height = img.height; 
+            if (width > MAX_WIDTH) { height = height * (MAX_WIDTH / width); width = MAX_WIDTH; } 
+            canvas.width = width; canvas.height = height; 
+            const ctx = canvas.getContext('2d'); 
+            ctx.drawImage(img, 0, 0, width, height); 
+            callback(canvas.toDataURL('image/jpeg', 0.6)); 
+          } catch(err) { alert('خطأ في معالجة الصورة'); } 
+        }; 
+        img.src = event.target.result; 
+      } 
+    };
+
+    const uploadImageToStorage = (file, onLoadingState, onSuccess, onError) => {
+      compressImage(file, (compressedBase64) => {
+        try {
+          if (onLoadingState) onLoadingState(true);
+          const filename = 'attachments/' + Date.now() + '_' + Math.random().toString(36).substring(2, 7) + '.jpg';
+          const storageRef = storage.ref(filename);
+          storageRef.putString(compressedBase64, 'data_url').then(snapshot => {
+            snapshot.ref.getDownloadURL().then(downloadURL => {
+              if (onLoadingState) onLoadingState(false);
+              onSuccess(downloadURL);
+            }).catch(err => {
+              if (onLoadingState) onLoadingState(false);
+              if (onError) onError(err);
+            });
+          }).catch(err => {
+            if (onLoadingState) onLoadingState(false);
+            if (onError) onError(err);
+          });
+        } catch (err) {
+          if (onLoadingState) onLoadingState(false);
+          if (onError) onError(err);
+        }
+      });
+    };
 
     const dict = { 
       ar: { appTitle: "RealStateApp", tab_dash: "الرئيسية", tab_tx: "إيراد/مصروف", tab_cust: "العهد", tab_inv: "الوحدات", tab_sales: "المبيعات", tab_rep: "التقارير", income: "إيراد", expense: "مصروف", transfer: "تحويل", addIncome: "➕ إيراد", addExpense: "➖ مصروف", addTransfer: "🔄 تحويل عهد", date: "التاريخ", amount: "المبلغ (ج.م)", desc: "البيان (التفاصيل)", custody: "العهدة / الخزينة", building: "العمارة", unit: "الوحدة", category: "تصنيف المصروف", save: "حفظ", update: "تحديث", cancel: "إلغاء", edit: "تعديل", delete: "حذف", allCustodies: "-- جميع العهد والخزينة --", generalSafe: "-- الخزينة العامة --", allBuildings: "-- جميع العمارات --", selectCat: "-- اختر التصنيف --", monthDues: "مستحق هذا الشهر", activeCustody: "أرصدة العهد", net: "الصافي", addCat: "إضافة تصنيف مصروفات", newCustody: "👤 فتح عهدة جديدة", newCustodyTitle: "استلام عهدة", backup: "النسخ الاحتياطي", reset: "إعادة ضبط المصنع", lang: "لغة البرنامج / Language", yes: "نعم متأكد", no: "إلغاء", txTitle: "تسجيل حركة نقدية", showDetails: "التفاصيل ▼", hideDetails: "إخفاء ▲", opBalance: "رصيد أول المدة", hasPartner: "يوجد شريك؟", partnerPercent: "نسبة الشريك (%)", partnerNameInput: "اسم الشريك (اختياري)", myShare: "نسبتي", partnerShare: "للشريك", payPartnerBtn: "توريد للشريك", payPartnerTitle: "تأكيد توريد مبلغ الشريك", payPartnerDesc: "يمكنك توريد المبلغ كاملاً أو جزء منه وخصمه كـ (مصروف)", deductFromSafe: "خصم من عهدة / الخزينة", selectSafe: "-- اختر العهدة --", sortBy: "ترتيب حسب:", sortDate: "التاريخ", sortClient: "العميل", sortBuilding: "العمارة", detailsMonthDues: "تفاصيل أقساط الشهر", client: "العميل", dueDate: "الاستحقاق", action: "إجراء", noDues: "لا توجد أقساط مستحقة هذا الشهر", collect: "تحصيل", saveTx: "💾 حفظ الحركة", updateTx: "🔄 تحديث الحركة", searchDesc: "🔍 ابحث في البيان...", incomes: "الإيرادات ⬇", expenses: "المصروفات ⬆", total: "الإجمالي", noMatches: "لا توجد حركات مطابقة", addBuildingTitle: "🏢 إضافة عمارة/مشروع", buildingName: "اسم العمارة...", saveBuilding: "حفظ العمارة", addUnitTitle: "🔑 إضافة وحدة عقارية", unitName: "رقم أو اسم الوحدة", saveUnit: "حفظ الوحدة", newContractTitle: "إنشاء عقد جديد", clientName: "اسم العميل", selectUnit: "-- اختر الوحدة --", totalAmount: "الإجمالي (ج.م)", downPayment: "المقدم المدفوع", instCount: "عدد الأقساط", paySystem: "نظام الدفع", firstInstDate: "تاريخ أول قسط", saveContract: "تسجيل العقد وإنشاء الأقساط", overdueTitle: "⚠️ أقساط متأخرة ومستحقة", cancelContract: "فسخ العقد", status: "الحالة", paid: "مدفوع", pending: "مستحق", suspended: "معلق (0)", addManualInst: "➕ إضافة قسط يدوي", addAttachment: "📎 إرفاق مستند (صورة)", attachments: "المرفقات", noContracts: "لا توجد عقود نشطة", repCustodyTitle: "تقرير كشف حساب", repSalesTitle: "بيان أقساط ومستحقات", periodFrom: "من", periodTo: "إلى", start: "البداية", now: "الآن", repOpBalance: "رصيد بداية المدة المُرَحَّل", incTable: "جدول الإيرادات", expTable: "جدول المصروفات", totalIncomes: "إجمالي الإيرادات", totalExpenses: "إجمالي المصروفات", currentNet: "صافي العهدة الحالي", repInstTitle: "تقرير الأقساط", repCustodyBtn: "كشف حساب العهد", repSalesBtn: "تقرير الأقساط", repContractsBtn: "موقف العملاء والوحدات", repPartnersBtn: "حسابات الشركاء", repContractsTitle: "تقرير موقف العملاء والوحدات", partnerReportTitle: "كشف حساب المستثمر / الشريك", totalUnit: "إجمالي الوحدة", paidAmt: "المدفوع", remAmt: "المتبقي", nextDue: "القسط القادم", partnerDue: "مستحق للشريك", partnerPaidStatus: "مدفوع للشريك", totalExpected: "إجمالي الأرباح المتوقعة", totalCollectedNotPaid: "مستحق للتوريد (مُحصل)", totalPaidToPartner: "تم توريده للشريك", totalPending: "باقي في السوق (لم يُحصل)", printPdf: "🖨️ طباعة PDF", exportExcel: "📊 تصدير Excel", langTitle: "اللغة / Language", addCatTitle: "🏷️ إضافة تصنيف", catName: "اسم التصنيف...", addCatBtn: "إضافة", respName: "اختر المسؤول عن العهدة...", initAmount: "الرصيد الافتتاحي (إن وُجد)", saveCustody: "حفظ العهدة", suggestedNet: "مقترح: صافي آخر عهدة", backupTitle: "💾 النسخ الاحتياطي", backupDesc: "احتفظ بنسخة من بياناتك بانتظام", exportBtn: "⬇️ تحميل نسخة", importBtn: "⬆️ استرجاع نسخة", dangerZone: "⚠️ منطقة الخطر", resetDesc: "سيتم مسح كافة البيانات نهائياً. هل أنت متأكد؟", resetBtn: "🗑️ ضبط المصنع", sys1: "شهري", sys2: "كل شهرين", sys3: "ربع سنوي", sys4: "كل 4 شهور", sys6: "نصف سنوي", sys12: "سنوي", promptCollect: "تحصيل قسط", promptEditInst: "تعديل قسط", promptManual: "قسط يدوي", promptCustody: "إيداع في عهدة (اختياري)", confirmCancel: "متأكد من فسخ العقد؟", confirmDelCat: "حذف التصنيف؟", confirmDelBuild: "حذف العمارة؟", confirmDelUnit: "حذف الوحدة؟", confirmDelTx: "حذف الحركة؟", success: "تم بنجاح", compName: "اسم الشركة / الكيان", compOwner: "اسم المالك / المدير", phone: "رقم التليفون", address: "عنوان الشركة", registerTab: "تسجيل شركة جديدة", loginTab: "تسجيل دخول", createCompBtn: "إنشاء حساب الشركة", backToLogin: "لديك حساب؟ تسجيل دخول" },
@@ -181,6 +230,8 @@
 
       const [dbUsers, setDbUsers] = useState([]);
       const [isUploading, setIsUploading] = useState(false);
+      const [isUploadingTxAtt, setIsUploadingTxAtt] = useState(false);
+      const [isUploadingContractAtt, setIsUploadingContractAtt] = useState(false);
       const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: '' });
       const [isCreatingUser, setIsCreatingUser] = useState(false);
 
@@ -237,7 +288,7 @@
       const [newUnit, setNewUnit] = useState({ buildingId: '', unitNumber: '', price: '' });
       const [newCategory, setNewCategory] = useState('');
       const [newCustody, setNewCustody] = useState({ personName: '', custodyName: '', totalAmount: '', notes: '' });
-      const [newTransaction, setNewTransaction] = useState({ type: 'income', amount: '', categoryId: '', buildingId: '', custodyId: '', toCustodyId: '', description: '', date: todayDateStr });
+      const [newTransaction, setNewTransaction] = useState({ type: 'income', amount: '', categoryId: '', buildingId: '', custodyId: '', toCustodyId: '', description: '', date: todayDateStr, attachment: '' });
       
       const [reportType, setReportType] = useState('transactions'); 
       const [reportFilter, setReportFilter] = useState({ startDate: '', endDate: '', custodyIds: [], buildingIds: [] });
@@ -517,12 +568,12 @@
         if (newTransaction.type === 'transfer' && newTransaction.custodyId === newTransaction.toCustodyId) { showMsg(lang === 'ar' ? 'لا يمكن التحويل لنفس العهدة' : 'Cannot transfer to same custody', true); return; }
         if (editingTxId) { updateData(prev => ({ ...prev, transactions: prev.transactions.map(tx => tx.id === editingTxId ? { ...tx, ...newTransaction, amount: Number(newTransaction.amount) } : tx) })); setEditingTxId(null); showMsg(t.success); } 
         else { const item = { id: 't_' + Date.now(), ...newTransaction, amount: Number(newTransaction.amount) }; updateData(prev => ({ ...prev, transactions: [...(prev.transactions || []), item] })); showMsg(t.success); }
-        setNewTransaction(prev => ({ ...prev, amount: '', description: '', date: getTodayStr(), toCustodyId: '' })); 
+        setNewTransaction(prev => ({ ...prev, amount: '', description: '', date: getTodayStr(), toCustodyId: '', attachment: '' })); 
       };
 
       const handleAddFromDashboard = (type) => {
          const targetCustody = (dashboardCustodyFilter.length === 1 && !['ALL','GENERAL_SAFE'].includes(dashboardCustodyFilter[0])) ? dashboardCustodyFilter[0] : (isCustodyRole && myCustodies.length > 0 ? myCustodies[0].id : '');
-         setNewTransaction({...newTransaction, type, custodyId: targetCustody});
+         setNewTransaction({...newTransaction, type, custodyId: targetCustody, attachment: ''});
          setActiveTab('transactions');
       };
 
@@ -691,7 +742,18 @@
           {appModal.show && (
             <div className={`fixed inset-0 bg-slate-900 bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-[100] animate-fade-in p-4 ${appModal.type !== 'RECEIPT' ? 'print-hide' : 'print-receipt-wrapper'}`} onClick={closeModal}>
               {appModal.type === 'LOGOUT' && ( <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-slide-up" onClick={e=>e.stopPropagation()}><div className="bg-red-600 text-white p-4 text-center font-bold text-lg">{lang === 'ar' ? 'تسجيل الخروج' : 'Logout'}</div><div className="p-6 text-center text-slate-700 font-medium">{lang === 'ar' ? 'هل أنت متأكد من رغبتك في تسجيل الخروج من النظام؟' : 'Are you sure you want to log out?'}</div><div className="flex border-t"><button onClick={()=>{auth.signOut(); closeModal();}} className="flex-1 p-4 font-bold text-red-600 hover:bg-red-50 border-x">{t.yes}</button><button onClick={closeModal} className="flex-1 p-4 font-bold text-slate-500 hover:bg-slate-100">{t.no}</button></div></div> )}
-              {appModal.type === 'TX_ACTION' && appModal.props.tx && ( <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}><div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div><h3 className="font-bold text-lg mb-2 text-center text-slate-800 border-b pb-2">{t.action}</h3><p className="text-center text-sm text-slate-500 mb-6 bg-slate-50 p-2 rounded">{appModal.props.tx?.description} <br/> <span className="font-bold text-lg text-slate-800">{Number(appModal.props.tx?.amount || 0).toLocaleString()}</span></p><button onClick={() => { closeModal(); setNewTransaction({...appModal.props.tx}); setEditingTxId(appModal.props.tx?.id); setActiveTab('transactions'); }} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow hover:bg-blue-700 transition">✏️ {t.edit}</button><button onClick={() => { closeModal(); requirePin(() => { setAppModal({ show: true, type: 'CONFIRM', props: { title: t.delete, message: t.confirmDelTx, onConfirm: () => { updateData(p => ({...p, transactions: (p.transactions||[]).filter(tx => tx.id !== appModal.props.tx?.id)})); showMsg(t.success); closeModal(); } }}); }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button></div> )}
+              {appModal.type === 'TX_ACTION' && appModal.props.tx && ( 
+                <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}>
+                  <div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div>
+                  <h3 className="font-bold text-lg mb-2 text-center text-slate-800 border-b pb-2">{t.action}</h3>
+                  <p className="text-center text-sm text-slate-500 mb-4 bg-slate-50 p-2 rounded">{appModal.props.tx?.description} <br/> <span className="font-bold text-lg text-slate-800">{Number(appModal.props.tx?.amount || 0).toLocaleString()}</span></p>
+                  {appModal.props.tx?.attachment && (
+                    <button onClick={() => setAppModal({ show: true, type: 'IMAGE_VIEW', props: { src: appModal.props.tx.attachment } })} className="w-full bg-slate-100 text-blue-700 border border-blue-200 py-2.5 rounded-xl font-bold text-sm mb-3 hover:bg-blue-50 transition flex items-center justify-center gap-1">👁️ {lang === 'ar' ? 'عرض الفاتورة المرفقة' : 'View Attachment'}</button>
+                  )}
+                  <button onClick={() => { closeModal(); setNewTransaction({...appModal.props.tx, attachment: appModal.props.tx.attachment || ''}); setEditingTxId(appModal.props.tx?.id); setActiveTab('transactions'); }} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow hover:bg-blue-700 transition">✏️ {t.edit}</button>
+                  <button onClick={() => { closeModal(); requirePin(() => { setAppModal({ show: true, type: 'CONFIRM', props: { title: t.delete, message: t.confirmDelTx, onConfirm: () => { updateData(p => ({...p, transactions: (p.transactions||[]).filter(tx => tx.id !== appModal.props.tx?.id)})); showMsg(t.success); closeModal(); } }}); }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button>
+                </div> 
+              )}
               {appModal.type === 'CAT_ACTION' && appModal.props.cat && ( <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}><div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div><h3 className="font-bold text-lg mb-4 text-center text-slate-800 border-b pb-2">{t.action}</h3><input type="text" id="catEditInput" defaultValue={appModal.props.cat.name} className="w-full border-2 border-slate-300 p-3 rounded-xl mb-4 font-bold text-center focus:border-blue-500 outline-none" /><button onClick={() => { const val = document.getElementById('catEditInput').value; if(val) { updateData(p => ({...p, categories: p.categories.map(c => c.id === appModal.props.cat.id ? {...c, name: val} : c)})); closeModal(); showMsg(t.success); } }} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow hover:bg-blue-700 transition">✏️ {t.edit}</button><button onClick={() => { requirePin(() => { updateData(p => ({...p, categories: p.categories.filter(c => c.id !== appModal.props.cat.id)})); closeModal(); showMsg(t.success); }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button></div> )}
               {appModal.type === 'BUILDING_ACTION' && appModal.props.b && ( <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}><div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div><h3 className="font-bold text-lg mb-4 text-center text-slate-800 border-b pb-2">{t.action}</h3><input type="text" id="buildEditInput" defaultValue={appModal.props.b.name} className="w-full border-2 border-slate-300 p-3 rounded-xl mb-4 font-bold text-center focus:border-blue-500 outline-none" /><button onClick={() => { const val = document.getElementById('buildEditInput').value; if(val) { updateData(p => ({...p, buildings: p.buildings.map(b => b.id === appModal.props.b.id ? {...b, name: val} : b)})); closeModal(); showMsg(t.success); } }} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow hover:bg-blue-700 transition">✏️ {t.edit}</button><button onClick={() => { requirePin(() => { setAppModal({show: true, type: 'CONFIRM', props: { title: t.delete, message: t.confirmDelBuild, onConfirm: () => { updateData(p => ({...p, buildings: p.buildings.filter(b => b.id !== appModal.props.b.id)})); closeModal(); showMsg(t.success); } }}) }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button></div> )}
               {appModal.type === 'UNIT_ACTION' && appModal.props.u && ( <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}><div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div><h3 className="font-bold text-lg mb-4 text-center text-slate-800 border-b pb-2">{t.action}</h3><input type="text" id="unitEditInput" defaultValue={appModal.props.u.unitNumber} className="w-full border-2 border-slate-300 p-3 rounded-xl mb-4 font-bold text-center focus:border-blue-500 outline-none" /><button onClick={() => { const val = document.getElementById('unitEditInput').value; if(val) { updateData(p => ({...p, units: p.units.map(u => u.id === appModal.props.u.id ? {...u, unitNumber: val} : u)})); closeModal(); showMsg(t.success); } }} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow hover:bg-blue-700 transition">✏️ {t.edit}</button><button onClick={() => { requirePin(() => { setAppModal({show: true, type: 'CONFIRM', props: { title: t.delete, message: t.confirmDelUnit, onConfirm: () => { updateData(p => ({...p, units: p.units.filter(u => u.id !== appModal.props.u.id)})); closeModal(); showMsg(t.success); } }}) }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button></div> )}
@@ -927,6 +989,36 @@
                       <div className="absolute top-full left-0 right-0 bg-white border-2 border-slate-200 mt-1 shadow-2xl z-50 max-h-48 overflow-y-auto rounded-xl animate-fade-in">{filteredDescs.map((d, idx) => <div key={idx} className="p-3 text-sm border-b hover:bg-blue-50 cursor-pointer font-bold text-slate-700" onMouseDown={() => setNewTransaction({...newTransaction, description: d})}>{d}</div>)}</div>
                     )}
                   </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 mb-1 block">{lang === 'ar' ? 'إرفاق فاتورة / مستند (اختياري):' : 'Attach Receipt/Document (Optional):'}</label>
+                    <div className="flex items-center gap-3">
+                      <label className={`flex-1 flex items-center justify-center p-3 rounded-xl border-2 border-dashed font-bold text-xs cursor-pointer transition ${newTransaction.attachment ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-slate-300 bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>
+                        {isUploadingTxAtt ? (lang === 'ar' ? '⏳ جاري الرفع للسحابة...' : '⏳ Uploading...') : newTransaction.attachment ? (lang === 'ar' ? '✅ تم مرفق الفاتورة (اضغط للتغيير)' : '✅ Invoice Attached (Click to change)') : (lang === 'ar' ? '📎 اختر صورة الفاتورة' : '📎 Choose Receipt Image')}
+                        <input type="file" accept="image/*" className="hidden" disabled={isUploadingTxAtt} onChange={e => {
+                          const file = e.target.files[0];
+                          if(!file) return;
+                          uploadImageToStorage(file, setIsUploadingTxAtt, (url) => {
+                            setNewTransaction(prev => ({ ...prev, attachment: url }));
+                            showMsg(lang === 'ar' ? 'تم رفع الفاتورة بنجاح ✅' : 'Receipt uploaded successfully ✅');
+                          }, (err) => {
+                            showMsg(lang === 'ar' ? 'فشل رفع الفاتورة ❌' : 'Failed to upload receipt ❌', true);
+                          });
+                        }}/>
+                      </label>
+                      {newTransaction.attachment && (
+                        <button type="button" onClick={() => setAppModal({ show: true, type: 'IMAGE_VIEW', props: { src: newTransaction.attachment } })} className="bg-blue-100 text-blue-700 px-3 py-3 rounded-xl font-bold text-xs hover:bg-blue-200 transition shrink-0">
+                          👁️ {lang === 'ar' ? 'معاينة' : 'View'}
+                        </button>
+                      )}
+                      {newTransaction.attachment && (
+                        <button type="button" onClick={() => setNewTransaction(prev => ({ ...prev, attachment: '' }))} className="bg-red-100 text-red-600 px-3 py-3 rounded-xl font-bold text-xs hover:bg-red-200 transition shrink-0">
+                          ❌
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
                   {newTransaction.type === 'transfer' ? (
                     <div className="grid grid-cols-2 gap-3 border-t border-slate-100 pt-3">
                       <div><label className="text-xs font-bold text-slate-500 mb-1 block">{lang === 'ar' ? 'من عهدة / الخزينة:' : 'From Custody/Safe:'}</label><CustomSelect options={custodyOptions} value={newTransaction.custodyId} onChange={(v) => setNewTransaction({ ...newTransaction, custodyId: v })} placeholder={isCustodyRole ? (lang === 'ar' ? 'اختر العهدة' : 'Select Custody') : t.generalSafe} /></div>
@@ -942,7 +1034,7 @@
                     <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.category}</label><CustomSelect options={categoryOptions} value={newTransaction.categoryId} onChange={(v) => setNewTransaction({ ...newTransaction, categoryId: v })} placeholder={t.selectCat} /></div>
                   )}
                   <button className={`w-full text-white py-4 rounded-xl text-xl font-black shadow-lg transition hover:-translate-y-1 ${editingTxId ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-600 hover:bg-blue-700'}`}>{editingTxId ? t.updateTx : t.saveTx}</button>
-                  {editingTxId && <button type="button" onClick={()=>{setEditingTxId(null); setNewTransaction({ type: 'income', amount: '', categoryId: '', buildingId: '', custodyId: (isCustodyRole && myCustodies.length>0 ? myCustodies[0].id : ''), toCustodyId: '', description: '', date: todayDateStr });}} className="w-full mt-2 text-slate-500 font-bold py-2 hover:bg-slate-100 rounded-xl transition">{t.cancel}</button>}
+                  {editingTxId && <button type="button" onClick={()=>{setEditingTxId(null); setNewTransaction({ type: 'income', amount: '', categoryId: '', buildingId: '', custodyId: (isCustodyRole && myCustodies.length>0 ? myCustodies[0].id : ''), toCustodyId: '', description: '', date: todayDateStr, attachment: '' });}} className="w-full mt-2 text-slate-500 font-bold py-2 hover:bg-slate-100 rounded-xl transition">{t.cancel}</button>}
                 </form>
               </div>
             )}
@@ -982,7 +1074,15 @@
                       )}
                       {filteredCustodyTrans.map(tx => (
                         <tr key={tx.id} className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer" onClick={() => handleTxClick(tx)}>
-                          <td className="p-3 font-bold text-slate-800">{tx.description}{tx.type === 'transfer' && <span className={`text-xs bg-purple-100 text-purple-800 font-bold px-2 py-0.5 rounded-md ${lang === 'ar' ? 'mr-2' : 'ml-2'}`}>{t.transfer}</span>}</td>
+                          <td className="p-3 font-bold text-slate-800">
+                            {tx.description}
+                            {tx.type === 'transfer' && <span className={`text-xs bg-purple-100 text-purple-800 font-bold px-2 py-0.5 rounded-md ${lang === 'ar' ? 'mr-2' : 'ml-2'}`}>{t.transfer}</span>}
+                            {tx.attachment && (
+                              <button onClick={(e) => { e.stopPropagation(); setAppModal({ show: true, type: 'IMAGE_VIEW', props: { src: tx.attachment } }); }} className={`text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-md font-bold hover:bg-blue-100 transition ${lang==='ar'?'mr-2':'ml-2'}`}>
+                                📎 {lang === 'ar' ? 'الفاتورة' : 'Receipt'}
+                              </button>
+                            )}
+                          </td>
                           <td className="p-3 text-left" style={{textAlign: lang==='en'?'right':'left'}}><div className="font-black text-slate-900 text-lg">{Number(tx.amount).toLocaleString()}</div><div className="text-slate-400 font-mono text-xs" dir="ltr">{formatShortDate(tx.date)}</div></td>
                         </tr>
                       ))}
@@ -1135,8 +1235,23 @@
                                     </table>
                                   </div>
                                   <div className="flex gap-2 justify-start mb-4">
+                                    <label className="bg-slate-50 text-slate-700 border border-slate-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-slate-100 transition cursor-pointer flex items-center justify-center">
+                                      {isUploadingContractAtt ? (lang === 'ar' ? '⏳ جاري الرفع...' : '⏳ Uploading...') : t.addAttachment}
+                                      <input type="file" accept="image/*" className="hidden" disabled={isUploadingContractAtt} onChange={e => {
+                                        const file = e.target.files[0];
+                                        if(!file) return;
+                                        uploadImageToStorage(file, setIsUploadingContractAtt, (url) => {
+                                          updateData(p => ({
+                                            ...p,
+                                            contracts: p.contracts.map(ct => ct.id === c.id ? { ...ct, attachments: [...(ct.attachments || []), url] } : ct)
+                                          }));
+                                          showMsg(t.success);
+                                        }, (err) => {
+                                          showMsg(lang === 'ar' ? 'فشل رفع المستند ❌' : 'Upload failed ❌', true);
+                                        });
+                                      }}/>
+                                    </label>
                                     <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptManual, showDate:true, defaultDate: todayDateStr, onConfirm:(amt,dt)=>addManualInstallment(c.id, amt, dt) }})} className="bg-blue-50 text-blue-700 border border-blue-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-blue-100 transition">{t.addManualInst}</button>
-                                    <label className="bg-slate-50 text-slate-700 border border-slate-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-slate-100 transition cursor-pointer flex items-center justify-center">{t.addAttachment}<input type="file" accept="image/*" className="hidden" onChange={e => { const file = e.target.files[0]; if(!file) return; compressImage(file, (compressedBase64) => { updateData(p => ({ ...p, contracts: p.contracts.map(ct => ct.id === c.id ? { ...ct, attachments: [...(ct.attachments || []), compressedBase64] } : ct) })); showMsg(t.success); }); }}/></label>
                                   </div>
                                   {(c.attachments || []).length > 0 && (
                                       <div className="mt-4"><span className="text-xs font-bold text-slate-500 mb-2 block">{t.attachments}:</span><div className="flex gap-3 overflow-x-auto p-3 bg-slate-50 rounded-xl border border-slate-200 shadow-inner">

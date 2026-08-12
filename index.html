@@ -53,7 +53,7 @@
       const [compPhone, setCompPhone] = useState(''); const [compAddress, setCompAddress] = useState('');
       const [error, setError] = useState(''); const [loading, setLoading] = useState(false);
 
-      const handleAuth = async (e) => { 
+            const handleAuth = async (e) => { 
           e.preventDefault(); 
           setLoading(true); 
           setError(''); 
@@ -78,9 +78,10 @@
               }
           } catch (err) {
               setError(isLogin ? (lang === 'ar' ? 'الإيميل أو كلمة المرور غير صحيحة ❌' : 'Invalid email or password ❌') : err.message);
-              setLoading(false);
+              setLoading(false); // هذا السطر يحل مشكلة التعليق على الزر الرصاصي
           }
       };
+
 
       return ( 
           <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
@@ -1461,10 +1462,11 @@
       );
     }
 
-    function AppWrapper() {
+        function AppWrapper() {
       const [user, setUser] = useState(null);
       const [userData, setUserData] = useState(null);
       const [loading, setLoading] = useState(true);
+      const [globalError, setGlobalError] = useState(''); // متغير للخطأ بدون رسائل المتصفح المزعجة
 
       useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((currentUser) => { 
@@ -1474,8 +1476,10 @@
                     const data = snap.val();
                     if (data && data.companyId) {
                         setUserData(data);
+                        setGlobalError('');
                     } else {
                         auth.signOut();
+                        setGlobalError('هذا الحساب قديم ولا ينتمي لشركة مسجلة حالياً. يرجى التوجه لـ "تسجيل شركة جديدة".');
                         setUserData(null);
                     }
                     setLoading(false);
@@ -1488,9 +1492,22 @@
       }, []);
 
       if (loading) return ( <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white flex-col gap-4"><div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div><p className="font-bold text-lg tracking-widest">جاري التحميل...</p></div> );
+      
+      // الشاشة الجديدة الأنيقة بدلاً من المربع البني المزعج
+      if (globalError) return (
+         <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
+             <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md text-center animate-slide-up">
+                <div className="text-5xl mb-4">⚠️</div>
+                <h2 className="text-lg font-black text-slate-800 mb-6 leading-relaxed">{globalError}</h2>
+                <button onClick={() => { setGlobalError(''); window.location.reload(); }} className="w-full bg-blue-600 text-white py-4 rounded-xl font-black shadow-lg hover:bg-blue-700 transition-transform hover:-translate-y-1">العودة للرئيسية</button>
+             </div>
+         </div>
+      );
+
       if (!user || !userData) return <AuthScreen />;
       return <MainApp user={user} currentUserData={userData} />;
     }
+
 
     ReactDOM.createRoot(document.getElementById('root')).render( <ErrorBoundary><AppWrapper /></ErrorBoundary> );
   </script>

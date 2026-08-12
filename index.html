@@ -53,7 +53,8 @@
       const [compPhone, setCompPhone] = useState(''); const [compAddress, setCompAddress] = useState('');
       const [error, setError] = useState(''); const [loading, setLoading] = useState(false);
 
-            const handleAuth = async (e) => { 
+            
+      const handleAuth = async (e) => { 
           e.preventDefault(); 
           setLoading(true); 
           setError(''); 
@@ -65,11 +66,16 @@
           }
 
           try {
-              const persistence = rememberMe ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION;
-              await auth.setPersistence(persistence);
+              // تحديد حالة البقاء متصلاً بطريقة آمنة
+              if (!rememberMe) {
+                 await auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+              } else {
+                 await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+              }
               
               if (isLogin) {
                   await auth.signInWithEmailAndPassword(email, password);
+                  // ملاحظة: لا نضع setLoading(false) عند النجاح لأن AppWrapper سيقوم بإظهار شاشة التحميل الزرقاء
               } else {
                   const res = await auth.createUserWithEmailAndPassword(email, password);
                   const newCompId = 'COMP_' + Date.now();
@@ -77,8 +83,22 @@
                   await db.ref(`companies/${newCompId}/info`).set({ companyName: compName, ownerName: compOwner, phone: compPhone, address: compAddress, createdAt: new Date().toISOString() });
               }
           } catch (err) {
-              setError(isLogin ? (lang === 'ar' ? 'الإيميل أو كلمة المرور غير صحيحة ❌' : 'Invalid email or password ❌') : err.message);
-              setLoading(false); // هذا السطر يحل مشكلة التعليق على الزر الرصاصي
+              console.error("Auth Error:", err);
+              let errorMsg = lang === 'ar' ? 'حدث خطأ أثناء الاتصال ❌' : 'Connection error ❌';
+              
+              // معالجة كل أخطاء فايربيز لضمان عدم تعليق الزرار
+              if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-email') {
+                  errorMsg = lang === 'ar' ? 'الإيميل أو كلمة المرور غير صحيحة ❌' : 'Invalid email or password ❌';
+              } else if (err.code === 'auth/email-already-in-use') {
+                  errorMsg = lang === 'ar' ? 'هذا الإيميل مسجل مسبقاً ❌' : 'Email already in use ❌';
+              } else if (err.code === 'auth/network-request-failed') {
+                  errorMsg = lang === 'ar' ? 'تأكد من اتصالك بالإنترنت 🌐' : 'Check your internet connection 🌐';
+              } else {
+                  errorMsg = err.message;
+              }
+              
+              setError(errorMsg);
+              setLoading(false); // فك التعليق يتم فقط عند حدوث خطأ فعلي
           }
       };
 
@@ -1462,38 +1482,58 @@
       );
     }
 
-        function AppWrapper() {
+            function AppWrapper() {
       const [user, setUser] = useState(null);
       const [userData, setUserData] = useState(null);
       const [loading, setLoading] = useState(true);
-      const [globalError, setGlobalError] = useState(''); // متغير للخطأ بدون رسائل المتصفح المزعجة
+      const [isFetchingUser, setIsFetchingUser] = useState(false); // حالة جديدة لحل مشكلة التهنيج بعد تسجيل الخروج
+      const [globalError, setGlobalError] = useState(''); 
 
       useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((currentUser) => { 
             if (currentUser) {
                 setUser(currentUser);
+                setIsFetchingUser(true); // إظهار شاشة التحميل الزرقاء للمستخدم الجديد فوراً
                 db.ref(`systemUsers/${currentUser.uid}`).once('value').then(snap => {
                     const data = snap.val();
                     if (data && data.companyId) {
                         setUserData(data);
                         setGlobalError('');
                     } else {
-                        auth.signOut();
-                        setGlobalError('هذا الحساب قديم ولا ينتمي لشركة مسجلة حالياً. يرجى التوجه لـ "تسجيل شركة جديدة".');
-                        setUserData(null);
+                        // خروج آمن بدون تعليق
+                        auth.signOut().then(() => {
+                            setGlobalError('هذا الحساب غير مكتمل أو قديم. يرجى التوجه لـ "تسجيل شركة جديدة".');
+                            setUserData(null);
+                        });
                     }
+                    setIsFetchingUser(false);
                     setLoading(false);
-                }).catch(() => {
+                }).catch((err) => {
+                    auth.signOut().then(() => {
+                        setGlobalError('حدث خطأ في قراءة البيانات من السيرفر. حاول مجدداً.');
+                        setUserData(null);
+                    });
+                    setIsFetchingUser(false);
                     setLoading(false);
                 });
-            } else { setUser(null); setUserData(null); setLoading(false); }
+            } else { 
+                setUser(null); 
+                setUserData(null); 
+                setIsFetchingUser(false);
+                setLoading(false); 
+            }
         });
         return () => unsubscribe();
       }, []);
 
-      if (loading) return ( <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white flex-col gap-4"><div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div><p className="font-bold text-lg tracking-widest">جاري التحميل...</p></div> );
+      // دمج شاشة التحميل لتظهر في البداية وعند تبديل الحسابات
+      if (loading || isFetchingUser) return ( 
+          <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white flex-col gap-4">
+             <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+             <p className="font-bold text-lg tracking-widest">جاري التحميل...</p>
+          </div> 
+      );
       
-      // الشاشة الجديدة الأنيقة بدلاً من المربع البني المزعج
       if (globalError) return (
          <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
              <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md text-center animate-slide-up">

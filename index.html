@@ -1442,6 +1442,39 @@
       );
     }
 
+        function AppWrapper() {
+      const [user, setUser] = useState(null);
+      const [userData, setUserData] = useState(null);
+      const [loading, setLoading] = useState(true);
+
+      useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged((currentUser) => { 
+            if (currentUser) {
+                setUser(currentUser);
+                db.ref(`systemUsers/${currentUser.uid}`).once('value').then(snap => {
+                    const data = snap.val();
+                    if (data && data.companyId) {
+                        setUserData(data);
+                    } else {
+                        // لو الحساب قديم وليس له شركة، نخرجه ونظهر رسالة
+                        auth.signOut();
+                        alert('هذا الحساب قديم ولا ينتمي لشركة مسجلة حالياً. يرجى التوجه لـ "تسجيل شركة جديدة".');
+                        setUserData(null);
+                    }
+                    setLoading(false);
+                }).catch(() => {
+                    setLoading(false);
+                });
+            } else { setUser(null); setUserData(null); setLoading(false); }
+        });
+        return () => unsubscribe();
+      }, []);
+
+      if (loading) return ( <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white flex-col gap-4"><div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div><p className="font-bold text-lg tracking-widest">جاري التحميل...</p></div> );
+      if (!user || !userData) return <AuthScreen />;
+      return <MainApp user={user} currentUserData={userData} />;
+    }
+
     ReactDOM.createRoot(document.getElementById('root')).render( <ErrorBoundary><AppWrapper /></ErrorBoundary> );
   </script>
 </body>

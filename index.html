@@ -47,23 +47,38 @@
       const t = dict[lang] || dict['ar'];
       const [isLogin, setIsLogin] = useState(true);
       const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); 
+      const [confirmPassword, setConfirmPassword] = useState('');
       const [rememberMe, setRememberMe] = useState(true);
       const [compName, setCompName] = useState(''); const [compOwner, setCompOwner] = useState('');
       const [compPhone, setCompPhone] = useState(''); const [compAddress, setCompAddress] = useState('');
       const [error, setError] = useState(''); const [loading, setLoading] = useState(false);
 
-      const handleAuth = (e) => { 
-          e.preventDefault(); setLoading(true); setError(''); 
-          const persistence = rememberMe ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION;
+      const handleAuth = async (e) => { 
+          e.preventDefault(); 
+          setLoading(true); 
+          setError(''); 
           
-          if (isLogin) {
-              auth.setPersistence(persistence).then(() => auth.signInWithEmailAndPassword(email, password)).catch(err => { setError(lang === 'ar' ? 'الإيميل أو كلمة المرور غير صحيحة' : 'Invalid email or password'); setLoading(false); });
-          } else {
-              auth.setPersistence(persistence).then(() => auth.createUserWithEmailAndPassword(email, password)).then(res => {
-                    const newCompId = 'COMP_' + Date.now();
-                    db.ref(`systemUsers/${res.user.uid}`).set({ name: compOwner, email: email, role: 'admin', companyId: newCompId, createdAt: new Date().toISOString() });
-                    db.ref(`companies/${newCompId}/info`).set({ companyName: compName, ownerName: compOwner, phone: compPhone, address: compAddress, createdAt: new Date().toISOString() });
-                }).catch(err => { setError(err.message); setLoading(false); });
+          if (!isLogin && password !== confirmPassword) {
+              setError(lang === 'ar' ? 'كلمات المرور غير متطابقة ⚠️' : 'Passwords do not match ⚠️');
+              setLoading(false);
+              return;
+          }
+
+          try {
+              const persistence = rememberMe ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION;
+              await auth.setPersistence(persistence);
+              
+              if (isLogin) {
+                  await auth.signInWithEmailAndPassword(email, password);
+              } else {
+                  const res = await auth.createUserWithEmailAndPassword(email, password);
+                  const newCompId = 'COMP_' + Date.now();
+                  await db.ref(`systemUsers/${res.user.uid}`).set({ name: compOwner, email: email, role: 'admin', companyId: newCompId, createdAt: new Date().toISOString() });
+                  await db.ref(`companies/${newCompId}/info`).set({ companyName: compName, ownerName: compOwner, phone: compPhone, address: compAddress, createdAt: new Date().toISOString() });
+              }
+          } catch (err) {
+              setError(isLogin ? (lang === 'ar' ? 'الإيميل أو كلمة المرور غير صحيحة ❌' : 'Invalid email or password ❌') : err.message);
+              setLoading(false);
           }
       };
 
@@ -75,28 +90,33 @@
                     <button type="button" onClick={() => {setIsLogin(true); setError('');}} className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${isLogin ? 'bg-white text-blue-800 shadow border border-slate-200' : 'text-slate-500 hover:text-slate-800'}`}>{t.loginTab}</button>
                     <button type="button" onClick={() => {setIsLogin(false); setError('');}} className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${!isLogin ? 'bg-white text-blue-800 shadow border border-slate-200' : 'text-slate-500 hover:text-slate-800'}`}>{t.registerTab}</button>
                   </div>
-                  {error && <div className="bg-red-50 text-red-600 p-3 rounded-xl font-bold mb-4 text-center text-sm border border-red-200">{error}</div>}
+                  {error && <div className="bg-red-50 text-red-600 p-3 rounded-xl font-bold mb-4 text-center text-sm border border-red-200 animate-fade-in">{error}</div>}
                   <form onSubmit={handleAuth} className="space-y-4">
                       {!isLogin && (
                           <div className="space-y-4 animate-fade-in border-b border-slate-100 pb-4 mb-2">
-                             <div><label className="block text-xs font-bold text-slate-600 mb-1">{t.compName}</label><input type="text" required className="w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 outline-none focus:border-blue-500 font-bold" value={compName} onChange={e => setCompName(e.target.value)} /></div>
-                             <div><label className="block text-xs font-bold text-slate-600 mb-1">{t.compOwner}</label><input type="text" required className="w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 outline-none focus:border-blue-500 font-bold" value={compOwner} onChange={e => setCompOwner(e.target.value)} /></div>
+                             <div><label className="block text-xs font-bold text-slate-600 mb-1">{t.compName} <span className="text-red-500">*</span></label><input type="text" required className="w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 outline-none focus:border-blue-500 font-bold" value={compName} onChange={e => setCompName(e.target.value)} /></div>
+                             <div><label className="block text-xs font-bold text-slate-600 mb-1">{t.compOwner} <span className="text-red-500">*</span></label><input type="text" required className="w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 outline-none focus:border-blue-500 font-bold" value={compOwner} onChange={e => setCompOwner(e.target.value)} /></div>
                              <div className="grid grid-cols-2 gap-3">
-                                <div><label className="block text-xs font-bold text-slate-600 mb-1">{t.phone}</label><input type="tel" required className="w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 outline-none focus:border-blue-500 font-bold text-left" dir="ltr" value={compPhone} onChange={e => setCompPhone(e.target.value)} /></div>
-                                <div><label className="block text-xs font-bold text-slate-600 mb-1">{t.address}</label><input type="text" required className="w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 outline-none focus:border-blue-500 font-bold" value={compAddress} onChange={e => setCompAddress(e.target.value)} /></div>
+                                <div><label className="block text-xs font-bold text-slate-600 mb-1">{t.phone} <span className="text-red-500">*</span></label><input type="tel" required className="w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 outline-none focus:border-blue-500 font-bold text-left" dir="ltr" value={compPhone} onChange={e => setCompPhone(e.target.value)} /></div>
+                                <div><label className="block text-xs font-bold text-slate-600 mb-1">{t.address} <span className="text-red-500">*</span></label><input type="text" required className="w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 outline-none focus:border-blue-500 font-bold" value={compAddress} onChange={e => setCompAddress(e.target.value)} /></div>
                              </div>
                           </div>
                       )}
-                      <div><label className="block text-xs font-bold text-slate-600 mb-1">البريد الإلكتروني / Email</label><input type="email" required className="w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 outline-none focus:border-blue-500 font-bold text-left" dir="ltr" value={email} onChange={e => setEmail(e.target.value)} /></div>
+                      <div><label className="block text-xs font-bold text-slate-600 mb-1">{lang === 'ar' ? 'البريد الإلكتروني / Email' : 'Email'} <span className="text-red-500">*</span></label><input type="email" required className="w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 outline-none focus:border-blue-500 font-bold text-left" dir="ltr" value={email} onChange={e => setEmail(e.target.value)} /></div>
                       <div>
-                          <label className="block text-xs font-bold text-slate-600 mb-1">كلمة المرور / Password</label><input type="password" required minLength="6" className="w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 outline-none focus:border-blue-500 font-black tracking-widest text-left" dir="ltr" value={password} onChange={e => setPassword(e.target.value)} />
-                          {isLogin && (
-                              <div className="flex items-center gap-2 mt-3 cursor-pointer">
-                                  <input type="checkbox" id="rememberMe" checked={rememberMe} onChange={e=>setRememberMe(e.target.checked)} className="w-4 h-4 text-blue-600 cursor-pointer" />
-                                  <label htmlFor="rememberMe" className="text-sm font-bold text-slate-600 cursor-pointer select-none">تذكرني (Remember me)</label>
-                              </div>
-                          )}
+                          <label className="block text-xs font-bold text-slate-600 mb-1">{lang === 'ar' ? 'كلمة المرور / Password' : 'Password'} <span className="text-red-500">*</span></label><input type="password" required minLength="6" className="w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 outline-none focus:border-blue-500 font-black tracking-widest text-left" dir="ltr" value={password} onChange={e => setPassword(e.target.value)} />
                       </div>
+                      {!isLogin && (
+                          <div className="animate-fade-in">
+                              <label className="block text-xs font-bold text-slate-600 mb-1">{lang === 'ar' ? 'تأكيد كلمة المرور' : 'Confirm Password'} <span className="text-red-500">*</span></label><input type="password" required minLength="6" className="w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 outline-none focus:border-blue-500 font-black tracking-widest text-left" dir="ltr" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+                          </div>
+                      )}
+                      {isLogin && (
+                          <div className="flex items-center gap-2 mt-3 cursor-pointer">
+                              <input type="checkbox" id="rememberMe" checked={rememberMe} onChange={e=>setRememberMe(e.target.checked)} className="w-4 h-4 text-blue-600 cursor-pointer" />
+                              <label htmlFor="rememberMe" className="text-sm font-bold text-slate-600 cursor-pointer select-none">{lang === 'ar' ? 'تذكرني (Remember me)' : 'Remember me'}</label>
+                          </div>
+                      )}
                       <button type="submit" disabled={loading} className={`w-full text-white py-4 rounded-xl font-black text-lg shadow-lg transition-transform mt-2 ${loading ? 'bg-slate-400' : 'bg-blue-600 hover:bg-blue-700 hover:-translate-y-1'}`}>{loading ? '...' : isLogin ? t.loginTab : t.createCompBtn}</button>
                   </form>
               </div>
@@ -1441,7 +1461,7 @@
       );
     }
 
-        function AppWrapper() {
+    function AppWrapper() {
       const [user, setUser] = useState(null);
       const [userData, setUserData] = useState(null);
       const [loading, setLoading] = useState(true);
@@ -1455,9 +1475,7 @@
                     if (data && data.companyId) {
                         setUserData(data);
                     } else {
-                        // لو الحساب قديم وليس له شركة، نخرجه ونظهر رسالة
                         auth.signOut();
-                        alert('هذا الحساب قديم ولا ينتمي لشركة مسجلة حالياً. يرجى التوجه لـ "تسجيل شركة جديدة".');
                         setUserData(null);
                     }
                     setLoading(false);

@@ -178,6 +178,9 @@
       const [expandedBuildings, setExpandedBuildings] = useState({});
       const [showOverdue, setShowOverdue] = useState(false);
 
+      const [expandedSettings, setExpandedSettings] = useState({});
+      const toggleSetting = (sec) => setExpandedSettings(p => ({...p, [sec]: !p[sec]}));
+
       useEffect(() => { localStorage.setItem('real_estate_core_data', JSON.stringify(data)); }, [data]);
       useEffect(() => { localStorage.setItem('real_estate_last_custody', JSON.stringify(dashboardCustodyFilter)); }, [dashboardCustodyFilter]);
 
@@ -200,7 +203,7 @@
       const sortedBuildings = useMemo(() => [...(data.buildings || [])].reverse(), [data.buildings]);
       const sortedCategories = useMemo(() => [...(data.categories || [])].reverse(), [data.categories]);
 
-      // استرجاع القوائم المنسدلة للواجهات (تم إصلاح الخطأ هنا)
+      // استرجاع القوائم المنسدلة للواجهات 
       const buildingOptions = useMemo(() => [ { value: '', label: t.allBuildings }, ...sortedBuildings.map(b => ({ value: b.id, label: b.name })) ], [sortedBuildings, t.allBuildings]);
       const categoryOptions = useMemo(() => [ { value: '', label: t.selectCat }, ...sortedCategories.map(c => ({ value: c.id, label: c.name })) ], [sortedCategories, t.selectCat]);
 
@@ -402,7 +405,7 @@
         let printName = t.repCustodyTitle;
         if (reportType === 'installments') printName = t.repSalesTitle;
         if (reportType === 'contracts') printName = t.repContractsTitle;
-        if (reportType === 'partners') printName = t.partnerReportTitle;
+        if (isPartnerRole || reportType === 'partners') printName = t.partnerReportTitle;
         document.title = `${printName.replace(/\s+/g, '_')}_${todayDateStr}.pdf`;
         setTimeout(() => { window.print(); document.title = originalTitle; }, 100);
       };
@@ -410,7 +413,14 @@
       const handleExportExcel = () => {
         let exportData = [];
         let fileName = 'Report';
-        if (reportType === 'transactions') {
+        if (isPartnerRole || reportType === 'partners') {
+           if (partnerReportData) {
+               fileName = `Partner_${selectedPartnerR || currentUserData?.name}_${todayDateStr}`;
+               partnerReportData.instsDetails.forEach(d => {
+                  exportData.push({ [t.client]: d.client, [t.building]: d.building, [t.amount]: d.share, [t.dueDate]: formatShortDate(d.date) });
+               });
+           }
+        } else if (reportType === 'transactions') {
            fileName = `Statement_${todayDateStr}`;
            exportData.push({ [t.date]: '--', [t.desc]: t.opBalance, [t.amount]: reportData.openingBalance });
            reportData.incomes.forEach(tx => exportData.push({ [t.date]: formatShortDate(tx.date), [t.desc]: tx.description, [t.amount]: tx.amount }));
@@ -439,11 +449,6 @@
            });
            exportData.push({});
            exportData.push({ [t.client]: '', [t.building]: t.total, [t.totalUnit]: reportContractsList.reduce((s,c)=>s+c.totalAmount,0), [t.paidAmt]: reportContractsList.reduce((s,c)=>s+c.paidAmount,0), [t.remAmt]: reportContractsList.reduce((s,c)=>s+c.remainingAmount,0), [t.nextDue]: '' });
-        } else if (reportType === 'partners' && partnerReportData) {
-           fileName = `Partner_${selectedPartnerR || currentUserData?.name}_${todayDateStr}`;
-           partnerReportData.instsDetails.forEach(d => {
-              exportData.push({ [t.client]: d.client, [t.building]: d.building, [t.amount]: d.share, [t.dueDate]: formatShortDate(d.date) });
-           });
         }
         const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
@@ -610,7 +615,7 @@
         { id: 'custody', label: t.tab_cust, roles: ['admin', 'custody'] }, 
         { id: 'inventory', label: t.tab_inv, roles: ['admin'] },
         { id: 'sales', label: t.tab_sales, roles: ['admin'] }, 
-        { id: 'reports', label: t.tab_rep, roles: ['admin', 'custody'] } // تم نقل تقرير الشريك للرئيسية الخاصة به
+        { id: 'reports', label: t.tab_rep, roles: ['admin', 'custody'] } 
       ];
       const visibleTabs = allTabs.filter(tab => tab.roles.includes(userRole));
 
@@ -624,9 +629,6 @@
                   {currentUserData?.name || user?.email} ({userRole === 'admin' ? 'مدير' : userRole === 'partner' ? 'شريك' : 'أمين عهدة'})
                </span>
                <button onClick={() => setActiveTab('settings')} className={`text-2xl hover:rotate-90 transition-transform ${activeTab === 'settings' ? 'text-blue-400' : 'text-white'}`}>⚙️</button>
-               <button onClick={() => auth.signOut()} className="text-sm bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg font-bold shadow transition flex items-center gap-1">
-                  خروج 🚪
-               </button>
             </div>
           </header>
 
@@ -643,6 +645,7 @@
 
           {appModal.show && (
             <div className={`fixed inset-0 bg-slate-900 bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-[100] animate-fade-in p-4 ${appModal.type !== 'RECEIPT' ? 'print-hide' : 'print-receipt-wrapper'}`} onClick={closeModal}>
+              {appModal.type === 'LOGOUT' && ( <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-slide-up" onClick={e=>e.stopPropagation()}><div className="bg-red-600 text-white p-4 text-center font-bold text-lg">تسجيل الخروج</div><div className="p-6 text-center text-slate-700 font-medium">هل أنت متأكد من رغبتك في تسجيل الخروج من النظام؟</div><div className="flex border-t"><button onClick={()=>{auth.signOut(); closeModal();}} className="flex-1 p-4 font-bold text-red-600 hover:bg-red-50 border-x">{t.yes}</button><button onClick={closeModal} className="flex-1 p-4 font-bold text-slate-500 hover:bg-slate-100">{t.no}</button></div></div> )}
               {appModal.type === 'TX_ACTION' && appModal.props.tx && ( <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}><div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div><h3 className="font-bold text-lg mb-2 text-center text-slate-800 border-b pb-2">{t.action}</h3><p className="text-center text-sm text-slate-500 mb-6 bg-slate-50 p-2 rounded">{appModal.props.tx?.description} <br/> <span className="font-bold text-lg text-slate-800">{Number(appModal.props.tx?.amount || 0).toLocaleString()}</span></p><button onClick={() => { closeModal(); setNewTransaction({...appModal.props.tx}); setEditingTxId(appModal.props.tx?.id); setActiveTab('transactions'); }} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow hover:bg-blue-700 transition">✏️ {t.edit}</button><button onClick={() => { closeModal(); requirePin(() => { setAppModal({ show: true, type: 'CONFIRM', props: { title: t.delete, message: t.confirmDelTx, onConfirm: () => { updateData(p => ({...p, transactions: (p.transactions||[]).filter(tx => tx.id !== appModal.props.tx?.id)})); showMsg(t.success); closeModal(); } }}); }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button></div> )}
               {appModal.type === 'CAT_ACTION' && appModal.props.cat && ( <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}><div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div><h3 className="font-bold text-lg mb-4 text-center text-slate-800 border-b pb-2">{t.action}</h3><input type="text" id="catEditInput" defaultValue={appModal.props.cat.name} className="w-full border-2 border-slate-300 p-3 rounded-xl mb-4 font-bold text-center focus:border-blue-500 outline-none" /><button onClick={() => { const val = document.getElementById('catEditInput').value; if(val) { updateData(p => ({...p, categories: p.categories.map(c => c.id === appModal.props.cat.id ? {...c, name: val} : c)})); closeModal(); showMsg(t.success); } }} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow hover:bg-blue-700 transition">✏️ {t.edit}</button><button onClick={() => { requirePin(() => { updateData(p => ({...p, categories: p.categories.filter(c => c.id !== appModal.props.cat.id)})); closeModal(); showMsg(t.success); }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button></div> )}
               {appModal.type === 'BUILDING_ACTION' && appModal.props.b && ( <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}><div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div><h3 className="font-bold text-lg mb-4 text-center text-slate-800 border-b pb-2">{t.action}</h3><input type="text" id="buildEditInput" defaultValue={appModal.props.b.name} className="w-full border-2 border-slate-300 p-3 rounded-xl mb-4 font-bold text-center focus:border-blue-500 outline-none" /><button onClick={() => { const val = document.getElementById('buildEditInput').value; if(val) { updateData(p => ({...p, buildings: p.buildings.map(b => b.id === appModal.props.b.id ? {...b, name: val} : b)})); closeModal(); showMsg(t.success); } }} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow hover:bg-blue-700 transition">✏️ {t.edit}</button><button onClick={() => { requirePin(() => { setAppModal({show: true, type: 'CONFIRM', props: { title: t.delete, message: t.confirmDelBuild, onConfirm: () => { updateData(p => ({...p, buildings: p.buildings.filter(b => b.id !== appModal.props.b.id)})); closeModal(); showMsg(t.success); } }}) }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button></div> )}
@@ -676,158 +679,191 @@
           <main className={`flex-grow p-4 mx-auto w-full max-w-7xl relative z-10 ${appModal.type === 'RECEIPT' ? 'print-hide' : ''}`}>
             
             {activeTab === 'dashboard' && (
-              <div className="space-y-6 print-hide animate-fade-in">
-                
-                {/* --- لوحة تحكم الشريك (المرحلة الرابعة) --- */}
+              <>
+                {/* --- لوحة تحكم الشريك (المرحلة الرابعة) مع نموذج الطباعة --- */}
                 {isPartnerRole && partnerReportData ? (
-                   <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200 shadow-sm mb-6">
-                      <h2 className="text-2xl font-black text-slate-800 mb-6 border-b-2 border-slate-200 pb-4">أهلاً بك، {currentUserData?.name} 👋</h2>
-                      <div className="animate-slide-up space-y-6">
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                          <div className="bg-white p-4 rounded-xl border-t-4 border-slate-400 shadow-sm flex flex-col items-center justify-center text-center"><p className="text-xs font-bold text-slate-500 mb-2">{t.totalExpected}</p><p className="text-xl md:text-2xl font-black text-slate-800 break-words w-full">{partnerReportData.expected.toLocaleString()}</p></div>
-                          <div className="bg-white p-4 rounded-xl border-t-4 border-emerald-400 shadow-sm flex flex-col items-center justify-center text-center"><p className="text-xs font-bold text-slate-500 mb-2">{t.totalPaidToPartner}</p><p className="text-xl md:text-2xl font-black text-emerald-600 break-words w-full">{partnerReportData.paid.toLocaleString()}</p></div>
-                          <div className="bg-white p-4 rounded-xl border-t-4 border-red-400 shadow-sm relative flex flex-col items-center justify-center text-center"><p className="text-xs font-bold text-slate-500 mb-2">{t.totalCollectedNotPaid}</p><p className="text-xl md:text-2xl font-black text-red-600 break-words w-full">{partnerReportData.unpaid.toLocaleString()}</p>{partnerReportData.unpaid > 0 && <span className="absolute top-2 right-2 flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span></span>}</div>
-                          <div className="bg-white p-4 rounded-xl border-t-4 border-amber-400 shadow-sm flex flex-col items-center justify-center text-center"><p className="text-xs font-bold text-slate-500 mb-2">{t.totalPending}</p><p className="text-xl md:text-2xl font-black text-amber-600 break-words w-full">{partnerReportData.pending.toLocaleString()}</p></div>
+                   <>
+                     {/* النموذج المخفي للطباعة */}
+                     <div className="hidden print-show text-black mb-8 p-4">
+                        <h2 className="text-3xl font-black text-center mb-2">{t.partnerReportTitle}</h2>
+                        <h3 className="text-2xl font-bold text-center mb-6">{currentUserData?.name}</h3>
+                        <div className="grid grid-cols-4 gap-2 mb-8 border-b-4 border-black pb-4 text-center mt-6">
+                           <div className="border-r border-gray-300 pr-2"><p className="font-bold text-gray-600 text-xs mb-1">{t.totalExpected}</p><p className="text-xl font-black">{partnerReportData.expected.toLocaleString()}</p></div>
+                           <div className="border-r border-gray-300 pr-2"><p className="font-bold text-gray-600 text-xs mb-1">{t.totalPaidToPartner}</p><p className="text-xl font-black text-emerald-600">{partnerReportData.paid.toLocaleString()}</p></div>
+                           <div className="border-r border-gray-300 pr-2"><p className="font-bold text-gray-600 text-xs mb-1">{t.totalCollectedNotPaid}</p><p className="text-xl font-black text-red-600">{partnerReportData.unpaid.toLocaleString()}</p></div>
+                           <div><p className="font-bold text-gray-600 text-xs mb-1">{t.totalPending}</p><p className="text-xl font-black text-amber-600">{partnerReportData.pending.toLocaleString()}</p></div>
                         </div>
-                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                          <div className="flex justify-between items-center p-4 bg-slate-100/80 cursor-pointer hover:bg-slate-200/60 transition border-b" onClick={() => setShowPartnerDetails(!showPartnerDetails)}><h4 className="font-bold text-slate-800 text-sm flex items-center gap-2">📊 كشف كافة أقساط ومستحقات الشريك ({partnerReportData.instsDetails.length})</h4><span className="text-xs bg-white text-purple-700 px-3 py-1 rounded-lg font-bold shadow-sm border">{showPartnerDetails ? t.hideDetails : t.showDetails}</span></div>
-                          {showPartnerDetails && (
-                            <div className="overflow-x-auto animate-slide-up">
-                              <table className="w-full text-sm text-right">
-                                <thead className="bg-slate-50 text-slate-700 border-b"><tr><th className="p-3">تاريخ القسط</th><th className="p-3">العميل</th><th className="p-3">العمارة/الوحدة</th><th className="p-3">إجمالي القسط</th><th className="p-3">نصيب الشريك</th><th className="p-3">تم توريده</th><th className="p-3">حالة القسط</th></tr></thead>
-                                <tbody>
-                                  {partnerReportData.instsDetails.map((d, idx) => (
-                                    <tr key={idx} className="border-b hover:bg-slate-50"><td className="p-3 font-mono text-xs text-slate-500" dir="ltr">{formatShortDate(d.date)}</td><td className="p-3 font-bold text-slate-800">{d.client}</td><td className="p-3 font-bold text-slate-600">{d.building}</td><td className="p-3 font-bold text-slate-800">{d.totalAmount.toLocaleString()}</td><td className="p-3 font-black text-purple-800">{d.share.toLocaleString()}</td><td className="p-3 font-bold text-emerald-600">{d.paidToPartner > 0 ? d.paidToPartner.toLocaleString() : '--'}</td><td className="p-3 font-bold text-xs"><span className={`px-2 py-1 rounded-md text-[11px] ${d.instStatus==='paid' ? (d.dueToPartner===0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800') : 'bg-slate-100 text-slate-500'}`}>{d.partnerStatus}</span></td></tr>
-                                  ))}
-                                  {partnerReportData.instsDetails.length > 0 && ( <tr className="bg-slate-100 font-black border-t-2 border-slate-300"><td colSpan="3" className="p-3 text-left font-black" style={{textAlign: lang==='ar'?'left':'right'}}>الإجمالي:</td><td className="p-3 font-black text-slate-900">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.totalAmount||0),0).toLocaleString()}</td><td className="p-3 font-black text-purple-900">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.share||0),0).toLocaleString()}</td><td className="p-3 font-black text-emerald-700">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.paidToPartner||0),0).toLocaleString()}</td><td></td></tr> )}
-                                  {partnerReportData.instsDetails.length === 0 && <tr><td colSpan="7" className="p-6 text-center text-gray-500 font-bold">لا توجد عقود أو أقساط مسجلة لك حتى الآن</td></tr>}
-                                </tbody>
-                              </table>
-                            </div>
-                          )}
+                        <h4 className="text-xl font-black mt-4 mb-2">كشف كافة أقساط ومستحقات الشريك</h4>
+                        <table>
+                           <thead className="bg-gray-100 text-sm"><tr><th className="text-center">تاريخ القسط</th><th className="text-center">{t.client}</th><th className="text-center">{t.building}</th><th className="text-center">إجمالي القسط</th><th className="text-center">نصيب الشريك</th><th className="text-center">تم توريده</th><th className="text-center">حالة التوريد</th></tr></thead>
+                           <tbody>
+                              {partnerReportData.instsDetails.map((d, i) => ( 
+                                <tr key={i}><td dir="ltr" className="text-center font-mono print-row-text">{formatShortDate(d.date)}</td><td className="font-bold text-sm">{d.client}</td><td className="text-center font-bold text-sm">{d.building}</td><td className="text-center font-black text-sm">{d.totalAmount.toLocaleString()}</td><td className="text-center font-black text-sm text-purple-800">{d.share.toLocaleString()}</td><td className="text-center font-bold text-sm text-emerald-600">{d.paidToPartner > 0 ? d.paidToPartner.toLocaleString() : '--'}</td><td className="text-center font-bold text-xs">{d.partnerStatus}</td></tr> 
+                              ))}
+                              {partnerReportData.instsDetails.length > 0 && ( 
+                                <tr className="bg-gray-200 font-black"><td colSpan="3" className="text-left font-black text-sm" style={{textAlign: lang==='ar'?'left':'right'}}>الإجمالي:</td><td className="text-center font-black text-sm">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.totalAmount||0),0).toLocaleString()}</td><td className="text-center font-black text-sm text-purple-900">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.share||0),0).toLocaleString()}</td><td className="text-center font-black text-sm text-emerald-800">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.paidToPartner||0),0).toLocaleString()}</td><td></td></tr> 
+                              )}
+                              {partnerReportData.instsDetails.length === 0 && <tr><td colSpan="7" className="p-4 font-bold text-gray-500">لا توجد أية عقود أو أقساط مسجلة لهذا الشريك</td></tr>}
+                           </tbody>
+                        </table>
+                     </div>
+
+                     <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200 shadow-sm mb-6 print-hide animate-fade-in">
+                        <h2 className="text-2xl font-black text-slate-800 mb-6 border-b-2 border-slate-200 pb-4">أهلاً بك، {currentUserData?.name} 👋</h2>
+                        <div className="space-y-6">
+                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                            <div className="bg-white p-4 rounded-xl border-t-4 border-slate-400 shadow-sm flex flex-col items-center justify-center text-center"><p className="text-xs font-bold text-slate-500 mb-2">{t.totalExpected}</p><p className="text-xl md:text-2xl font-black text-slate-800 break-words w-full">{partnerReportData.expected.toLocaleString()}</p></div>
+                            <div className="bg-white p-4 rounded-xl border-t-4 border-emerald-400 shadow-sm flex flex-col items-center justify-center text-center"><p className="text-xs font-bold text-slate-500 mb-2">{t.totalPaidToPartner}</p><p className="text-xl md:text-2xl font-black text-emerald-600 break-words w-full">{partnerReportData.paid.toLocaleString()}</p></div>
+                            <div className="bg-white p-4 rounded-xl border-t-4 border-red-400 shadow-sm relative flex flex-col items-center justify-center text-center"><p className="text-xs font-bold text-slate-500 mb-2">{t.totalCollectedNotPaid}</p><p className="text-xl md:text-2xl font-black text-red-600 break-words w-full">{partnerReportData.unpaid.toLocaleString()}</p>{partnerReportData.unpaid > 0 && <span className="absolute top-2 right-2 flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span></span>}</div>
+                            <div className="bg-white p-4 rounded-xl border-t-4 border-amber-400 shadow-sm flex flex-col items-center justify-center text-center"><p className="text-xs font-bold text-slate-500 mb-2">{t.totalPending}</p><p className="text-xl md:text-2xl font-black text-amber-600 break-words w-full">{partnerReportData.pending.toLocaleString()}</p></div>
+                          </div>
+                          
+                          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                            <div className="flex justify-between items-center p-4 bg-slate-100/80 cursor-pointer hover:bg-slate-200/60 transition border-b" onClick={() => setShowPartnerDetails(!showPartnerDetails)}><h4 className="font-bold text-slate-800 text-sm flex items-center gap-2">📊 كشف كافة أقساط ومستحقات الشريك ({partnerReportData.instsDetails.length})</h4><span className="text-xs bg-white text-purple-700 px-3 py-1 rounded-lg font-bold shadow-sm border">{showPartnerDetails ? t.hideDetails : t.showDetails}</span></div>
+                            {showPartnerDetails && (
+                              <div className="overflow-x-auto animate-slide-up">
+                                <table className="w-full text-sm text-right">
+                                  <thead className="bg-slate-50 text-slate-700 border-b"><tr><th className="p-3">تاريخ القسط</th><th className="p-3">العميل</th><th className="p-3">العمارة/الوحدة</th><th className="p-3">إجمالي القسط</th><th className="p-3">نصيب الشريك</th><th className="p-3">تم توريده</th><th className="p-3">حالة القسط</th></tr></thead>
+                                  <tbody>
+                                    {partnerReportData.instsDetails.map((d, idx) => (
+                                      <tr key={idx} className="border-b hover:bg-slate-50"><td className="p-3 font-mono text-xs text-slate-500" dir="ltr">{formatShortDate(d.date)}</td><td className="p-3 font-bold text-slate-800">{d.client}</td><td className="p-3 font-bold text-slate-600">{d.building}</td><td className="p-3 font-bold text-slate-800">{d.totalAmount.toLocaleString()}</td><td className="p-3 font-black text-purple-800">{d.share.toLocaleString()}</td><td className="p-3 font-bold text-emerald-600">{d.paidToPartner > 0 ? d.paidToPartner.toLocaleString() : '--'}</td><td className="p-3 font-bold text-xs"><span className={`px-2 py-1 rounded-md text-[11px] ${d.instStatus==='paid' ? (d.dueToPartner===0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800') : 'bg-slate-100 text-slate-500'}`}>{d.partnerStatus}</span></td></tr>
+                                    ))}
+                                    {partnerReportData.instsDetails.length > 0 && ( <tr className="bg-slate-100 font-black border-t-2 border-slate-300"><td colSpan="3" className="p-3 text-left font-black" style={{textAlign: lang==='ar'?'left':'right'}}>الإجمالي:</td><td className="p-3 font-black text-slate-900">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.totalAmount||0),0).toLocaleString()}</td><td className="p-3 font-black text-purple-900">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.share||0),0).toLocaleString()}</td><td className="p-3 font-black text-emerald-700">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.paidToPartner||0),0).toLocaleString()}</td><td></td></tr> )}
+                                    {partnerReportData.instsDetails.length === 0 && <tr><td colSpan="7" className="p-6 text-center text-gray-500 font-bold">لا توجد عقود أو أقساط مسجلة لك حتى الآن</td></tr>}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="flex gap-4 mt-6">
+                            <button onClick={handlePrint} className="flex-1 bg-slate-800 text-white py-3 rounded-xl font-bold shadow hover:bg-slate-900 transition">🖨️ طباعة التقرير</button>
+                            <button onClick={handleExportExcel} className="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold shadow hover:bg-green-700 transition">📊 تصدير Excel</button>
+                          </div>
                         </div>
-                      </div>
-                   </div>
+                     </div>
+                   </>
                 ) : null}
 
-
-                {/* --- لوحة تحكم المدير --- */}
-                {userRole === 'admin' && pendingRequests.length > 0 && (
-                   <div className="bg-white p-5 rounded-2xl shadow-sm border border-amber-200 animate-slide-up">
-                     <h3 className="font-bold mb-4 border-b pb-2 text-amber-800 text-lg flex items-center gap-2">⚠️ طلبات استعاضة معلقة ({pendingRequests.length})</h3>
-                     <div className="space-y-3">
-                       {pendingRequests.map(req => (
-                          <div key={req.id} className="flex justify-between items-center bg-amber-50 p-4 rounded-xl border border-amber-100 flex-wrap gap-4">
-                            <div>
-                              <p className="font-bold text-slate-800">أمين العهدة: <span className="text-amber-900">{req.personName}</span></p>
-                              <p className="text-sm font-black text-amber-700 mt-1">المبلغ المطلوب: {Number(req.amount).toLocaleString()} ج.م</p>
-                              <p className="text-xs text-slate-500 mt-1 font-mono">{formatShortDate(req.date)}</p>
+                <div className="space-y-6 print-hide animate-fade-in">
+                  {/* --- لوحة تحكم المدير --- */}
+                  {userRole === 'admin' && pendingRequests.length > 0 && (
+                     <div className="bg-white p-5 rounded-2xl shadow-sm border border-amber-200 animate-slide-up">
+                       <h3 className="font-bold mb-4 border-b pb-2 text-amber-800 text-lg flex items-center gap-2">⚠️ طلبات استعاضة معلقة ({pendingRequests.length})</h3>
+                       <div className="space-y-3">
+                         {pendingRequests.map(req => (
+                            <div key={req.id} className="flex justify-between items-center bg-amber-50 p-4 rounded-xl border border-amber-100 flex-wrap gap-4">
+                              <div>
+                                <p className="font-bold text-slate-800">أمين العهدة: <span className="text-amber-900">{req.personName}</span></p>
+                                <p className="text-sm font-black text-amber-700 mt-1">المبلغ المطلوب: {Number(req.amount).toLocaleString()} ج.م</p>
+                                <p className="text-xs text-slate-500 mt-1 font-mono">{formatShortDate(req.date)}</p>
+                              </div>
+                              <div className="flex gap-2 flex-col sm:flex-row w-full sm:w-auto">
+                                <button onClick={() => approveRequest(req)} className="bg-emerald-500 text-white px-4 py-2.5 rounded-xl font-bold shadow hover:bg-emerald-600 transition flex-1 sm:flex-none">✅ موافقة وتحويل</button>
+                                <button onClick={() => rejectRequest(req)} className="bg-red-100 text-red-600 px-4 py-2.5 rounded-xl font-bold shadow-sm hover:bg-red-200 transition flex-1 sm:flex-none">❌ رفض</button>
+                              </div>
                             </div>
-                            <div className="flex gap-2 flex-col sm:flex-row w-full sm:w-auto">
-                              <button onClick={() => approveRequest(req)} className="bg-emerald-500 text-white px-4 py-2.5 rounded-xl font-bold shadow hover:bg-emerald-600 transition flex-1 sm:flex-none">✅ موافقة وتحويل</button>
-                              <button onClick={() => rejectRequest(req)} className="bg-red-100 text-red-600 px-4 py-2.5 rounded-xl font-bold shadow-sm hover:bg-red-200 transition flex-1 sm:flex-none">❌ رفض</button>
-                            </div>
-                          </div>
-                       ))}
+                         ))}
+                       </div>
                      </div>
-                   </div>
-                )}
+                  )}
 
-                {/* --- الواجهة الموحدة لعرض الأرصدة (مدير وأمين عهدة) --- */}
-                {!isPartnerRole && (
-                  <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      
-                      {userRole === 'admin' && (
-                         <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-5 rounded-2xl border border-blue-200 shadow-inner cursor-pointer hover:shadow-md transition" onClick={() => setShowMonthDetails(!showMonthDetails)}>
-                           <div className="flex justify-between items-center mb-2">
-                             <p className="text-sm text-blue-800 font-bold">{t.monthDues}</p>
-                             <span className="text-blue-600 bg-white px-3 py-1 rounded-lg text-xs font-bold shadow-sm">{showMonthDetails ? t.hideDetails : t.showDetails}</span>
-                           </div>
-                           <p className="text-4xl font-black text-blue-900 mt-2">{monthInstallments.reduce((sum, i) => sum + Number(i.amount||0), 0).toLocaleString()} <span className="text-lg font-bold">ج.م</span></p>
-                         </div>
-                      )}
-                      
-                      <div className={`bg-gradient-to-br from-amber-50 to-orange-100 p-5 rounded-2xl border border-amber-200 shadow-inner ${userRole !== 'admin' ? 'md:col-span-2' : ''}`}>
-                        <p className="text-sm text-amber-900 mb-2 font-bold">{t.activeCustody}</p>
+                  {/* --- الواجهة الموحدة لعرض الأرصدة (مدير وأمين عهدة) --- */}
+                  {!isPartnerRole && (
+                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         
                         {userRole === 'admin' && (
-                           <div className="mb-3 relative z-30">
-                              <MultiSelectDropdown options={responsibleOptions} selected={selectedResponsibles} onChange={setSelectedResponsibles} placeholder="-- تصفية بمسؤول معين --" />
+                           <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-5 rounded-2xl border border-blue-200 shadow-inner cursor-pointer hover:shadow-md transition" onClick={() => setShowMonthDetails(!showMonthDetails)}>
+                             <div className="flex justify-between items-center mb-2">
+                               <p className="text-sm text-blue-800 font-bold">{t.monthDues}</p>
+                               <span className="text-blue-600 bg-white px-3 py-1 rounded-lg text-xs font-bold shadow-sm">{showMonthDetails ? t.hideDetails : t.showDetails}</span>
+                             </div>
+                             <p className="text-4xl font-black text-blue-900 mt-2">{monthInstallments.reduce((sum, i) => sum + Number(i.amount||0), 0).toLocaleString()} <span className="text-lg font-bold">ج.م</span></p>
                            </div>
                         )}
-
-                        <div className="relative z-20">
-                           <MultiSelectDropdown options={custodyMultiOptions} selected={dashboardCustodyFilter} onChange={setDashboardCustodyFilter} placeholder={t.allCustodies} />
-                        </div>
                         
-                        <p className="text-3xl font-black text-amber-600 mt-4">{t.net}: {dashboardNet.toLocaleString()} <span className="text-lg font-bold">ج.م</span></p>
-                        <div className="flex gap-3 mt-5 pt-4 border-t border-amber-200/60">
-                          <button onClick={() => handleAddFromDashboard('income')} className="flex-1 bg-emerald-500 text-white py-3 rounded-xl text-sm font-bold shadow-md hover:bg-emerald-600 transition">➕ إيراد للعهدة</button>
-                          <button onClick={() => handleAddFromDashboard('expense')} className="flex-1 bg-red-500 text-white py-3 rounded-xl text-sm font-bold shadow-md hover:bg-red-600 transition">➖ مصروف للعهدة</button>
+                        <div className={`bg-gradient-to-br from-amber-50 to-orange-100 p-5 rounded-2xl border border-amber-200 shadow-inner ${userRole !== 'admin' ? 'md:col-span-2' : ''}`}>
+                          <p className="text-sm text-amber-900 mb-2 font-bold">{t.activeCustody}</p>
+                          
+                          {userRole === 'admin' && (
+                             <div className="mb-3 relative z-30">
+                                <MultiSelectDropdown options={responsibleOptions} selected={selectedResponsibles} onChange={setSelectedResponsibles} placeholder="-- تصفية بمسؤول معين --" />
+                             </div>
+                          )}
+
+                          <div className="relative z-20">
+                             <MultiSelectDropdown options={custodyMultiOptions} selected={dashboardCustodyFilter} onChange={setDashboardCustodyFilter} placeholder={t.allCustodies} />
+                          </div>
+                          
+                          <p className="text-3xl font-black text-amber-600 mt-4">{t.net}: {dashboardNet.toLocaleString()} <span className="text-lg font-bold">ج.م</span></p>
+                          <div className="flex gap-3 mt-5 pt-4 border-t border-amber-200/60">
+                            <button onClick={() => handleAddFromDashboard('income')} className="flex-1 bg-emerald-500 text-white py-3 rounded-xl text-sm font-bold shadow-md hover:bg-emerald-600 transition">➕ إيراد للعهدة</button>
+                            <button onClick={() => handleAddFromDashboard('expense')} className="flex-1 bg-red-500 text-white py-3 rounded-xl text-sm font-bold shadow-md hover:bg-red-600 transition">➖ مصروف للعهدة</button>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* --- زراير الاستعاضة والتصفية لأمين العهدة (تظهر تحت الواجهة الموحدة) --- */}
-                {isCustodyRole && dashboardCustodyFilter.length > 0 && !dashboardCustodyFilter.includes('ALL') && (
-                   <div className="space-y-3">
-                      {dashboardCustodyFilter.map(cId => {
-                         const cust = myCustodies.find(c => c.id === cId);
-                         if(!cust) return null;
-                         const calc = custodyCalculations.find(c => c.id === cust.id);
-                         const rem = calc ? calc.remaining : 0;
-                         return (
-                            <div key={cust.id} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col sm:flex-row gap-3 justify-between items-center animate-slide-up">
-                               <div className="font-bold text-slate-800 text-center sm:text-right">
-                                  إدارة: <span className="text-blue-800">{getCustodyLabel(cust)}</span>
-                                  <span className="block sm:inline sm:mr-2 mt-1 sm:mt-0 text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded">المتبقي: {rem.toLocaleString()} ج.م</span>
-                               </div>
-                               <div className="flex gap-2 w-full sm:w-auto">
-                                  <button onClick={() => setAppModal({ show: true, type: 'REQUEST_FUNDS', props: { custId: cust.id } })} className="flex-1 sm:flex-none bg-blue-600 text-white px-4 py-2.5 rounded-lg font-bold text-xs shadow hover:bg-blue-700 transition">💰 استعاضة</button>
-                                  <button onClick={() => setAppModal({ show: true, type: 'CONFIRM', props: { title: 'تصفية العهدة', message: `سيتم تصفير عهدتك وتحويل المتبقي (${rem.toLocaleString()}) للخزينة. متأكد؟`, onConfirm: () => liquidateCustody(cust.id) } })} className="flex-1 sm:flex-none bg-red-50 text-red-600 border border-red-200 px-4 py-2.5 rounded-lg font-bold text-xs hover:bg-red-100 transition">🛑 تصفية</button>
-                               </div>
-                            </div>
-                         )
-                      })}
-                   </div>
-                )}
+                  {/* --- زراير الاستعاضة والتصفية لأمين العهدة (تظهر تحت الواجهة الموحدة) --- */}
+                  {isCustodyRole && dashboardCustodyFilter.length > 0 && !dashboardCustodyFilter.includes('ALL') && (
+                     <div className="space-y-3">
+                        {dashboardCustodyFilter.map(cId => {
+                           const cust = myCustodies.find(c => c.id === cId);
+                           if(!cust) return null;
+                           const calc = custodyCalculations.find(c => c.id === cust.id);
+                           const rem = calc ? calc.remaining : 0;
+                           return (
+                              <div key={cust.id} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col sm:flex-row gap-3 justify-between items-center animate-slide-up">
+                                 <div className="font-bold text-slate-800 text-center sm:text-right">
+                                    إدارة: <span className="text-blue-800">{getCustodyLabel(cust)}</span>
+                                    <span className="block sm:inline sm:mr-2 mt-1 sm:mt-0 text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded">المتبقي: {rem.toLocaleString()} ج.م</span>
+                                 </div>
+                                 <div className="flex gap-2 w-full sm:w-auto">
+                                    <button onClick={() => setAppModal({ show: true, type: 'REQUEST_FUNDS', props: { custId: cust.id } })} className="flex-1 sm:flex-none bg-blue-600 text-white px-4 py-2.5 rounded-lg font-bold text-xs shadow hover:bg-blue-700 transition">💰 استعاضة</button>
+                                    <button onClick={() => setAppModal({ show: true, type: 'CONFIRM', props: { title: 'تصفية العهدة', message: `سيتم تصفير عهدتك وتحويل المتبقي (${rem.toLocaleString()}) للخزينة. متأكد؟`, onConfirm: () => liquidateCustody(cust.id) } })} className="flex-1 sm:flex-none bg-red-50 text-red-600 border border-red-200 px-4 py-2.5 rounded-lg font-bold text-xs hover:bg-red-100 transition">🛑 تصفية</button>
+                                 </div>
+                              </div>
+                           )
+                        })}
+                     </div>
+                  )}
 
-                {showMonthDetails && userRole === 'admin' && (
-                  <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 animate-slide-up">
-                    <h3 className="font-bold mb-4 border-b pb-2 text-blue-800 text-lg">{t.detailsMonthDues}</h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm text-right" style={{textAlign: lang==='en'?'left':'right'}}>
-                        <thead className="bg-slate-50 text-slate-500"><tr><th className="p-3">{t.client}</th><th className="p-3">{t.dueDate}</th><th className="p-3">{t.amount}</th><th className="p-3">{t.action}</th></tr></thead>
-                        <tbody>
-                          {monthInstallments.map(inst => {
-                            const c = (data.contracts || []).find(ct => ct.id === inst.contractId);
-                            const b = (data.buildings || []).find(bd => bd.id === c?.buildingId);
-                            return (
-                              <tr key={inst.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                                <td className="p-3 font-bold text-slate-700">{c?.clientName} {inst.isDownPayment && <span className="text-[10px] bg-blue-100 text-blue-800 px-1 rounded ml-1">مقدم</span>}</td><td className="p-3 font-mono text-slate-500" dir="ltr">{formatShortDate(inst.dueDate)}</td>
-                                <td className="p-3">
-                                  <div className="font-black text-red-600 text-lg">{Number(inst.amount).toLocaleString()}</div>
-                                  {b?.hasPartner && b.partnerPercent > 0 && (
-                                    <div className="text-[10px] text-slate-500 mt-1 space-y-0.5"><span className="bg-blue-50 text-blue-700 px-1 rounded block">{t.myShare}: {Math.round(inst.amount * ((100 - b.partnerPercent)/100)).toLocaleString()}</span><span className="bg-purple-50 text-purple-700 px-1 rounded block">{t.partnerShare}: {Math.round(inst.amount * (b.partnerPercent/100)).toLocaleString()}</span></div>
-                                  )}
-                                </td>
-                                <td className="p-3 flex flex-col gap-2">
-                                  <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptCollect, defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId)=>payInstallment(inst.id, c?.clientName, c?.buildingId, amt, dt, custId) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">{t.collect}</button>
-                                  <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptEditInst, showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>editInstallment(inst.id, amt, dt) }})} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">{t.edit}</button>
-                                </td>
-                              </tr>
-                            )
-                          })}
-                          {monthInstallments.length === 0 && <tr><td colSpan="4" className="text-center p-6 text-slate-400 font-medium">{t.noDues}</td></tr>}
-                        </tbody>
-                      </table>
+                  {showMonthDetails && userRole === 'admin' && (
+                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 animate-slide-up">
+                      <h3 className="font-bold mb-4 border-b pb-2 text-blue-800 text-lg">{t.detailsMonthDues}</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-right" style={{textAlign: lang==='en'?'left':'right'}}>
+                          <thead className="bg-slate-50 text-slate-500"><tr><th className="p-3">{t.client}</th><th className="p-3">{t.dueDate}</th><th className="p-3">{t.amount}</th><th className="p-3">{t.action}</th></tr></thead>
+                          <tbody>
+                            {monthInstallments.map(inst => {
+                              const c = (data.contracts || []).find(ct => ct.id === inst.contractId);
+                              const b = (data.buildings || []).find(bd => bd.id === c?.buildingId);
+                              return (
+                                <tr key={inst.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                                  <td className="p-3 font-bold text-slate-700">{c?.clientName} {inst.isDownPayment && <span className="text-[10px] bg-blue-100 text-blue-800 px-1 rounded ml-1">مقدم</span>}</td><td className="p-3 font-mono text-slate-500" dir="ltr">{formatShortDate(inst.dueDate)}</td>
+                                  <td className="p-3">
+                                    <div className="font-black text-red-600 text-lg">{Number(inst.amount).toLocaleString()}</div>
+                                    {b?.hasPartner && b.partnerPercent > 0 && (
+                                      <div className="text-[10px] text-slate-500 mt-1 space-y-0.5"><span className="bg-blue-50 text-blue-700 px-1 rounded block">{t.myShare}: {Math.round(inst.amount * ((100 - b.partnerPercent)/100)).toLocaleString()}</span><span className="bg-purple-50 text-purple-700 px-1 rounded block">{t.partnerShare}: {Math.round(inst.amount * (b.partnerPercent/100)).toLocaleString()}</span></div>
+                                    )}
+                                  </td>
+                                  <td className="p-3 flex flex-col gap-2">
+                                    <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptCollect, defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId)=>payInstallment(inst.id, c?.clientName, c?.buildingId, amt, dt, custId) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">{t.collect}</button>
+                                    <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptEditInst, showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>editInstallment(inst.id, amt, dt) }})} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">{t.edit}</button>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                            {monthInstallments.length === 0 && <tr><td colSpan="4" className="text-center p-6 text-slate-400 font-medium">{t.noDues}</td></tr>}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              </>
             )}
 
             {activeTab === 'transactions' && (
@@ -837,7 +873,6 @@
                   <div className="flex gap-2 p-1.5 bg-slate-100 rounded-xl border border-slate-200 shadow-inner">
                     <label className={`flex-1 flex items-center justify-center p-2.5 rounded-lg cursor-pointer font-bold text-xs transition-all ${newTransaction.type === 'income' ? 'bg-emerald-500 text-white shadow' : 'text-slate-600 hover:bg-slate-200'}`}><input type="radio" className="hidden" checked={newTransaction.type === 'income'} onChange={()=>setNewTransaction({...newTransaction, type:'income'})}/> {t.addIncome}</label>
                     <label className={`flex-1 flex items-center justify-center p-2.5 rounded-lg cursor-pointer font-bold text-xs transition-all ${newTransaction.type === 'expense' ? 'bg-red-500 text-white shadow' : 'text-slate-600 hover:bg-slate-200'}`}><input type="radio" className="hidden" checked={newTransaction.type === 'expense'} onChange={()=>setNewTransaction({...newTransaction, type:'expense'})}/> {t.addExpense}</label>
-                    {/* إرجاع خيار التحويل لأمين العهدة كمان عشان يقدر يحول بين عهده */}
                     <label className={`flex-1 flex items-center justify-center p-2.5 rounded-lg cursor-pointer font-bold text-xs transition-all ${newTransaction.type === 'transfer' ? 'bg-purple-600 text-white shadow' : 'text-slate-600 hover:bg-slate-200'}`}><input type="radio" className="hidden" checked={newTransaction.type === 'transfer'} onChange={()=>setNewTransaction({...newTransaction, type:'transfer'})}/> {t.addTransfer}</label>
                   </div>
                   <div><label className="text-sm font-bold text-slate-500 mb-1 block">{t.date}</label><CustomDateInput value={newTransaction.date} onChange={(d) => setNewTransaction({ ...newTransaction, date: d })} /></div>
@@ -1093,12 +1128,6 @@
                       <h2 className="text-3xl font-black text-center mb-2">{t.repSalesTitle}</h2><h3 className="text-2xl font-bold text-center mb-6">{reportData.buildingName}</h3><h4 className="text-lg font-bold text-gray-700 mb-4">{t.periodFrom}: {reportFilter.startDate ? formatShortDate(reportFilter.startDate) : t.start} | {t.periodTo}: {reportFilter.endDate ? formatShortDate(reportFilter.endDate) : t.now}</h4>
                       <table><thead className="bg-gray-100 text-lg"><tr><th className="text-center">{t.date}</th><th className="text-center">{t.client}</th><th className="text-center">{t.building}</th><th className="text-center">{t.amount}</th><th className="text-center">{t.myShare}</th><th className="text-center">{t.partnerDue}</th><th className="text-center">{t.partnerPaidStatus}</th><th className="text-center">{t.status}</th></tr></thead><tbody>{reportInstallments.map(i => { const c = (data.contracts||[]).find(ct=>ct.id===i.contractId); const b = (data.buildings||[]).find(bd=>bd.id===c?.buildingId); const totalAmt = Math.round(Number(i.amount)); const hasPartner = b?.hasPartner && b.partnerPercent > 0; const partnerShare = hasPartner ? Math.round(totalAmt * (b.partnerPercent/100)) : 0; const myShare = totalAmt - partnerShare; const partnerDue = (hasPartner && !i.partnerPaid) ? partnerShare : 0; const partnerPaidStat = (hasPartner && i.partnerPaid) ? partnerShare : 0; return <tr key={i.id}><td dir="ltr" className="text-center font-mono print-row-text">{formatShortDate(i.dueDate)}</td><td className="font-bold text-lg">{i.isDownPayment ? `${c?.clientName} (مقدم)` : c?.clientName}</td><td className="text-center font-bold text-lg">{b?.name}</td><td className="text-center font-black text-xl">{totalAmt.toLocaleString()}</td><td className="text-center font-bold text-lg">{myShare > 0 ? myShare.toLocaleString() : '--'}</td><td className="text-center font-bold text-lg text-red-600">{partnerDue > 0 ? partnerDue.toLocaleString() : '--'}</td><td className="text-center font-bold text-lg text-emerald-600">{partnerPaidStat > 0 ? partnerPaidStat.toLocaleString() : '--'}</td><td className="text-center font-bold text-lg">{i.status==='paid'?t.paid:t.pending}</td></tr> })}{reportInstallments.length > 0 && ( <tr className="bg-gray-200"><td colSpan="3" className="text-left font-black text-xl" style={{textAlign: lang==='ar'?'left':'right'}}>{t.total}:</td><td className="text-center font-black text-2xl">{reportInstallments.reduce((s,i)=>s+Math.round(Number(i.amount)),0).toLocaleString()}</td><td className="text-center font-black text-xl">{reportInstallments.reduce((s,i)=>{ const c=(data.contracts||[]).find(ct=>ct.id===i.contractId); const b=(data.buildings||[]).find(bd=>bd.id===c?.buildingId); const hasP=b?.hasPartner&&b.partnerPercent>0; const pS=hasP?Math.round(Number(i.amount)*(b.partnerPercent/100)):0; return s+(Math.round(Number(i.amount))-pS); },0).toLocaleString()}</td><td className="text-center font-black text-xl text-red-600">{reportInstallments.reduce((s,i)=>{ const c=(data.contracts||[]).find(ct=>ct.id===i.contractId); const b=(data.buildings||[]).find(bd=>bd.id===c?.buildingId); const hasP=b?.hasPartner&&b.partnerPercent>0; return s+((hasP&&!i.partnerPaid)?Math.round(Number(i.amount)*(b.partnerPercent/100)):0); },0).toLocaleString()}</td><td className="text-center font-black text-xl text-emerald-600">{reportInstallments.reduce((s,i)=>{ const c=(data.contracts||[]).find(ct=>ct.id===i.contractId); const b=(data.buildings||[]).find(bd=>bd.id===c?.buildingId); const hasP=b?.hasPartner&&b.partnerPercent>0; return s+((hasP&&i.partnerPaid)?Math.round(Number(i.amount)*(b.partnerPercent/100)):0); },0).toLocaleString()}</td><td></td></tr> )}</tbody></table>
                     </>
-                  ) : reportType === 'partners' && partnerReportData ? (
-                    <>
-                      <h2 className="text-3xl font-black text-center mb-2">{t.partnerReportTitle}</h2><h3 className="text-2xl font-bold text-center mb-6">{selectedPartnerR}</h3>
-                      <div className="grid grid-cols-4 gap-2 mb-8 border-b-4 border-black pb-4 text-center mt-6"><div className="border-r border-gray-300 pr-2"><p className="font-bold text-gray-600 text-xs mb-1">{t.totalExpected}</p><p className="text-xl font-black">{partnerReportData.expected.toLocaleString()}</p></div><div className="border-r border-gray-300 pr-2"><p className="font-bold text-gray-600 text-xs mb-1">{t.totalPaidToPartner}</p><p className="text-xl font-black text-emerald-600">{partnerReportData.paid.toLocaleString()}</p></div><div className="border-r border-gray-300 pr-2"><p className="font-bold text-gray-600 text-xs mb-1">{t.totalCollectedNotPaid}</p><p className="text-xl font-black text-red-600">{partnerReportData.unpaid.toLocaleString()}</p></div><div><p className="font-bold text-gray-600 text-xs mb-1">{t.totalPending}</p><p className="text-xl font-black text-amber-600">{partnerReportData.pending.toLocaleString()}</p></div></div>
-                      <h4 className="text-xl font-black mt-4 mb-2">كشف كافة أقساط ومستحقات الشريك</h4><table><thead className="bg-gray-100 text-sm"><tr><th className="text-center">تاريخ القسط</th><th className="text-center">{t.client}</th><th className="text-center">{t.building}</th><th className="text-center">إجمالي القسط</th><th className="text-center">نصيب الشريك</th><th className="text-center">تم توريده</th><th className="text-center">حالة التوريد</th></tr></thead><tbody>{partnerReportData.instsDetails.map((d, i) => ( <tr key={i}><td dir="ltr" className="text-center font-mono print-row-text">{formatShortDate(d.date)}</td><td className="font-bold text-sm">{d.client}</td><td className="text-center font-bold text-sm">{d.building}</td><td className="text-center font-black text-sm">{d.totalAmount.toLocaleString()}</td><td className="text-center font-black text-sm text-purple-800">{d.share.toLocaleString()}</td><td className="text-center font-bold text-sm text-emerald-600">{d.paidToPartner > 0 ? d.paidToPartner.toLocaleString() : '--'}</td><td className="text-center font-bold text-xs">{d.partnerStatus}</td></tr> ))}{partnerReportData.instsDetails.length > 0 && ( <tr className="bg-gray-200 font-black"><td colSpan="3" className="text-left font-black text-sm" style={{textAlign: lang==='ar'?'left':'right'}}>الإجمالي:</td><td className="text-center font-black text-sm">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.totalAmount||0),0).toLocaleString()}</td><td className="text-center font-black text-sm text-purple-900">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.share||0),0).toLocaleString()}</td><td className="text-center font-black text-sm text-emerald-800">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.paidToPartner||0),0).toLocaleString()}</td><td></td></tr> )}{partnerReportData.instsDetails.length === 0 && <tr><td colSpan="7" className="p-4 font-bold text-gray-500">لا توجد أية عقود أو أقساط مسجلة لهذا الشريك</td></tr>}</tbody></table>
-                    </>
                   ) : (
                     <>
                       <h2 className="text-3xl font-black text-center mb-2">{t.repContractsTitle}</h2><h3 className="text-2xl font-bold text-center mb-6">{reportData.buildingName}</h3>
@@ -1112,225 +1141,247 @@
                      {['admin', 'custody'].includes(userRole) && <button onClick={()=>setReportType('transactions')} className={`flex-1 min-w-[120px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='transactions'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repCustodyBtn}</button>}
                      {['admin'].includes(userRole) && <button onClick={()=>setReportType('installments')} className={`flex-1 min-w-[120px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='installments'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repSalesBtn}</button>}
                      {['admin'].includes(userRole) && <button onClick={()=>setReportType('contracts')} className={`flex-1 min-w-[120px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='contracts'?'bg-white text-blue-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repContractsBtn}</button>}
-                     {['admin', 'partner'].includes(userRole) && <button onClick={()=>setReportType('partners')} className={`flex-1 min-w-[120px] py-3 text-sm font-bold rounded-lg transition-all ${reportType==='partners'?'bg-white text-purple-800 shadow border border-slate-200':'text-slate-500 hover:text-slate-800'}`}>{t.repPartnersBtn}</button>}
+                     {/* تقرير الشركاء للأدمن فقط هنا */}
                   </div>
+                  
                   {reportType === 'installments' && ( <div className="mb-4 flex items-center gap-3"><label className="font-bold text-slate-700 text-sm">{t.sortBy}</label><CustomSelect options={[ { value: "date", label: t.sortDate }, { value: "client", label: t.sortClient }, { value: "building", label: t.sortBuilding } ]} value={reportSort} onChange={(v) => setReportSort(v)} className="w-48" /></div> )}
-                  {reportType === 'partners' ? (
-                     <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner mb-6">
-                        {userRole === 'admin' && (
-                            <>
-                                <label className="text-xs font-bold text-slate-500 mb-2 block">اختر اسم المستثمر / الشريك</label>
-                                <div className="max-w-md mb-6"><CustomSelect options={uniquePartnersList.map(pn => ({ value: pn, label: pn }))} value={selectedPartnerR} onChange={(v) => setSelectedPartnerR(v)} placeholder="-- اختر الشريك --" /></div>
-                            </>
-                        )}
-                        {partnerReportData && (
-                           <div className="animate-slide-up space-y-6">
-                              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                                <div className="bg-white p-4 rounded-xl border-t-4 border-slate-400 shadow-sm flex flex-col items-center justify-center text-center"><p className="text-xs font-bold text-slate-500 mb-2">{t.totalExpected}</p><p className="text-xl md:text-2xl font-black text-slate-800 break-words w-full">{partnerReportData.expected.toLocaleString()}</p></div>
-                                <div className="bg-white p-4 rounded-xl border-t-4 border-emerald-400 shadow-sm flex flex-col items-center justify-center text-center"><p className="text-xs font-bold text-slate-500 mb-2">{t.totalPaidToPartner}</p><p className="text-xl md:text-2xl font-black text-emerald-600 break-words w-full">{partnerReportData.paid.toLocaleString()}</p></div>
-                                <div className="bg-white p-4 rounded-xl border-t-4 border-red-400 shadow-sm relative flex flex-col items-center justify-center text-center"><p className="text-xs font-bold text-slate-500 mb-2">{t.totalCollectedNotPaid}</p><p className="text-xl md:text-2xl font-black text-red-600 break-words w-full">{partnerReportData.unpaid.toLocaleString()}</p>{partnerReportData.unpaid > 0 && <span className="absolute top-2 right-2 flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span></span>}</div>
-                                <div className="bg-white p-4 rounded-xl border-t-4 border-amber-400 shadow-sm flex flex-col items-center justify-center text-center"><p className="text-xs font-bold text-slate-500 mb-2">{t.totalPending}</p><p className="text-xl md:text-2xl font-black text-amber-600 break-words w-full">{partnerReportData.pending.toLocaleString()}</p></div>
-                              </div>
-                              <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                                <div className="flex justify-between items-center p-4 bg-slate-100/80 cursor-pointer hover:bg-slate-200/60 transition border-b" onClick={() => setShowPartnerDetails(!showPartnerDetails)}><h4 className="font-bold text-slate-800 text-sm flex items-center gap-2">📊 كشف كافة أقساط ومستحقات الشريك ({partnerReportData.instsDetails.length})</h4><span className="text-xs bg-white text-purple-700 px-3 py-1 rounded-lg font-bold shadow-sm border">{showPartnerDetails ? t.hideDetails : t.showDetails}</span></div>
-                                {showPartnerDetails && (
-                                  <div className="overflow-x-auto animate-slide-up">
-                                    <table className="w-full text-sm text-right">
-                                      <thead className="bg-slate-50 text-slate-700 border-b"><tr><th className="p-3">تاريخ القسط</th><th className="p-3">العميل</th><th className="p-3">العمارة/الوحدة</th><th className="p-3">إجمالي القسط</th><th className="p-3">نصيب الشريك</th><th className="p-3">تم توريده</th><th className="p-3">حالة القسط</th></tr></thead>
-                                      <tbody>
-                                        {partnerReportData.instsDetails.map((d, idx) => (
-                                          <tr key={idx} className="border-b hover:bg-slate-50"><td className="p-3 font-mono text-xs text-slate-500" dir="ltr">{formatShortDate(d.date)}</td><td className="p-3 font-bold text-slate-800">{d.client}</td><td className="p-3 font-bold text-slate-600">{d.building}</td><td className="p-3 font-bold text-slate-800">{d.totalAmount.toLocaleString()}</td><td className="p-3 font-black text-purple-800">{d.share.toLocaleString()}</td><td className="p-3 font-bold text-emerald-600">{d.paidToPartner > 0 ? d.paidToPartner.toLocaleString() : '--'}</td><td className="p-3 font-bold text-xs"><span className={`px-2 py-1 rounded-md text-[11px] ${d.instStatus==='paid' ? (d.dueToPartner===0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800') : 'bg-slate-100 text-slate-500'}`}>{d.partnerStatus}</span></td></tr>
-                                        ))}
-                                        {partnerReportData.instsDetails.length > 0 && ( <tr className="bg-slate-100 font-black border-t-2 border-slate-300"><td colSpan="3" className="p-3 text-left font-black" style={{textAlign: lang==='ar'?'left':'right'}}>الإجمالي:</td><td className="p-3 font-black text-slate-900">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.totalAmount||0),0).toLocaleString()}</td><td className="p-3 font-black text-purple-900">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.share||0),0).toLocaleString()}</td><td className="p-3 font-black text-emerald-700">{partnerReportData.instsDetails.reduce((s,d)=>s+Number(d.paidToPartner||0),0).toLocaleString()}</td><td></td></tr> )}
-                                        {partnerReportData.instsDetails.length === 0 && <tr><td colSpan="7" className="p-6 text-center text-gray-500 font-bold">لا توجد عقود أو أقساط مسجلة لهذا الشريك</td></tr>}
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                )}
-                              </div>
-                           </div>
-                        )}
-                     </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6 bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner">
-                      <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.periodFrom}</label><CustomDateInput value={reportFilter.startDate} onChange={(d) => setReportFilter({ ...reportFilter, startDate: d })} /></div>
-                      <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.periodTo}</label><CustomDateInput value={reportFilter.endDate} onChange={(d) => setReportFilter({ ...reportFilter, endDate: d })} /></div>
-                      
-                      {reportType === 'transactions' && (
-                         <>
-                            {userRole === 'admin' && (
-                               <div className="relative z-40"><label className="text-xs font-bold text-slate-500 mb-1 block">تصفية بمسؤول معين</label><MultiSelectDropdown options={responsibleOptions} selected={selectedResponsibles} onChange={setSelectedResponsibles} placeholder="-- جميع المسؤولين --" /></div>
-                            )}
-                            <div className="relative z-30"><label className="text-xs font-bold text-slate-500 mb-1 block">{t.custody}</label><MultiSelectDropdown options={custodyMultiOptions} selected={reportFilter.custodyIds} onChange={(newIds) => setReportFilter({...reportFilter, custodyIds: newIds})} placeholder={isCustodyRole ? 'لا يوجد' : t.allCustodies} /></div>
-                         </>
-                      )}
-                      
-                      {userRole === 'admin' && <div className="relative z-20"><label className="text-xs font-bold text-slate-500 mb-1 block">{t.building}</label><MultiSelectDropdown options={sortedBuildings.map(b => ({ id: b.id, label: b.name }))} selected={reportFilter.buildingIds} onChange={(newIds) => setReportFilter({...reportFilter, buildingIds: newIds})} placeholder={t.allBuildings} /></div>}
-                    </div>
-                  )}
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6 bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner">
+                    <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.periodFrom}</label><CustomDateInput value={reportFilter.startDate} onChange={(d) => setReportFilter({ ...reportFilter, startDate: d })} /></div>
+                    <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.periodTo}</label><CustomDateInput value={reportFilter.endDate} onChange={(d) => setReportFilter({ ...reportFilter, endDate: d })} /></div>
+                    
+                    {reportType === 'transactions' && (
+                        <>
+                          {userRole === 'admin' && (
+                              <div className="relative z-40"><label className="text-xs font-bold text-slate-500 mb-1 block">تصفية بمسؤول معين</label><MultiSelectDropdown options={responsibleOptions} selected={selectedResponsibles} onChange={setSelectedResponsibles} placeholder="-- جميع المسؤولين --" /></div>
+                          )}
+                          <div className="relative z-30"><label className="text-xs font-bold text-slate-500 mb-1 block">{t.custody}</label><MultiSelectDropdown options={custodyMultiOptions} selected={reportFilter.custodyIds} onChange={(newIds) => setReportFilter({...reportFilter, custodyIds: newIds})} placeholder={isCustodyRole ? 'لا يوجد' : t.allCustodies} /></div>
+                        </>
+                    )}
+                    
+                    {userRole === 'admin' && <div className="relative z-20"><label className="text-xs font-bold text-slate-500 mb-1 block">{t.building}</label><MultiSelectDropdown options={sortedBuildings.map(b => ({ id: b.id, label: b.name }))} selected={reportFilter.buildingIds} onChange={(newIds) => setReportFilter({...reportFilter, buildingIds: newIds})} placeholder={t.allBuildings} /></div>}
+                  </div>
+                  
                   <div className="flex gap-4 flex-col md:flex-row"><button onClick={handlePrint} className="flex-1 bg-slate-800 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-slate-900 transition-transform hover:-translate-y-1">{t.printPdf}</button><button onClick={handleExportExcel} className="flex-1 bg-green-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-green-700 transition-transform hover:-translate-y-1">{t.exportExcel}</button></div>
                 </div>
               </div>
             )}
 
             {activeTab === 'settings' && (
-              <div className="space-y-6 animate-fade-in print-hide">
+              <div className="animate-fade-in print-hide space-y-4">
                 
-                {/* الإعدادات المتاحة للجميع */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200 md:col-span-2 flex flex-col md:flex-row justify-between items-center gap-4 bg-gradient-to-r from-slate-800 to-slate-900 text-white"><h4 className="font-bold text-lg">{t.langTitle}</h4><div className="flex bg-slate-700 p-1 rounded-xl"><button onClick={() => setLang('ar')} className={`px-6 py-2 rounded-lg font-bold transition ${lang === 'ar' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-300 hover:text-white'}`}>عربي</button><button onClick={() => setLang('en')} className={`px-6 py-2 rounded-lg font-bold transition ${lang === 'en' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-300 hover:text-white'}`}>English</button></div></div>
-                  
-                  {/* تصنيفات المصروفات متاحة للجميع ما عدا الشريك */}
-                  {!isPartnerRole && (
-                     <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200 md:col-span-2"><h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">{t.addCatTitle}</h4><form onSubmit={(e)=>{e.preventDefault(); updateData(p=>({...p, categories: [...(p.categories || []), {id: 'c_'+Date.now(), name: newCategory}]})); setNewCategory(''); showMsg(t.success);}} className="flex flex-col gap-3 mb-4"><input required type="text" placeholder={t.catName} className="border-2 p-3 text-md w-full rounded-xl font-bold focus:border-blue-500 outline-none bg-slate-50" value={newCategory} onChange={e=>setNewCategory(e.target.value)}/><button className="bg-slate-800 text-white p-3 rounded-xl text-md font-bold shadow hover:bg-slate-900 transition">{t.addCatBtn}</button></form><div className="flex flex-wrap gap-2">{sortedCategories.map(c => ( <span key={c.id} onClick={() => setAppModal({ show: true, type: 'CAT_ACTION', props: { cat: c } })} className="bg-slate-100 border border-slate-200 p-2 px-3 rounded-lg text-xs font-bold text-slate-700 shadow-sm cursor-pointer hover:bg-blue-50 transition">{c.name}</span> ))}</div></div>
-                  )}
+                {/* 1. إعدادات اللغة */}
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all">
+                   <div className="p-4 bg-slate-50 hover:bg-slate-100 cursor-pointer flex justify-between items-center transition-colors" onClick={() => toggleSetting('lang')}>
+                      <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">🌐 {t.langTitle}</h3>
+                      <span className={`text-xl text-blue-600 font-bold transition-transform duration-300 ${expandedSettings['lang'] ? 'rotate-45' : ''}`}>➕</span>
+                   </div>
+                   {expandedSettings['lang'] && (
+                      <div className="p-6 border-t border-slate-100 animate-slide-up bg-white">
+                         <div className="flex bg-slate-700 p-1 rounded-xl w-fit mx-auto md:mx-0"><button onClick={() => setLang('ar')} className={`px-6 py-2 rounded-lg font-bold transition ${lang === 'ar' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-300 hover:text-white'}`}>عربي</button><button onClick={() => setLang('en')} className={`px-6 py-2 rounded-lg font-bold transition ${lang === 'en' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-300 hover:text-white'}`}>English</button></div>
+                      </div>
+                   )}
                 </div>
 
-                {/* الإعدادات الخاصة بالمدير وأمين العهدة فقط */}
-                {['admin', 'custody'].includes(userRole) && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200 md:col-span-2">
-                        <h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">{t.newCustodyTitle}</h4>
-                        <form onSubmit={(e)=>{
-                            e.preventDefault();
-                            const pName = userRole === 'admin' ? newCustody.personName : currentUserData?.name;
-                            if (!pName) { showMsg('يرجى اختيار المسؤول', true); return; }
-                            if (!newCustody.custodyName) { showMsg('يرجى كتابة اسم العهدة', true); return; }
-                            updateData(p=>({...p, custodies: [...(p.custodies || []), {id: 'cus_'+Date.now(), personName: pName, custodyName: newCustody.custodyName, totalAmount: newCustody.totalAmount, status: 'active'}]}));
-                            setNewCustody({personName:'', custodyName:'', totalAmount:'', notes:''});
-                            showMsg(t.success);
-                        }} className="space-y-4 relative">
-                            
-                            <div>
-                                <label className="text-xs font-bold text-slate-500 mb-1 block">اسم العهدة (مثال: عهدة الموقع، عهدة المشتريات):</label>
-                                <input type="text" required className="border-2 p-3 text-sm w-full rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCustody.custodyName} onChange={e=>setNewCustody({...newCustody, custodyName: e.target.value})} placeholder="اسم العهدة..." />
-                            </div>
-
-                            {userRole === 'admin' ? (
-                                <div className="relative">
-                                    <label className="text-xs font-bold text-slate-500 mb-1 block">المسؤول عن العهدة:</label>
-                                    <CustomSelect options={allUsersOptionsForCustody} value={newCustody.personName} onChange={v => setNewCustody({...newCustody, personName: v})} placeholder={t.respName} />
-                                </div>
-                            ) : (
-                                <div>
-                                    <label className="text-xs font-bold text-slate-500 mb-1 block">المسؤول عن العهدة:</label>
-                                    <div className="border-2 p-3 text-sm w-full rounded-xl font-bold bg-slate-100 text-slate-500 cursor-not-allowed border-slate-200">
-                                        {currentUserData?.name} (أنت)
-                                    </div>
-                                </div>
-                            )}
-                            
-                            <div>
-                                <label className="text-xs font-bold text-slate-500 mb-1 block">الرصيد الافتتاحي (إن وجد):</label>
-                                <NumberInput placeholder={t.initAmount} className="border-2 p-3 text-sm w-full rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCustody.totalAmount} onChange={v=>setNewCustody({...newCustody, totalAmount:v})}/>
-                                {lastCustodyNet > 0 && <span onClick={() => setNewCustody({...newCustody, totalAmount: lastCustodyNet.toString()})} className="block text-xs font-bold text-blue-600 mt-2 cursor-pointer hover:underline bg-blue-50 p-2 rounded-lg text-center border border-blue-100 shadow-sm transition hover:bg-blue-100">💡 {t.suggestedNet} ({lastCustodyNet.toLocaleString()})</span>}
-                            </div>
-                            
-                            <button className="bg-slate-800 text-white p-4 rounded-xl w-full text-md font-bold shadow-lg hover:bg-slate-900 transition">{t.saveCustody}</button>
-                        </form>
-                      </div>
-
-                      {/* --- قسم النسخ الاحتياطي (متاح للمدير وأمين العهدة مع دمج ذكي للبيانات) --- */}
-                      <div className="bg-white p-8 shadow-sm rounded-2xl md:col-span-2 text-center border-2 border-dashed border-blue-400 relative overflow-hidden">
-                          <div className="absolute top-0 left-0 w-full h-2 bg-blue-500"></div>
-                          <h4 className="font-black mb-3 text-blue-900 text-2xl">{t.backupTitle}</h4>
-                          <p className="text-sm mb-6 text-slate-600 font-bold bg-blue-50 inline-block p-2 rounded-lg">{t.backupDesc}</p>
-                          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
-                              <button onClick={()=>{const b=new Blob([JSON.stringify(data)],{type:'application/json'});const l=document.createElement('a');l.href=URL.createObjectURL(b);l.download=`backup_${todayDateStr}.json`;l.click(); showMsg(t.success);}} className="bg-blue-600 text-white px-8 py-4 rounded-xl font-black text-lg shadow-lg hover:bg-blue-700 transition hover:-translate-y-1">{t.exportBtn}</button>
-                              <label className="bg-amber-500 text-white px-8 py-4 rounded-xl font-black text-lg shadow-lg hover:bg-amber-600 transition cursor-pointer hover:-translate-y-1">{t.importBtn}<input type="file" accept=".json" className="hidden" onChange={(e)=>{ 
-                                  const r = new FileReader(); 
-                                  r.onload = (ev) => { 
-                                      try { 
-                                          const imported = JSON.parse(ev.target.result); 
-                                          if (userRole === 'admin') {
-                                             updateData(p => { return { ...imported, pinCode: p.pinCode || '0000' }; }); 
-                                          } else {
-                                             updateData(p => {
-                                                const otherCustodies = (p.custodies||[]).filter(c => c.personName !== currentUserData.name);
-                                                const myImportedCustodies = (imported.custodies || []).filter(c => c.personName === currentUserData.name);
-                                                
-                                                const myCustodyIds = myImportedCustodies.map(c => c.id);
-                                                const otherTxs = (p.transactions||[]).filter(tx => !myCustodyIds.includes(tx.custodyId) && !myCustodyIds.includes(tx.toCustodyId));
-                                                const myImportedTxs = (imported.transactions || []).filter(tx => myCustodyIds.includes(tx.custodyId) || myCustodyIds.includes(tx.toCustodyId));
-
-                                                const otherReqs = (p.requests || []).filter(r => r.personName !== currentUserData.name);
-                                                const myImportedReqs = (imported.requests || []).filter(r => r.personName === currentUserData.name);
-
-                                                return {
-                                                   ...p,
-                                                   custodies: [...otherCustodies, ...myImportedCustodies],
-                                                   transactions: [...otherTxs, ...myImportedTxs],
-                                                   requests: [...otherReqs, ...myImportedReqs]
-                                                };
-                                             });
-                                          }
-                                          showMsg(t.success); 
-                                      } catch { 
-                                          showMsg('ملف غير صالح', true); 
-                                      } 
-                                  }; 
-                                  if(e.target.files[0]) r.readAsText(e.target.files[0]); 
-                              }}/></label>
-                          </div>
-                      </div>
-                  </div>
-                )}
-
-                {/* الإعدادات الخاصة بالمدير فقط (Admin Only) */}
-                {userRole === 'admin' && (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
-                        <div className="bg-white p-6 shadow-sm rounded-2xl border border-slate-200 md:col-span-2"><h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">تغيير رمز PIN للحماية</h4><form onSubmit={(e)=>{ e.preventDefault(); const formTarget = e.target; const oldPinVal = formTarget.oldPin.value; const newPinVal = formTarget.newPin.value; if (oldPinVal !== (data.pinCode || '0000')) { showMsg(lang === 'ar' ? 'الرمز الحالي غير صحيح' : 'Incorrect current PIN', true); return; } updateData(p => { return {...p, pinCode: newPinVal}; }); showMsg(lang === 'ar' ? 'تم تغيير الرمز بنجاح' : 'PIN changed successfully'); formTarget.reset(); }} className="flex flex-col gap-4"><div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-lg mx-auto w-full"><div><label className="text-xs font-bold text-slate-500 mb-1 block">الرمز الحالي (المستخدم الآن):</label><input name="oldPin" type="password" inputMode="numeric" maxLength="4" pattern="[0-9]{4}" placeholder="****" className="border-2 p-3 text-center tracking-[1em] text-2xl w-full rounded-xl font-bold focus:border-red-500 outline-none bg-slate-50" required /></div><div><label className="text-xs font-bold text-slate-500 mb-1 block">الرمز الجديد:</label><input name="newPin" type="password" inputMode="numeric" maxLength="4" pattern="[0-9]{4}" placeholder="****" className="border-2 p-3 text-center tracking-[1em] text-2xl w-full rounded-xl font-bold focus:border-blue-500 outline-none bg-slate-50" required /></div></div><button className="bg-slate-800 text-white p-3 rounded-xl text-md font-bold shadow hover:bg-slate-900 transition mt-2 max-w-lg mx-auto w-full">تحديث الرمز السري</button></form></div>
-                        <div className="bg-red-50 p-8 shadow-sm rounded-2xl md:col-span-2 border-2 border-red-300 mt-2 relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-2 bg-red-600"></div><h4 className="font-black mb-3 text-red-800 text-center text-2xl">{t.dangerZone}</h4><p className="text-sm text-center text-red-600 mb-6 font-bold">{t.resetDesc}</p><button onClick={handleResetFactory} className="w-full bg-red-600 text-white py-4 rounded-xl text-xl font-black shadow-lg hover:bg-red-700 transition hover:-translate-y-1">{t.resetBtn}</button></div>
-                    </div>
-    
-                    <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 rounded-3xl shadow-xl text-white text-center relative overflow-hidden mt-6">
-                       <div className="absolute top-0 right-0 p-4 opacity-20 text-9xl">☁️</div>
-                       <h2 className="text-3xl font-black mb-2 relative z-10">الترحيل للسحابة (Cloud Migration)</h2>
-                       <p className="text-blue-100 font-bold mb-6 relative z-10">اضغط هنا لرفع كافة بياناتك المسجلة على الموبايل إلى سيرفرات جوجل لتصبح متاحة لحظياً.</p>
-                       <button onClick={handleMigrateData} disabled={isUploading} className={`relative z-10 px-8 py-4 rounded-xl font-black text-xl shadow-lg transition-transform ${isUploading ? 'bg-slate-400' : 'bg-white text-blue-800 hover:-translate-y-1 hover:shadow-2xl'}`}>
-                          {isUploading ? 'جاري الرفع والمزامنة...' : '⬆️ رفع البيانات للسيرفر الآن'}
-                       </button>
-                    </div>
-    
-                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 mt-6">
-                       <h3 className="font-black text-2xl text-slate-800 mb-6 border-b-2 border-slate-100 pb-4">👥 إدارة المستخدمين وصلاحيات الموظفين</h3>
-                       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                          <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner h-fit">
-                             <h4 className="font-bold text-slate-700 mb-4">إنشاء حساب موظف جديد</h4>
-                             <form onSubmit={handleCreateUser} className="space-y-4">
-                                <div><label className="text-xs font-bold text-slate-500 mb-1 block">الاسم</label><input type="text" required className="w-full border-2 p-3 rounded-xl font-bold outline-none focus:border-blue-500" value={newUser.name} onChange={e=>setNewUser({...newUser, name: e.target.value})} /></div>
-                                <div><label className="text-xs font-bold text-slate-500 mb-1 block">البريد (للدخول)</label><input type="email" required className="w-full border-2 p-3 rounded-xl font-bold outline-none focus:border-blue-500 text-left" dir="ltr" placeholder="eng@realstate.com" value={newUser.email} onChange={e=>setNewUser({...newUser, email: e.target.value})} /></div>
-                                <div><label className="text-xs font-bold text-slate-500 mb-1 block">كلمة المرور (6 حروف)</label><input type="text" required minLength="6" className="w-full border-2 p-3 rounded-xl font-black tracking-widest outline-none focus:border-blue-500 text-left" dir="ltr" value={newUser.password} onChange={e=>setNewUser({...newUser, password: e.target.value})} /></div>
-                                <div className="relative z-30">
-                                   <label className="text-xs font-bold text-slate-500 mb-1 block">الصلاحية</label>
-                                   <CustomSelect 
-                                       options={[{value: 'admin', label: 'مدير نظام'}, {value: 'custody', label: 'أمين عهدة'}, {value: 'partner', label: 'شريك / مستثمر'}]} 
-                                       value={newUser.role} 
-                                       onChange={v => setNewUser({...newUser, role: v})} 
-                                       placeholder="-- اختر الصلاحية --" 
-                                       required={true}
-                                   />
-                                </div>
-                                <button disabled={isCreatingUser} className={`w-full text-white py-4 rounded-xl font-bold shadow transition ${isCreatingUser ? 'bg-slate-400' : 'bg-slate-800 hover:bg-slate-900'}`}>{isCreatingUser ? 'جاري الإنشاء...' : '➕ إضافة الموظف'}</button>
-                             </form>
-                          </div>
-                          <div className="md:col-span-2">
-                             <h4 className="font-bold text-slate-700 mb-4">قائمة الموظفين الحاليين ({dbUsers.length})</h4>
-                             <div className="space-y-3">
-                                {dbUsers.map(u => (
-                                   <div key={u.uid} className="bg-white p-4 rounded-2xl border-2 border-slate-100 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4 hover:border-blue-200 transition">
-                                      <div className="flex items-center gap-4"><div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-inner ${u.role === 'admin' ? 'bg-blue-100' : u.role === 'partner' ? 'bg-purple-100' : 'bg-emerald-100'}`}>{u.role === 'admin' ? '👑' : u.role === 'partner' ? '💼' : '👷'}</div><div><p className="font-black text-slate-800">{u.name}</p><p className="text-xs text-slate-500 font-mono mt-1">{u.email}</p></div></div>
-                                      <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end"><span className={`px-3 py-1 rounded-lg text-xs font-bold border ${u.role === 'admin' ? 'bg-blue-50 text-blue-700 border-blue-200' : u.role === 'partner' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>{u.role === 'admin' ? 'مدير نظام' : u.role === 'partner' ? 'شريك' : 'أمين عهدة'}</span><button onClick={()=>handleDeleteUser(u.uid)} className="bg-red-50 text-red-600 w-8 h-8 rounded-lg font-bold hover:bg-red-100 transition shadow-sm border border-red-100">🗑️</button></div>
-                                   </div>
-                                ))}
-                                {dbUsers.length === 0 && <div className="text-center p-8 bg-slate-50 rounded-2xl border border-slate-200 text-slate-500 font-bold">لا يوجد موظفين مسجلين.</div>}
-                             </div>
-                          </div>
+                {/* 2. تصنيفات المصروفات */}
+                {!isPartnerRole && (
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all">
+                       <div className="p-4 bg-slate-50 hover:bg-slate-100 cursor-pointer flex justify-between items-center transition-colors" onClick={() => toggleSetting('cats')}>
+                          <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">🏷️ {t.addCatTitle}</h3>
+                          <span className={`text-xl text-blue-600 font-bold transition-transform duration-300 ${expandedSettings['cats'] ? 'rotate-45' : ''}`}>➕</span>
                        </div>
+                       {expandedSettings['cats'] && (
+                          <div className="p-6 border-t border-slate-100 animate-slide-up bg-white">
+                             <form onSubmit={(e)=>{e.preventDefault(); updateData(p=>({...p, categories: [...(p.categories || []), {id: 'c_'+Date.now(), name: newCategory}]})); setNewCategory(''); showMsg(t.success);}} className="flex flex-col gap-3 mb-4"><input required type="text" placeholder={t.catName} className="border-2 p-3 text-md w-full rounded-xl font-bold focus:border-blue-500 outline-none bg-slate-50" value={newCategory} onChange={e=>setNewCategory(e.target.value)}/><button className="bg-slate-800 text-white p-3 rounded-xl text-md font-bold shadow hover:bg-slate-900 transition">{t.addCatBtn}</button></form>
+                             <div className="flex flex-wrap gap-2">{sortedCategories.map(c => ( <span key={c.id} onClick={() => setAppModal({ show: true, type: 'CAT_ACTION', props: { cat: c } })} className="bg-slate-100 border border-slate-200 p-2 px-3 rounded-lg text-xs font-bold text-slate-700 shadow-sm cursor-pointer hover:bg-blue-50 transition">{c.name}</span> ))}</div>
+                          </div>
+                       )}
                     </div>
-                  </>
                 )}
+
+                {/* 3. فتح عهدة جديدة */}
+                {['admin', 'custody'].includes(userRole) && (
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all">
+                       <div className="p-4 bg-slate-50 hover:bg-slate-100 cursor-pointer flex justify-between items-center transition-colors" onClick={() => toggleSetting('new_custody')}>
+                          <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">💼 {t.newCustodyTitle}</h3>
+                          <span className={`text-xl text-blue-600 font-bold transition-transform duration-300 ${expandedSettings['new_custody'] ? 'rotate-45' : ''}`}>➕</span>
+                       </div>
+                       {expandedSettings['new_custody'] && (
+                          <div className="p-6 border-t border-slate-100 animate-slide-up bg-white">
+                              <form onSubmit={(e)=>{
+                                  e.preventDefault();
+                                  const pName = userRole === 'admin' ? newCustody.personName : currentUserData?.name;
+                                  if (!pName) { showMsg('يرجى اختيار المسؤول', true); return; }
+                                  if (!newCustody.custodyName) { showMsg('يرجى كتابة اسم العهدة', true); return; }
+                                  updateData(p=>({...p, custodies: [...(p.custodies || []), {id: 'cus_'+Date.now(), personName: pName, custodyName: newCustody.custodyName, totalAmount: newCustody.totalAmount, status: 'active'}]}));
+                                  setNewCustody({personName:'', custodyName:'', totalAmount:'', notes:''});
+                                  showMsg(t.success);
+                              }} className="space-y-4 relative">
+                                  <div>
+                                      <label className="text-xs font-bold text-slate-500 mb-1 block">اسم العهدة (مثال: عهدة الموقع، عهدة المشتريات):</label>
+                                      <input type="text" required className="border-2 p-3 text-sm w-full rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCustody.custodyName} onChange={e=>setNewCustody({...newCustody, custodyName: e.target.value})} placeholder="اسم العهدة..." />
+                                  </div>
+                                  {userRole === 'admin' ? (
+                                      <div className="relative">
+                                          <label className="text-xs font-bold text-slate-500 mb-1 block">المسؤول عن العهدة:</label>
+                                          <CustomSelect options={allUsersOptionsForCustody} value={newCustody.personName} onChange={v => setNewCustody({...newCustody, personName: v})} placeholder={t.respName} />
+                                      </div>
+                                  ) : (
+                                      <div>
+                                          <label className="text-xs font-bold text-slate-500 mb-1 block">المسؤول عن العهدة:</label>
+                                          <div className="border-2 p-3 text-sm w-full rounded-xl font-bold bg-slate-100 text-slate-500 cursor-not-allowed border-slate-200">{currentUserData?.name} (أنت)</div>
+                                      </div>
+                                  )}
+                                  <div>
+                                      <label className="text-xs font-bold text-slate-500 mb-1 block">الرصيد الافتتاحي (إن وجد):</label>
+                                      <NumberInput placeholder={t.initAmount} className="border-2 p-3 text-sm w-full rounded-xl font-bold focus:border-blue-400 outline-none bg-slate-50" value={newCustody.totalAmount} onChange={v=>setNewCustody({...newCustody, totalAmount:v})}/>
+                                      {lastCustodyNet > 0 && <span onClick={() => setNewCustody({...newCustody, totalAmount: lastCustodyNet.toString()})} className="block text-xs font-bold text-blue-600 mt-2 cursor-pointer hover:underline bg-blue-50 p-2 rounded-lg text-center border border-blue-100 shadow-sm transition hover:bg-blue-100">💡 {t.suggestedNet} ({lastCustodyNet.toLocaleString()})</span>}
+                                  </div>
+                                  <button className="bg-slate-800 text-white p-4 rounded-xl w-full text-md font-bold shadow-lg hover:bg-slate-900 transition">{t.saveCustody}</button>
+                              </form>
+                          </div>
+                       )}
+                    </div>
+                )}
+
+                {/* 4. الحماية والنسخ الاحتياطي */}
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all">
+                   <div className="p-4 bg-slate-50 hover:bg-slate-100 cursor-pointer flex justify-between items-center transition-colors" onClick={() => toggleSetting('security')}>
+                      <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">🔒 الحماية والنسخ الاحتياطي</h3>
+                      <span className={`text-xl text-blue-600 font-bold transition-transform duration-300 ${expandedSettings['security'] ? 'rotate-45' : ''}`}>➕</span>
+                   </div>
+                   {expandedSettings['security'] && (
+                      <div className="p-6 border-t border-slate-100 animate-slide-up bg-white space-y-6">
+                          
+                          {/* Backup */}
+                          <div className="text-center border-2 border-dashed border-blue-400 p-6 rounded-2xl bg-slate-50 relative overflow-hidden">
+                              <h4 className="font-black mb-3 text-blue-900 text-xl">{t.backupTitle}</h4>
+                              <p className="text-sm mb-6 text-slate-600 font-bold bg-blue-100 inline-block p-2 rounded-lg">{t.backupDesc}</p>
+                              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                                  <button onClick={()=>{const b=new Blob([JSON.stringify(data)],{type:'application/json'});const l=document.createElement('a');l.href=URL.createObjectURL(b);l.download=`backup_${todayDateStr}.json`;l.click(); showMsg(t.success);}} className="bg-blue-600 text-white px-8 py-3 rounded-xl font-black shadow-md hover:bg-blue-700 transition">{t.exportBtn}</button>
+                                  <label className="bg-amber-500 text-white px-8 py-3 rounded-xl font-black shadow-md hover:bg-amber-600 transition cursor-pointer">{t.importBtn}<input type="file" accept=".json" className="hidden" onChange={(e)=>{ 
+                                      const r = new FileReader(); 
+                                      r.onload = (ev) => { 
+                                          try { 
+                                              const imported = JSON.parse(ev.target.result); 
+                                              if (userRole === 'admin') {
+                                                 updateData(p => { return { ...imported, pinCode: p.pinCode || '0000' }; }); 
+                                              } else {
+                                                 updateData(p => {
+                                                    const otherCustodies = (p.custodies||[]).filter(c => c.personName !== currentUserData.name);
+                                                    const myImportedCustodies = (imported.custodies || []).filter(c => c.personName === currentUserData.name);
+                                                    const myCustodyIds = myImportedCustodies.map(c => c.id);
+                                                    const otherTxs = (p.transactions||[]).filter(tx => !myCustodyIds.includes(tx.custodyId) && !myCustodyIds.includes(tx.toCustodyId));
+                                                    const myImportedTxs = (imported.transactions || []).filter(tx => myCustodyIds.includes(tx.custodyId) || myCustodyIds.includes(tx.toCustodyId));
+                                                    const otherReqs = (p.requests || []).filter(r => r.personName !== currentUserData.name);
+                                                    const myImportedReqs = (imported.requests || []).filter(r => r.personName === currentUserData.name);
+                                                    return { ...p, custodies: [...otherCustodies, ...myImportedCustodies], transactions: [...otherTxs, ...myImportedTxs], requests: [...otherReqs, ...myImportedReqs] };
+                                                 });
+                                              }
+                                              showMsg(t.success); 
+                                          } catch { showMsg('ملف غير صالح', true); } 
+                                      }; 
+                                      if(e.target.files[0]) r.readAsText(e.target.files[0]); 
+                                  }}/></label>
+                              </div>
+                          </div>
+
+                          {/* PIN */}
+                          {userRole === 'admin' && (
+                              <div className="border border-slate-200 p-6 rounded-2xl bg-white shadow-sm">
+                                  <h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">تغيير رمز PIN للحماية</h4>
+                                  <form onSubmit={(e)=>{ e.preventDefault(); const formTarget = e.target; const oldPinVal = formTarget.oldPin.value; const newPinVal = formTarget.newPin.value; if (oldPinVal !== (data.pinCode || '0000')) { showMsg(lang === 'ar' ? 'الرمز الحالي غير صحيح' : 'Incorrect current PIN', true); return; } updateData(p => { return {...p, pinCode: newPinVal}; }); showMsg(lang === 'ar' ? 'تم تغيير الرمز بنجاح' : 'PIN changed successfully'); formTarget.reset(); }} className="flex flex-col gap-4">
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                          <div><label className="text-xs font-bold text-slate-500 mb-1 block">الرمز الحالي:</label><input name="oldPin" type="password" inputMode="numeric" maxLength="4" pattern="[0-9]{4}" placeholder="****" className="border-2 p-3 text-center tracking-[1em] text-xl w-full rounded-xl font-bold focus:border-red-500 outline-none bg-slate-50" required /></div>
+                                          <div><label className="text-xs font-bold text-slate-500 mb-1 block">الرمز الجديد:</label><input name="newPin" type="password" inputMode="numeric" maxLength="4" pattern="[0-9]{4}" placeholder="****" className="border-2 p-3 text-center tracking-[1em] text-xl w-full rounded-xl font-bold focus:border-blue-500 outline-none bg-slate-50" required /></div>
+                                      </div>
+                                      <button className="bg-slate-800 text-white p-3 rounded-xl text-md font-bold shadow hover:bg-slate-900 transition mt-2">تحديث الرمز السري</button>
+                                  </form>
+                              </div>
+                          )}
+
+                          {/* Reset */}
+                          {userRole === 'admin' && (
+                              <div className="bg-red-50 p-6 shadow-sm rounded-2xl border-2 border-red-300 text-center">
+                                  <h4 className="font-black mb-3 text-red-800 text-xl">{t.dangerZone}</h4>
+                                  <p className="text-sm text-center text-red-600 mb-6 font-bold">{t.resetDesc}</p>
+                                  <button onClick={handleResetFactory} className="w-full md:w-auto px-8 bg-red-600 text-white py-3 rounded-xl font-black shadow hover:bg-red-700 transition">{t.resetBtn}</button>
+                              </div>
+                          )}
+                      </div>
+                   )}
+                </div>
+
+                {/* 5. المزامنة السحابية */}
+                {userRole === 'admin' && (
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all">
+                       <div className="p-4 bg-slate-50 hover:bg-slate-100 cursor-pointer flex justify-between items-center transition-colors" onClick={() => toggleSetting('cloud')}>
+                          <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">☁️ المزامنة السحابية</h3>
+                          <span className={`text-xl text-blue-600 font-bold transition-transform duration-300 ${expandedSettings['cloud'] ? 'rotate-45' : ''}`}>➕</span>
+                       </div>
+                       {expandedSettings['cloud'] && (
+                          <div className="p-8 border-t border-slate-100 animate-slide-up bg-gradient-to-r from-blue-600 to-indigo-700 text-white text-center">
+                              <h2 className="text-2xl font-black mb-2">الترحيل للسحابة (Cloud Migration)</h2>
+                              <p className="text-blue-100 font-bold mb-6">اضغط هنا لرفع كافة بياناتك المسجلة على الموبايل إلى سيرفرات جوجل لتصبح متاحة لحظياً لجميع المستخدمين.</p>
+                              <button onClick={handleMigrateData} disabled={isUploading} className={`px-8 py-3 rounded-xl font-black shadow-lg transition-transform ${isUploading ? 'bg-slate-400' : 'bg-white text-blue-800 hover:-translate-y-1 hover:shadow-2xl'}`}>
+                                 {isUploading ? 'جاري الرفع والمزامنة...' : '⬆️ رفع البيانات للسيرفر الآن'}
+                              </button>
+                          </div>
+                       )}
+                    </div>
+                )}
+
+                {/* 6. إدارة المستخدمين */}
+                {userRole === 'admin' && (
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all">
+                       <div className="p-4 bg-slate-50 hover:bg-slate-100 cursor-pointer flex justify-between items-center transition-colors" onClick={() => toggleSetting('users')}>
+                          <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">👥 إدارة الموظفين والصلاحيات</h3>
+                          <span className={`text-xl text-blue-600 font-bold transition-transform duration-300 ${expandedSettings['users'] ? 'rotate-45' : ''}`}>➕</span>
+                       </div>
+                       {expandedSettings['users'] && (
+                          <div className="p-6 border-t border-slate-100 animate-slide-up bg-white">
+                              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                 <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner h-fit">
+                                    <h4 className="font-bold text-slate-700 mb-4">إنشاء حساب موظف جديد</h4>
+                                    <form onSubmit={handleCreateUser} className="space-y-4">
+                                       <div><label className="text-xs font-bold text-slate-500 mb-1 block">الاسم</label><input type="text" required className="w-full border-2 p-3 rounded-xl font-bold outline-none focus:border-blue-500" value={newUser.name} onChange={e=>setNewUser({...newUser, name: e.target.value})} /></div>
+                                       <div><label className="text-xs font-bold text-slate-500 mb-1 block">البريد (للدخول)</label><input type="email" required className="w-full border-2 p-3 rounded-xl font-bold outline-none focus:border-blue-500 text-left" dir="ltr" placeholder="eng@realstate.com" value={newUser.email} onChange={e=>setNewUser({...newUser, email: e.target.value})} /></div>
+                                       <div><label className="text-xs font-bold text-slate-500 mb-1 block">كلمة المرور (6 حروف)</label><input type="text" required minLength="6" className="w-full border-2 p-3 rounded-xl font-black tracking-widest outline-none focus:border-blue-500 text-left" dir="ltr" value={newUser.password} onChange={e=>setNewUser({...newUser, password: e.target.value})} /></div>
+                                       <div className="relative z-30">
+                                          <label className="text-xs font-bold text-slate-500 mb-1 block">الصلاحية</label>
+                                          <CustomSelect 
+                                              options={[{value: 'admin', label: 'مدير نظام'}, {value: 'custody', label: 'أمين عهدة'}, {value: 'partner', label: 'شريك / مستثمر'}]} 
+                                              value={newUser.role} 
+                                              onChange={v => setNewUser({...newUser, role: v})} 
+                                              placeholder="-- اختر الصلاحية --" 
+                                              required={true}
+                                          />
+                                       </div>
+                                       <button disabled={isCreatingUser} className={`w-full text-white py-4 rounded-xl font-bold shadow transition ${isCreatingUser ? 'bg-slate-400' : 'bg-slate-800 hover:bg-slate-900'}`}>{isCreatingUser ? 'جاري الإنشاء...' : '➕ إضافة الموظف'}</button>
+                                    </form>
+                                 </div>
+                                 <div className="lg:col-span-2">
+                                    <h4 className="font-bold text-slate-700 mb-4">قائمة الموظفين الحاليين ({dbUsers.length})</h4>
+                                    <div className="space-y-3">
+                                       {dbUsers.map(u => (
+                                          <div key={u.uid} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4 hover:border-blue-300 transition">
+                                             <div className="flex items-center gap-4"><div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-inner ${u.role === 'admin' ? 'bg-blue-100' : u.role === 'partner' ? 'bg-purple-100' : 'bg-emerald-100'}`}>{u.role === 'admin' ? '👑' : u.role === 'partner' ? '💼' : '👷'}</div><div><p className="font-black text-slate-800">{u.name}</p><p className="text-xs text-slate-500 font-mono mt-1">{u.email}</p></div></div>
+                                             <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end"><span className={`px-3 py-1 rounded-lg text-xs font-bold border ${u.role === 'admin' ? 'bg-blue-50 text-blue-700 border-blue-200' : u.role === 'partner' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>{u.role === 'admin' ? 'مدير نظام' : u.role === 'partner' ? 'شريك' : 'أمين عهدة'}</span><button onClick={()=>handleDeleteUser(u.uid)} className="bg-red-50 text-red-600 w-8 h-8 rounded-lg font-bold hover:bg-red-100 transition shadow-sm border border-red-100">🗑️</button></div>
+                                          </div>
+                                       ))}
+                                       {dbUsers.length === 0 && <div className="text-center p-8 bg-slate-50 rounded-2xl border border-slate-200 text-slate-500 font-bold">لا يوجد موظفين مسجلين.</div>}
+                                    </div>
+                                 </div>
+                              </div>
+                          </div>
+                       )}
+                    </div>
+                )}
+
+                {/* زر الخروج من النظام */}
+                <button onClick={() => setAppModal({ show: true, type: 'LOGOUT' })} className="w-full bg-red-50 text-red-600 border border-red-200 py-4 rounded-xl font-black text-lg shadow-sm hover:bg-red-100 transition mt-6 flex justify-center items-center gap-2">
+                   تسجيل الخروج 🚪
+                </button>
 
               </div>
             )}

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'real-estate-offline-v57';
+const CACHE_NAME = 'real-estate-offline-v58';
 const urlsToCache = [
   'index.html',
   'manifest.json',
@@ -6,8 +6,23 @@ const urlsToCache = [
   'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
   'https://unpkg.com/@babel/standalone/babel.min.js',
   'https://cdn.tailwindcss.com',
-  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
+  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+  'https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js',
+  'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js',
+  'https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js'
 ];
-self.addEventListener('install', event => { event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))); self.skipWaiting(); });
-self.addEventListener('activate', event => { event.waitUntil(caches.keys().then(keys => Promise.all(keys.map(key => { if (key !== CACHE_NAME) return caches.delete(key); })))); });
-self.addEventListener('fetch', event => { event.respondWith(fetch(event.request).catch(() => caches.match(event.request))); });
+
+self.addEventListener('install', event => { 
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))); 
+  self.skipWaiting(); 
+});
+
+self.addEventListener('activate', event => { 
+  event.waitUntil(caches.keys().then(keys => Promise.all(keys.map(key => { 
+    if (key !== CACHE_NAME) return caches.delete(key); 
+  })))); 
+});
+
+self.addEventListener('fetch', event => { 
+  event.respondWith(fetch(event.request).catch(() => caches.match(event.request))); 
+});

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+[source: 1]<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
@@ -19,8 +19,22 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-storage-compat.js"></script>
 
   <style>
-    @media print { html, body, #root, .min-h-screen, main, main > div { height: auto !important; min-height: auto !important; overflow: visible !important; position: static !important; background: white !important; margin: 0 !important; padding: 0 !important; display: block !important; } header, nav, .print-hide { display: none !important; } .print-show { display: block !important; position: static !important; width: 100% !important; visibility: visible !important; } .print-receipt-wrapper { position: static !important; display: block !important; background: transparent !important; padding: 0 !important; } .print-receipt-wrapper > div { position: static !important; box-shadow: none !important; max-width: 100% !important; width: 100% !important; margin: 0 !important; border: none !important; border-radius: 0 !important; } .receipt-print-area { padding: 0 !important; border: none !important; } @page { size: auto; margin: 8mm; } table { width: 100%; border-collapse: collapse; margin: 15px auto; page-break-inside: auto; } tr { page-break-inside: avoid; page-break-after: auto; } th, td { border: 2px solid black !important; padding: 6px 8px !important; text-align: center; color: black !important; } .print-row-text { font-size: 1rem !important; } }
-    @keyframes slideUp { from { transform: translateY(10%); opacity: 0; } to { transform: translateY(0); opacity: 1; } } .animate-slide-up { animation: slideUp 0.2s ease-out; } @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } } .animate-fade-in { animation: fadeIn 0.2s ease-out; } .no-scrollbar::-webkit-scrollbar { display: none; }
+    @media print { 
+      html, body, #root, .min-h-screen, main, main > div { height: auto !important; min-height: auto !important; overflow: visible !important; position: static !important; background: white !important; margin: 0 !important; padding: 0 !important; display: block !important; } 
+      header, nav, .print-hide { display: none !important; } 
+      .print-show { display: block !important; position: static !important; width: 100% !important; visibility: visible !important; } 
+      .print-receipt-wrapper { position: static !important; display: block !important; background: transparent !important; padding: 0 !important; } 
+      .print-receipt-wrapper > div { position: static !important; box-shadow: none !important; max-width: 100% !important; width: 100% !important; margin: 0 !important; border: none !important; border-radius: 0 !important; } 
+      .receipt-print-area { padding: 0 !important; border: none !important; } 
+      @page { size: auto; margin: 8mm; } 
+      table { width: 100%; border-collapse: collapse; margin: 15px auto; page-break-inside: auto; } 
+      tr { page-break-inside: avoid; page-break-after: auto; } 
+      th, td { border: 2px solid black !important; padding: 6px 8px !important; text-align: center; color: black !important; } 
+      .print-row-text { font-size: 1rem !important; } 
+    }
+    @keyframes slideUp { from { transform: translateY(10%); opacity: 0; } to { transform: translateY(0); opacity: 1; } } .animate-slide-up { animation: slideUp 0.2s ease-out; } 
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } } .animate-fade-in { animation: fadeIn 0.2s ease-out; } 
+    .no-scrollbar::-webkit-scrollbar { display: none; }
   </style>
 </head>
 <body className="bg-slate-50 text-slate-800 font-sans">
@@ -36,6 +50,19 @@
     const { useState, useEffect, useMemo, useRef } = React;
     const getTodayStr = () => new Date().toISOString().substring(0, 10);
     const todayDateStr = getTodayStr();
+
+    // دالة ذكية لحساب التواريخ لتجنب ثغرة الشهور القصيرة
+    const addMonthsSafe = (startDateStr, monthsToAdd) => {
+      const [y, m, d] = startDateStr.split('-').map(Number);
+      const targetDate = new Date(y, m - 1 + monthsToAdd, 1);
+      const maxDays = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0).getDate();
+      const safeDay = Math.min(d, maxDays);
+      targetDate.setDate(safeDay);
+      const resY = targetDate.getFullYear();
+      const resM = String(targetDate.getMonth() + 1).padStart(2, '0');
+      const resD = String(targetDate.getDate()).padStart(2, '0');
+      return `${resY}-${resM}-${resD}`;
+    };
 
     const compressImage = (file, callback) => { 
       const reader = new FileReader(); 
@@ -54,7 +81,7 @@
             canvas.width = width; canvas.height = height; 
             const ctx = canvas.getContext('2d'); 
             ctx.drawImage(img, 0, 0, width, height); 
-            callback(canvas.toDataURL('image/jpeg', 0.6)); 
+            callback(canvas.toDataURL('image/jpeg', 0.5)); 
           } catch(err) { alert('خطأ في معالجة الصورة'); } 
         }; 
         img.src = event.target.result; 
@@ -187,7 +214,7 @@
     function CustomDateInput({ value, onChange, className }) { const [isOpen, setIsOpen] = useState(false); const dateObj = value ? new Date(value) : new Date(); const [viewYear, setViewYear] = useState(dateObj.getFullYear() || new Date().getFullYear()); const [viewMonth, setViewMonth] = useState(dateObj.getMonth() || new Date().getMonth()); const ref = useRef(null); useEffect(() => { if(value) { const d = new Date(value); if(!isNaN(d.getTime())) { setViewYear(d.getFullYear()); setViewMonth(d.getMonth()); } } }, [value]); useEffect(() => { const handleClickOutside = (e) => { if (ref.current && !ref.current.contains(e.target)) setIsOpen(false); }; document.addEventListener('mousedown', handleClickOutside); return () => document.removeEventListener('mousedown', handleClickOutside); }, []); const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate(); const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay(); const monthsNames = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]; const handleSelectDay = (day) => { const m = String(viewMonth + 1).padStart(2, '0'); const d = String(day).padStart(2, '0'); const selectedStr = `${viewYear}-${m}-${d}`; onChange(selectedStr); setIsOpen(false); }; const formatDisplay = (dStr) => { if(!dStr) return 'اختر التاريخ...'; const p = dStr.split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : dStr; }; return ( <div className={`relative w-full ${isOpen ? 'z-50' : 'z-10'}`} ref={ref}> <div onClick={() => setIsOpen(!isOpen)} className={`cursor-pointer font-mono font-bold flex justify-between items-center ${className || 'w-full border-2 border-slate-200 p-3 rounded-xl bg-slate-50 text-slate-800'}`}> <span>{formatDisplay(value)}</span> <span className="text-slate-400 text-sm">📅</span> </div> {isOpen && ( <div className="absolute top-full right-0 w-full max-w-xs bg-white border-2 border-slate-200 mt-1 p-3 shadow-2xl z-50 rounded-2xl animate-fade-in text-slate-800" onClick={e=>e.stopPropagation()}> <div className="flex justify-between items-center mb-3"> <button type="button" onClick={() => { if(viewMonth === 0) { setViewMonth(11); setViewYear(viewYear-1); } else setViewMonth(viewMonth-1); }} className="p-1 px-2.5 bg-slate-100 rounded-lg text-slate-700 font-bold hover:bg-slate-200">▶</button> <span className="font-bold text-sm text-slate-800">{monthsNames[viewMonth]} {viewYear}</span> <button type="button" onClick={() => { if(viewMonth === 11) { setViewMonth(0); setViewYear(viewYear+1); } else setViewMonth(viewMonth+1); }} className="p-1 px-2.5 bg-slate-100 rounded-lg text-slate-700 font-bold hover:bg-slate-200">◀</button> </div> <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 mb-2"> <span>أحد</span><span>إثن</span><span>ثلا</span><span>أرب</span><span>خميس</span><span>جمعة</span><span>سبت</span> </div> <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold"> {Array.from({ length: firstDayOfWeek }).map((_, i) => <div key={'empty_'+i}></div>)} {Array.from({ length: daysInMonth }).map((_, i) => { const day = i + 1; const m = String(viewMonth + 1).padStart(2, '0'); const d = String(day).padStart(2, '0'); const curStr = `${viewYear}-${m}-${d}`; const isSelected = value === curStr; const isToday = todayDateStr === curStr; return ( <button key={day} type="button" onClick={() => handleSelectDay(day)} className={`p-2 rounded-xl transition font-mono ${isSelected ? 'bg-blue-600 text-white font-black shadow' : isToday ? 'bg-blue-100 text-blue-800 border border-blue-300' : 'hover:bg-slate-100 text-slate-700'}`}> {day} </button> ); })} </div> </div> )} </div> ); }
     function MultiSelectDropdown({ options, selected, onChange, placeholder }) { const [isOpen, setIsOpen] = useState(false); const dropdownRef = useRef(null); useEffect(() => { const handleClickOutside = (e) => { if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setIsOpen(false); }; document.addEventListener('mousedown', handleClickOutside); return () => document.removeEventListener('mousedown', handleClickOutside); }, []); const isAll = (selected || []).includes('ALL'); const selectedLabels = (selected || []).map(id => options.find(o => o.id === id)?.label).filter(Boolean); let displayTxt = placeholder || '-- جميع العهد والخزينة --'; if (isAll) { displayTxt = '-- جميع العهد والخزينة --'; } else if (selectedLabels.length > 0) { displayTxt = selectedLabels.length <= 2 ? selectedLabels.join(' + ') : `(${selectedLabels.length} مختارة)`; } return ( <div className={`relative w-full ${isOpen ? 'z-50' : 'z-20'}`} ref={dropdownRef}> <div className="w-full border-2 border-slate-200 p-3 text-sm rounded-xl bg-white cursor-pointer font-bold flex justify-between items-center shadow-sm hover:border-blue-400 transition text-slate-800" onClick={() => setIsOpen(!isOpen)}> <span className="truncate">{displayTxt}</span><span className="text-xs text-blue-600">▼</span> </div> {isOpen && ( <div className="absolute top-full right-0 w-full bg-white border-2 border-slate-200 mt-1 shadow-2xl max-h-56 overflow-y-auto z-50 p-2 space-y-1 rounded-xl animate-fade-in text-slate-800"> {(options || []).map(opt => { const checked = (selected || []).includes(opt.id); return ( <label key={opt.id} className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-50 p-2 rounded-lg transition text-slate-800 font-bold border-b border-slate-100 last:border-none"> <input type="checkbox" checked={checked} className="w-4 h-4 text-blue-600 rounded" onChange={(e) => { if (opt.id === 'ALL') { onChange(e.target.checked ? ['ALL'] : []); } else { let next = (selected || []).filter(id => id !== 'ALL'); if (e.target.checked) { next.push(opt.id); } else { next = next.filter(id => id !== opt.id); } onChange(next); } }} /> <span>{opt.label}</span> </label> ); })} </div> )} </div> ); }
 
-    const initialData = { pinCode: '0000', buildings: [], units: [], categories: [], contracts: [], installments: [], custodies: [], transactions: [], requests: [] };
+    const initialData = { pinCode: '0000', buildings: [], units: [], categories: [], contracts: [], installments: [], custodies: [], transactions: [], requests: [], logs: [] };
 
     function MainApp({ user, currentUserData }) {
       const [lang, setLang] = useState(() => localStorage.getItem('real_estate_lang') || 'ar');
@@ -219,11 +246,25 @@
         return () => dataRef.off('value', listener);
       }, [currentUserData.companyId]);
 
-      const updateData = (updater) => {
+      // دالة التحديث الذكية المستهدفة لمنع المسح الكلي للبيانات عند التزامن (Atomic Sync Fix)
+      const updateData = (updater, logInfo) => {
         setData(prev => {
-          const nextData = typeof updater === 'function' ? updater(prev) : updater;
+          let nextData = typeof updater === 'function' ? updater(prev) : updater;
+          
+          if (logInfo) {
+            const newLog = { id: 'log_' + Date.now(), userName: currentUserData?.name || 'مستخدم', role: currentUserData?.role || 'admin', action: logInfo.action, details: logInfo.details, timestamp: new Date().toISOString() };
+            nextData = { ...nextData, logs: [newLog, ...(nextData.logs || [])].slice(0, 300) };
+          }
+
           localStorage.setItem(`real_estate_data_${currentUserData.companyId}`, JSON.stringify(nextData));
-          db.ref(`companies/${currentUserData.companyId}/companyData`).set(nextData);
+          
+          // تحديث المسارات التي تغيرت فقط لمنع Overwrite التعارضي
+          Object.keys(nextData).forEach(key => {
+            if (JSON.stringify(prev[key]) !== JSON.stringify(nextData[key])) {
+              db.ref(`companies/${currentUserData.companyId}/companyData/${key}`).set(nextData[key]);
+            }
+          });
+
           return nextData;
         });
       };
@@ -566,8 +607,16 @@
         e.preventDefault();
         if(!newTransaction.amount) return;
         if (newTransaction.type === 'transfer' && newTransaction.custodyId === newTransaction.toCustodyId) { showMsg(lang === 'ar' ? 'لا يمكن التحويل لنفس العهدة' : 'Cannot transfer to same custody', true); return; }
-        if (editingTxId) { updateData(prev => ({ ...prev, transactions: prev.transactions.map(tx => tx.id === editingTxId ? { ...tx, ...newTransaction, amount: Number(newTransaction.amount) } : tx) })); setEditingTxId(null); showMsg(t.success); } 
-        else { const item = { id: 't_' + Date.now(), ...newTransaction, amount: Number(newTransaction.amount) }; updateData(prev => ({ ...prev, transactions: [...(prev.transactions || []), item] })); showMsg(t.success); }
+        
+        let actionTxt = newTransaction.type === 'income' ? 'إضافة إيراد' : newTransaction.type === 'expense' ? 'إضافة مصروف' : 'تحويل نقدية';
+        if (editingTxId) {
+           updateData(prev => ({ ...prev, transactions: prev.transactions.map(tx => tx.id === editingTxId ? { ...tx, ...newTransaction, amount: Number(newTransaction.amount) } : tx) }), { action: 'تعديل حركة مالية', details: `تعديل الحركة بقيمة ${newTransaction.amount} - ${newTransaction.description}` });
+           setEditingTxId(null); showMsg(t.success);
+        } else {
+           const item = { id: 't_' + Date.now(), ...newTransaction, amount: Number(newTransaction.amount) };
+           updateData(prev => ({ ...prev, transactions: [...(prev.transactions || []), item] }), { action: actionTxt, details: `تسجيل ${actionTxt} بقيمة ${newTransaction.amount} - ${newTransaction.description}` });
+           showMsg(t.success);
+        }
         setNewTransaction(prev => ({ ...prev, amount: '', description: '', date: getTodayStr(), toCustodyId: '', attachment: '' })); 
       };
 
@@ -578,8 +627,8 @@
       };
 
       const handleResetFactory = () => { requirePin(() => { setAppModal({show: true, type: 'CONFIRM', props: { title: t.dangerZone, message: t.resetDesc, onConfirm: () => { const currentPin = data.pinCode || '0000'; localStorage.removeItem(`real_estate_data_${currentUserData.companyId}`); const emptyData = { ...initialData, pinCode: currentPin }; db.ref(`companies/${currentUserData.companyId}/companyData`).set(emptyData); window.location.reload(); } }}); }); };
-      const addBuilding = (e) => { e.preventDefault(); const pPercent = newBuildingPartner ? Number(newBuildingPartnerPercent) : 0; const pName = newBuildingPartnerName || (lang==='ar'?'شريك ':'Partner ') + newBuilding; updateData(p=>({...p, buildings: [...(p.buildings||[]), {id: 'b_'+Date.now(), name: newBuilding, hasPartner: newBuildingPartner, partnerPercent: pPercent, partnerName: pName}]})); setNewBuilding(''); setNewBuildingPartner(false); setNewBuildingPartnerPercent(''); setNewBuildingPartnerName(''); showMsg(t.success); };
-      const addUnit = (e) => { e.preventDefault(); updateData(p => ({ ...p, units: [...(p.units || []), { id: 'u_' + Date.now(), ...newUnit, status: 'available' }] })); setNewUnit({ buildingId: '', unitNumber: '', price: '' }); showMsg(t.success); };
+      const addBuilding = (e) => { e.preventDefault(); const pPercent = newBuildingPartner ? Number(newBuildingPartnerPercent) : 0; const pName = newBuildingPartnerName || (lang==='ar'?'شريك ':'Partner ') + newBuilding; updateData(p=>({...p, buildings: [...(p.buildings||[]), {id: 'b_'+Date.now(), name: newBuilding, hasPartner: newBuildingPartner, partnerPercent: pPercent, partnerName: pName}]}), { action: 'إضافة مشروع/عمارة', details: `إضافة العمارة ${newBuilding}` }); setNewBuilding(''); setNewBuildingPartner(false); setNewBuildingPartnerPercent(''); setNewBuildingPartnerName(''); showMsg(t.success); };
+      const addUnit = (e) => { e.preventDefault(); updateData(p => ({ ...p, units: [...(p.units || []), { id: 'u_' + Date.now(), ...newUnit, status: 'available' }] }), { action: 'إضافة وحدة', details: `إضافة الوحدة ${newUnit.unitNumber}` }); setNewUnit({ buildingId: '', unitNumber: '', price: '' }); showMsg(t.success); };
       
       const addContract = (e) => { 
          e.preventDefault(); const unit = (data.units || []).find(u => u.id === newContract.unitId); if (!unit) return; 
@@ -598,13 +647,23 @@
                contractId = 'cont_' + Date.now(); updatedContracts.push({ id: contractId, clientName: newContract.clientName, unitId: unit.id, buildingId: unit.buildingId, totalAmount: total, downPayment: dp, date: todayDateStr, status: 'active', installmentsCount: count, interval: interval, attachments: [], suspendedAmount: 0 });
             }
             const newInsts = []; if (dp > 0) { newInsts.push({ id: 'inst_dp_' + Date.now(), contractId, amount: dp, dueDate: todayDateStr, status: 'paid', partnerPaid: false, partnerPaidAmount: 0, isDownPayment: true }); }
-            let curDate = new Date(newContract.firstInstallmentDate); const baseInstAmount = count > 0 ? Math.floor((total - dp) / count) : 0; let remainder = (total - dp) - (baseInstAmount * count);
-            for(let i=0; i<count; i++) { let currentAmt = baseInstAmount; if (i === count - 1) currentAmt += remainder; newInsts.push({ id: 'inst_' + Date.now() + '_' + i, contractId, amount: currentAmt, dueDate: curDate.toISOString().split('T')[0], status: 'pending', partnerPaid: false, partnerPaidAmount: 0 }); curDate.setMonth(curDate.getMonth() + interval); } 
+            
+            // استخدام دالة addMonthsSafe بدلاً من setMonth لمنع أخطاء التواريخ
+            let baseDateStr = newContract.firstInstallmentDate; 
+            const baseInstAmount = count > 0 ? Math.floor((total - dp) / count) : 0; 
+            let remainder = (total - dp) - (baseInstAmount * count);
+            
+            for(let i=0; i<count; i++) { 
+               let currentAmt = baseInstAmount; if (i === count - 1) currentAmt += remainder; 
+               const calculatedDueDate = addMonthsSafe(baseDateStr, i * interval);
+               newInsts.push({ id: 'inst_' + Date.now() + '_' + i, contractId, amount: currentAmt, dueDate: calculatedDueDate, status: 'pending', partnerPaid: false, partnerPaidAmount: 0 }); 
+            } 
+            
             updatedInstallments.push(...newInsts);
             if (dp > 0) { updatedTransactions.push({ id: 't_dp_' + Date.now(), type: 'income', amount: dp, buildingId: unit.buildingId, custodyId: newContract.custodyId || '', description: (lang==='ar'?`مقدم تعاقد ${editingContractId ? '(معدل)' : ''}: ${newContract.clientName}`:`Down payment ${editingContractId ? '(Modified)' : ''}: ${newContract.clientName}`), date: todayDateStr }); }
             const updatedUnits = (prev.units || []).map(u => { if(u.id === unit.id) return { ...u, status: 'sold' }; if(editingContractId) { const oldC = prev.contracts.find(c => c.id === editingContractId); if (oldC && oldC.unitId === u.id && oldC.unitId !== unit.id) return { ...u, status: 'available' }; } return u; });
             return { ...prev, contracts: updatedContracts, installments: updatedInstallments, transactions: updatedTransactions, units: updatedUnits };
-         });
+         }, { action: editingContractId ? 'تعديل عقد' : 'إنشاء عقد جديد', details: `${editingContractId ? 'تعديل' : 'إنشاء'} عقد العميل ${newContract.clientName} للوحدة ${unit.unitNumber}` });
          setNewContract({ clientName: '', unitId: '', totalAmount: '', downPayment: '', custodyId: '', installmentsCount: '', firstInstallmentDate: '', interval: '1' }); setEditingContractId(null); showMsg(t.success); 
       };
 
@@ -618,7 +677,7 @@
           if (newAmt <= 0) { updatedInsts = updatedInsts.filter(i => i.id !== instId); currentSuspended += oldAmt; } else { updatedInsts[instIndex] = { ...oldInst, amount: newAmt, dueDate: newDueDate || oldInst.dueDate, status: 'pending' }; if (diff > 0) { currentSuspended += diff; } else if (diff < 0) { const increase = Math.abs(diff); currentSuspended = Math.max(0, currentSuspended - increase); } }
           if (contractIndex > -1) { updatedContracts[contractIndex] = { ...updatedContracts[contractIndex], suspendedAmount: currentSuspended }; }
           return { ...prev, installments: updatedInsts, contracts: updatedContracts };
-        }); showMsg(t.success);
+        }, { action: 'تعديل قسط', details: `تعديل قيمة/تاريخ القسط ID: ${instId} إلى ${newAmt} ج.م` }); showMsg(t.success);
       };
 
       const addManualInstallment = (contractId, amtNum, dateStr) => {
@@ -628,7 +687,7 @@
           if (contractIndex > -1) { const currentSuspended = Number(updatedContracts[contractIndex].suspendedAmount || 0); const newSuspended = Math.max(0, currentSuspended - amt); updatedContracts[contractIndex] = { ...updatedContracts[contractIndex], suspendedAmount: newSuspended }; }
           const newInst = { id: 'inst_man_' + Date.now(), contractId: contractId, amount: amt, dueDate: dateStr || todayDateStr, status: 'pending', partnerPaid: false, partnerPaidAmount: 0 };
           return { ...prev, contracts: updatedContracts, installments: [...prev.installments, newInst] };
-        }); showMsg(t.success);
+        }, { action: 'إضافة قسط يدوي', details: `إضافة قسط يدوي بقيمة ${amt} ج.م` }); showMsg(t.success);
       };
 
       const convertSuspendedToInstallment = (contractId, amtNum, dateStr) => {
@@ -641,8 +700,13 @@
         }); showMsg(t.success);
       };
 
-      const payInstallment = (instId, clientName, buildingId, paidAmount, date, custodyId) => {
+      // تطوير تحصيل الأقساط لدعم الغرامات والخصومات
+      const payInstallment = (instId, clientName, buildingId, paidAmount, date, custodyId, penaltyAmt = 0, discountAmt = 0) => {
         const paid = Number(paidAmount);
+        const penalty = Number(penaltyAmt) || 0;
+        const discount = Number(discountAmt) || 0;
+        const netCollected = paid + penalty - discount;
+
         updateData(prev => {
           let updatedInsts = [...(prev.installments || [])]; const instIndex = updatedInsts.findIndex(i => i.id === instId);
           if(instIndex > -1) {
@@ -650,10 +714,18 @@
               if (paid <= 0) { updatedInsts[instIndex] = { ...instToUpdate, amount: 0, status: 'suspended' }; } 
               else if (paid >= fullAmount) { updatedInsts[instIndex] = { ...instToUpdate, status: 'paid', amount: paid }; } 
               else { const remaining = fullAmount - paid; updatedInsts[instIndex] = { ...instToUpdate, status: 'paid', amount: paid }; updatedInsts.push({ id: 'inst_rem_' + Date.now(), contractId: instToUpdate.contractId, amount: remaining, dueDate: instToUpdate.dueDate, status: 'pending', partnerPaid: false, partnerPaidAmount: 0 }); }
-              let updatedTrans = [...(prev.transactions || [])]; if (paid > 0) { updatedTrans.push({ id: 't_' + Date.now(), type: 'income', amount: paid, buildingId, custodyId: custodyId || '', description: (lang==='ar'?`تحصيل قسط ${paid < fullAmount ? '(جزئي)' : ''}: ${clientName}`:`Installment Collection ${paid < fullAmount ? '(Partial)' : ''}: ${clientName}`), date: date || todayDateStr }); }
+              
+              let updatedTrans = [...(prev.transactions || [])]; 
+              if (netCollected > 0) { 
+                 let noteDetails = `تحصيل قسط ${paid < fullAmount ? '(جزئي)' : ''}: ${clientName}`;
+                 if (penalty > 0) noteDetails += ` (يشمل غرامة تأخير: ${penalty} ج.م)`;
+                 if (discount > 0) noteDetails += ` (شامل خصم: ${discount} ج.م)`;
+                 
+                 updatedTrans.push({ id: 't_' + Date.now(), type: 'income', amount: netCollected, buildingId, custodyId: custodyId || '', description: noteDetails, date: date || todayDateStr }); 
+              }
               return { ...prev, installments: updatedInsts, transactions: updatedTrans };
           } return prev;
-        }); showMsg(t.success);
+        }, { action: 'تحصيل قسط', details: `تحصيل قسط للعميل ${clientName} بمبلغ ${netCollected} ج.م` }); showMsg(t.success);
       };
 
       const payPartnerShare = (instId, actualPaidAmt, clientName, buildingName, custodyId, date) => {
@@ -668,7 +740,7 @@
           });
           const trans = { id: 't_' + Date.now(), type: 'expense', amount: paidAmtNum, buildingId: '', custodyId: custodyId || '', description: (lang==='ar'?`توريد نصيب الشريك (${paidAmtNum.toLocaleString()} ج.م) - ${clientName} - ${buildingName}`:`Pay Partner Share (${paidAmtNum.toLocaleString()}) - ${clientName} - ${buildingName}`), date: date || getTodayStr() };
           return { ...prev, installments: updatedInsts, transactions: [...(prev.transactions || []), trans] };
-        }); showMsg(t.success);
+        }, { action: 'توريد لشريك', details: `توريد مبلغ ${paidAmtNum} ج.م للشريك عن العميل ${clientName}` }); showMsg(t.success);
       };
 
       const liquidateCustody = (custId) => {
@@ -679,7 +751,7 @@
             if (rem > 0) { txs.push({ id: 't_liq_'+Date.now(), type: 'transfer', amount: rem, custodyId: custId, toCustodyId: '', description: lang==='ar'?'تصفية العهدة وتحويل الرصيد المتبقي للخزينة العامة':'Liquidate custody and transfer remaining balance to General Safe', date: getTodayStr() }); }
             let custs = prev.custodies.map(c => c.id === custId ? {...c, status: 'closed'} : c);
             return { ...prev, transactions: txs, custodies: custs };
-         });
+         }, { action: 'تصفية عهدة', details: `تصفية العهدة ID: ${custId} وتحويل ${rem} ج.م للخزينة` });
          showMsg(lang === 'ar' ? 'تم تصفية العهدة بنجاح، وتحويل المتبقي للخزينة.' : 'Custody liquidated successfully.');
       };
 
@@ -688,7 +760,7 @@
             let reqs = (prev.requests||[]).map(r => r.id === req.id ? {...r, status: 'approved'} : r);
             let txs = [...(prev.transactions||[]), { id: 't_req_'+Date.now(), type: 'transfer', amount: Number(req.amount), custodyId: '', toCustodyId: req.custodyId, description: (lang==='ar'?`صرف استعاضة مالية لعهدة: ${req.personName}`:`Funds request approved for: ${req.personName}`), date: getTodayStr() }];
             return { ...prev, requests: reqs, transactions: txs };
-         });
+         }, { action: 'موافقة استعاضة', details: `الموافقة على استعاضة بمبلغ ${req.amount} للمسؤول ${req.personName}` });
          showMsg(lang === 'ar' ? 'تمت الموافقة وتم تحويل المبلغ للعهدة بنجاح' : 'Request approved and amount transferred.');
       };
 
@@ -740,7 +812,7 @@
           {toast.show && ( <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-[200] animate-slide-up print-hide w-[90%] max-w-sm"><div className={`px-6 py-4 rounded-2xl shadow-2xl font-bold text-white flex items-center justify-center gap-3 ${toast.isError ? 'bg-red-600' : 'bg-emerald-600'}`}><span className="text-2xl">{toast.isError ? '⚠️' : '✅'}</span><span className="text-lg">{toast.msg}</span></div></div> )}
 
           {appModal.show && (
-            <div className={`fixed inset-0 bg-slate-900 bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-[100] animate-fade-in p-4 ${appModal.type !== 'RECEIPT' ? 'print-hide' : 'print-receipt-wrapper'}`} onClick={closeModal}>
+            <div className={`fixed inset-0 bg-slate-900 bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-[100] animate-fade-in p-4 ${appModal.type !== 'RECEIPT' && appModal.type !== 'OFFICIAL_CONTRACT' ? 'print-hide' : 'print-receipt-wrapper'}`} onClick={closeModal}>
               {appModal.type === 'LOGOUT' && ( <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-slide-up" onClick={e=>e.stopPropagation()}><div className="bg-red-600 text-white p-4 text-center font-bold text-lg">{lang === 'ar' ? 'تسجيل الخروج' : 'Logout'}</div><div className="p-6 text-center text-slate-700 font-medium">{lang === 'ar' ? 'هل أنت متأكد من رغبتك في تسجيل الخروج من النظام؟' : 'Are you sure you want to log out?'}</div><div className="flex border-t"><button onClick={()=>{auth.signOut(); closeModal();}} className="flex-1 p-4 font-bold text-red-600 hover:bg-red-50 border-x">{t.yes}</button><button onClick={closeModal} className="flex-1 p-4 font-bold text-slate-500 hover:bg-slate-100">{t.no}</button></div></div> )}
               {appModal.type === 'TX_ACTION' && appModal.props.tx && ( 
                 <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}>
@@ -751,7 +823,7 @@
                     <button onClick={() => setAppModal({ show: true, type: 'IMAGE_VIEW', props: { src: appModal.props.tx.attachment } })} className="w-full bg-slate-100 text-blue-700 border border-blue-200 py-2.5 rounded-xl font-bold text-sm mb-3 hover:bg-blue-50 transition flex items-center justify-center gap-1">👁️ {lang === 'ar' ? 'عرض الفاتورة المرفقة' : 'View Attachment'}</button>
                   )}
                   <button onClick={() => { closeModal(); setNewTransaction({...appModal.props.tx, attachment: appModal.props.tx.attachment || ''}); setEditingTxId(appModal.props.tx?.id); setActiveTab('transactions'); }} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow hover:bg-blue-700 transition">✏️ {t.edit}</button>
-                  <button onClick={() => { closeModal(); requirePin(() => { setAppModal({ show: true, type: 'CONFIRM', props: { title: t.delete, message: t.confirmDelTx, onConfirm: () => { updateData(p => ({...p, transactions: (p.transactions||[]).filter(tx => tx.id !== appModal.props.tx?.id)})); showMsg(t.success); closeModal(); } }}); }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button>
+                  <button onClick={() => { closeModal(); requirePin(() => { setAppModal({ show: true, type: 'CONFIRM', props: { title: t.delete, message: t.confirmDelTx, onConfirm: () => { updateData(p => ({...p, transactions: (p.transactions||[]).filter(tx => tx.id !== appModal.props.tx?.id)}), { action: 'حذف حركة', details: `حذف حركة نقدية بقيمة ${appModal.props.tx?.amount}` }); showMsg(t.success); closeModal(); } }}); }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button>
                 </div> 
               )}
               {appModal.type === 'CAT_ACTION' && appModal.props.cat && ( <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl absolute bottom-0 md:relative md:bottom-auto" onClick={e=>e.stopPropagation()}><div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4 md:hidden"></div><h3 className="font-bold text-lg mb-4 text-center text-slate-800 border-b pb-2">{t.action}</h3><input type="text" id="catEditInput" defaultValue={appModal.props.cat.name} className="w-full border-2 border-slate-300 p-3 rounded-xl mb-4 font-bold text-center focus:border-blue-500 outline-none" /><button onClick={() => { const val = document.getElementById('catEditInput').value; if(val) { updateData(p => ({...p, categories: p.categories.map(c => c.id === appModal.props.cat.id ? {...c, name: val} : c)})); closeModal(); showMsg(t.success); } }} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow hover:bg-blue-700 transition">✏️ {t.edit}</button><button onClick={() => { requirePin(() => { updateData(p => ({...p, categories: p.categories.filter(c => c.id !== appModal.props.cat.id)})); closeModal(); showMsg(t.success); }); }} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition">🗑️ {t.delete}</button></div> )}
@@ -760,8 +832,102 @@
               {appModal.type === 'IMAGE_VIEW' && ( <div className="bg-black p-2 rounded-2xl w-full max-w-2xl relative shadow-2xl animate-fade-in flex flex-col items-center justify-center" onClick={e=>e.stopPropagation()}><button onClick={closeModal} className="absolute top-4 right-4 bg-red-600 text-white w-10 h-10 rounded-full font-black text-xl hover:bg-red-700 shadow z-50">X</button><img src={appModal.props.src} className="w-full h-auto rounded-xl max-h-[85vh] object-contain border border-slate-800" /></div> )}
               {appModal.type === 'PIN' && ( <div className="bg-white w-full max-w-xs rounded-2xl overflow-hidden shadow-2xl animate-slide-up" onClick={e=>e.stopPropagation()}><div className="bg-red-600 text-white p-4 text-center font-bold">🔒</div><div className="p-6"><p className="text-center text-sm mb-4">{lang === 'ar' ? 'أدخل الرمز السري لتأكيد الإجراء' : 'Enter PIN to confirm action'}</p><input type="password" inputMode="numeric" pattern="[0-9]*" maxLength="4" autoFocus className="w-full border-b-2 border-red-400 p-2 text-center text-3xl tracking-[0.5em] font-bold outline-none focus:border-red-600 transition-colors bg-slate-50" onChange={e => { const val = e.target.value; if(val.length === 4) { const currentPin = data.pinCode || '0000'; if (val === currentPin) { const successCallback = appModal.props.onSuccess; closeModal(); setTimeout(() => { if(successCallback) successCallback(); }, 100); } else { showMsg(lang === 'ar' ? 'الرمز غير صحيح' : 'Incorrect PIN', true); e.target.value = ''; } } }} /></div><button onClick={closeModal} className="w-full p-4 bg-slate-100 text-slate-600 font-bold hover:bg-slate-200">{t.no}</button></div> )}
               {appModal.type === 'RECEIPT' && ( <div className="bg-white w-full max-w-md rounded-2xl overflow-hidden shadow-2xl animate-slide-up print-show" onClick={e=>e.stopPropagation()}><div id="receipt-area" className="p-6 bg-white text-black text-center receipt-print-area"><p className="text-base font-black mb-4 text-slate-800 border-b-2 border-slate-800 pb-2">{lang === 'ar' ? 'إيصال استلام نقدية' : 'Cash Receipt'}</p><div className="text-right space-y-2.5 mb-5 text-sm bg-slate-50 p-4 rounded-xl border border-slate-200" dir={lang === 'ar' ? 'rtl' : 'ltr'}><div className="flex justify-between border-b pb-1.5"><span className="text-gray-600 font-bold">{lang === 'ar' ? 'تاريخ الاستلام:' : 'Receipt Date:'}</span><span className="font-mono font-bold text-slate-900">{appModal.props.date || formatShortDate(todayDateStr)}</span></div>{appModal.props.dueDate && ( <div className="flex justify-between border-b pb-1.5"><span className="text-gray-600 font-bold">{lang === 'ar' ? 'تاريخ استحقاق القسط:' : 'Installment Due Date:'}</span><span className="font-mono font-bold text-blue-800">{appModal.props.dueDate}</span></div> )}<div className="flex justify-between border-b pb-1.5"><span className="text-gray-600 font-bold">{t.client}:</span><span className="font-bold text-slate-900">{appModal.props.clientName}</span></div><div className="flex justify-between border-b pb-1.5"><span className="text-gray-600 font-bold">{lang === 'ar' ? 'البيان / الوحدة:' : 'Details / Unit:'}</span><span className="font-bold text-slate-900">{appModal.props.buildingName}</span></div><div className="flex justify-between pt-1 text-base text-emerald-700"><span className="font-black">{lang === 'ar' ? 'المبلغ المستلم:' : 'Amount Received:'}</span><span className="font-black">{Number(appModal.props.amount).toLocaleString()}</span></div></div>{appModal.props.unitPrice !== undefined && ( <div className="bg-blue-50/60 p-3.5 rounded-xl border border-blue-200 text-right text-xs mb-4" dir={lang === 'ar' ? 'rtl' : 'ltr'}><p className="font-black text-blue-900 text-sm mb-2 border-b border-blue-200 pb-1 text-center">{lang === 'ar' ? '📊 إجمالي موقف الوحدة' : '📊 Unit Summary'}</p><div className="grid grid-cols-3 gap-2 text-center font-bold"><div className="bg-white p-2 rounded-lg border border-blue-100"><span className="text-gray-500 block text-[10px]">{lang === 'ar' ? 'سعر الوحدة' : 'Unit Price'}</span><span className="text-slate-900 text-xs font-black">{Number(appModal.props.unitPrice).toLocaleString()}</span></div><div className="bg-white p-2 rounded-lg border border-blue-100"><span className="text-emerald-600 block text-[10px]">{lang === 'ar' ? 'إجمالي المدفوع' : 'Total Paid'}</span><span className="text-emerald-700 text-xs font-black">{Number(appModal.props.totalPaid).toLocaleString()}</span></div><div className="bg-white p-2 rounded-lg border border-blue-100"><span className="text-red-600 block text-[10px]">{lang === 'ar' ? 'المتبقي' : 'Remaining'}</span><span className="text-red-700 text-xs font-black">{Number(appModal.props.remainingAmount).toLocaleString()}</span></div></div></div> )}<p className="text-xs text-gray-500 mt-2 font-bold">{lang === 'ar' ? 'تم الاستلام. شكراً لثقتكم.' : 'Received. Thank you.'}</p></div><div className="p-4 flex gap-2 bg-slate-100 print-hide"><button onClick={()=>{ window.print(); }} className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow hover:bg-blue-700">{t.printPdf}</button><button onClick={closeModal} className="flex-1 bg-slate-300 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-400">{lang === 'ar' ? 'إغلاق' : 'Close'}</button></div></div> )}
+              
+              {/* نموذج طباعة العقد العقاري الشامل */}
+              {appModal.type === 'OFFICIAL_CONTRACT' && appModal.props.contract && (
+                <div className="bg-white w-full max-w-3xl rounded-2xl overflow-hidden shadow-2xl animate-slide-up print-show p-8" onClick={e=>e.stopPropagation()}>
+                  <div className="text-center border-b-2 border-slate-900 pb-4 mb-6">
+                    <h2 className="text-2xl font-black text-slate-900 mb-1">عـقـد بيـع وحـدة عقاريـة</h2>
+                    <p className="text-sm font-bold text-slate-600">تاريخ التعاقد: {formatShortDate(appModal.props.contract.date)}</p>
+                  </div>
+                  
+                  <div className="space-y-4 text-right text-sm leading-relaxed mb-6">
+                    <p className="font-bold">أُبرم هذا العقد بين كل من:</p>
+                    <div className="p-3 bg-slate-50 border rounded-xl space-y-1">
+                      <p><span className="font-bold">الطرف الأول (البائع):</span> الشركة العقارية للمقاولات والاستثمار</p>
+                      <p><span className="font-bold">الطرف الثاني (المشتري):</span> أ/ {appModal.props.contract.clientName}</p>
+                    </div>
+                    <p className="font-bold">بيانات الوحدة والمستحقات المالـية:</p>
+                    <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 border rounded-xl">
+                      <p><span className="font-bold">المشروع/العمارة:</span> {appModal.props.buildingName}</p>
+                      <p><span className="font-bold">رقم الوحدة:</span> {appModal.props.unitNumber}</p>
+                      <p><span className="font-bold">إجمالي الثمن:</span> {Number(appModal.props.contract.totalAmount).toLocaleString()} ج.م</p>
+                      <p><span className="font-bold">المقدم المدفوع:</span> {Number(appModal.props.contract.downPayment || 0).toLocaleString()} ج.م</p>
+                    </div>
+                  </div>
+
+                  <h3 className="font-bold text-base mb-2 border-b pb-1">جدول أقساط وسداد الوحدة:</h3>
+                  <table className="w-full text-xs text-center border-collapse mb-8">
+                    <thead>
+                      <tr className="bg-slate-100">
+                        <th className="border p-2">#</th>
+                        <th className="border p-2">تاريخ الاستحقاق</th>
+                        <th className="border p-2">قيمة القسط</th>
+                        <th className="border p-2">الحالة الحالية</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {appModal.props.installments.map((inst, idx) => (
+                        <tr key={inst.id}>
+                          <td className="border p-1.5 font-bold">{idx + 1}</td>
+                          <td className="border p-1.5 font-mono">{formatShortDate(inst.dueDate)}</td>
+                          <td className="border p-1.5 font-bold">{Number(inst.amount).toLocaleString()} ج.م</td>
+                          <td className="border p-1.5">{inst.status === 'paid' ? 'تم السداد' : 'مستحق'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  <div className="grid grid-cols-2 gap-8 text-center pt-8 border-t-2 border-slate-900 mt-6 font-bold">
+                    <div>
+                      <p className="mb-12">توقيع الطرف الأول (البائع):</p>
+                      <p>.........................................</p>
+                    </div>
+                    <div>
+                      <p className="mb-12">توقيع الطرف الثاني (المشتري):</p>
+                      <p>.........................................</p>
+                    </div>
+                  </div>
+
+                  <div className="p-4 flex gap-2 bg-slate-100 print-hide mt-8 -mx-8 -mb-8">
+                    <button onClick={()=>{ window.print(); }} className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow hover:bg-blue-700">{t.printPdf}</button>
+                    <button onClick={closeModal} className="flex-1 bg-slate-300 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-400">إغلاق</button>
+                  </div>
+                </div>
+              )}
+
               {appModal.type === 'CONFIRM' && ( <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-slide-up" onClick={e=>e.stopPropagation()}><div className="bg-slate-900 text-white p-4 text-center font-bold text-lg">{appModal.props.title || t.action}</div><div className="p-6 text-center text-slate-700 font-medium">{appModal.props.message}</div><div className="flex border-t"><button onClick={()=>{appModal.props.onConfirm && appModal.props.onConfirm(); closeModal();}} className="flex-1 p-4 font-bold text-blue-700 hover:bg-blue-50 border-x">{t.yes}</button><button onClick={closeModal} className="flex-1 p-4 font-bold text-slate-500 hover:bg-slate-100">{t.no}</button></div></div> )}
-              {appModal.type === 'PROMPT_INST' && ( <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl animate-slide-up p-6 relative" onClick={e=>e.stopPropagation()}><div className="bg-blue-800 text-white p-3 -mx-6 -mt-6 mb-4 text-center font-bold rounded-t-2xl">{appModal.props.title}</div><form onSubmit={e => { e.preventDefault(); appModal.props.onConfirm(document.getElementById('promptAmtInput').value.replace(/[^0-9]/g, ''), appModal.props.promptDate || appModal.props.defaultDate || todayDateStr, appModal.props.promptCustodyVal || ''); closeModal(); }} className="space-y-4">{appModal.props.showDate && ( <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.date}</label><CustomDateInput value={appModal.props.promptDate || appModal.props.defaultDate || todayDateStr} onChange={(d) => setAppModal(p => ({ ...p, props: { ...p.props, promptDate: d } }))} /></div> )}<div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.amount}</label><input type="number" id="promptAmtInput" required defaultValue={appModal.props.defaultAmount} className="w-full border-2 border-blue-400 p-3 rounded-xl font-bold text-xl text-center outline-none focus:border-blue-600" /></div>{appModal.props.showCustody && ( <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.promptCustody}</label><CustomSelect options={custodyOptions} value={appModal.props.promptCustodyVal || ''} onChange={(v) => setAppModal(p => ({ ...p, props: { ...p.props, promptCustodyVal: v } }))} placeholder={t.generalSafe} /></div> )}<div className="flex gap-2 pt-2"><button type="submit" className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow hover:bg-blue-700">{t.save}</button><button type="button" onClick={closeModal} className="flex-1 bg-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-300">{t.no}</button></div></form></div> )}
+              
+              {/* نافذة تحصيل الأقساط المطورة بدعم الغرامات والخصومات */}
+              {appModal.type === 'PROMPT_INST' && ( 
+                <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl animate-slide-up p-6 relative" onClick={e=>e.stopPropagation()}>
+                  <div className="bg-blue-800 text-white p-3 -mx-6 -mt-6 mb-4 text-center font-bold rounded-t-2xl">{appModal.props.title}</div>
+                  <form onSubmit={e => { 
+                    e.preventDefault(); 
+                    const baseAmt = document.getElementById('promptAmtInput').value.replace(/[^0-9]/g, '');
+                    const penaltyAmt = document.getElementById('penaltyAmtInput')?.value?.replace(/[^0-9]/g, '') || '0';
+                    const discountAmt = document.getElementById('discountAmtInput')?.value?.replace(/[^0-9]/g, '') || '0';
+                    appModal.props.onConfirm(baseAmt, appModal.props.promptDate || appModal.props.defaultDate || todayDateStr, appModal.props.promptCustodyVal || '', penaltyAmt, discountAmt); 
+                    closeModal(); 
+                  }} className="space-y-3">
+                    {appModal.props.showDate && ( <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.date}</label><CustomDateInput value={appModal.props.promptDate || appModal.props.defaultDate || todayDateStr} onChange={(d) => setAppModal(p => ({ ...p, props: { ...p.props, promptDate: d } }))} /></div> )}
+                    <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.amount}</label><input type="number" id="promptAmtInput" required defaultValue={appModal.props.defaultAmount} className="w-full border-2 border-blue-400 p-3 rounded-xl font-bold text-xl text-center outline-none focus:border-blue-600" /></div>
+                    
+                    {appModal.props.showCustody && (
+                      <>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div><label className="text-[11px] font-bold text-red-600 block mb-1">غرامة تأخير (+):</label><input type="text" id="penaltyAmtInput" inputMode="numeric" placeholder="0" className="w-full border p-2 rounded-lg text-center text-sm font-bold border-red-200 bg-red-50" /></div>
+                          <div><label className="text-[11px] font-bold text-emerald-600 block mb-1">خصم سداد (-):</label><input type="text" id="discountAmtInput" inputMode="numeric" placeholder="0" className="w-full border p-2 rounded-lg text-center text-sm font-bold border-emerald-200 bg-emerald-50" /></div>
+                        </div>
+                        <div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.promptCustody}</label><CustomSelect options={custodyOptions} value={appModal.props.promptCustodyVal || ''} onChange={(v) => setAppModal(p => ({ ...p, props: { ...p.props, promptCustodyVal: v } }))} placeholder={t.generalSafe} /></div>
+                      </>
+                    )}
+                    
+                    <div className="flex gap-2 pt-2"><button type="submit" className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow hover:bg-blue-700">{t.save}</button><button type="button" onClick={closeModal} className="flex-1 bg-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-300">{t.no}</button></div>
+                  </form>
+                </div> 
+              )}
+
               {appModal.type === 'PAY_PARTNER' && ( <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl relative" onClick={e=>e.stopPropagation()}><h3 className="font-bold text-lg mb-2 text-center text-purple-800 border-b pb-2">{t.payPartnerTitle}</h3><p className="text-center text-sm text-slate-500 mb-2">{t.payPartnerDesc}</p><form onSubmit={e => { e.preventDefault(); const amt = Number(e.target.partnerAmt.value.replace(/[^0-9]/g, '')); if(!amt || amt <= 0) return; appModal.props.onConfirm(amt, appModal.props.partnerDateVal || todayDateStr, appModal.props.partnerCustodyVal || ''); closeModal(); }} className="space-y-4"><div><label className="text-xs font-bold text-slate-500 mb-1 block text-center">{lang === 'ar' ? 'المبلغ المراد توريده للشريك' : 'Amount to pay to partner'}</label><NumberInput name="partnerAmt" required defaultValue={appModal.props.partnerAmt} className="w-full border-2 border-purple-300 p-3 text-2xl font-black text-center text-purple-800 rounded-xl outline-none focus:border-purple-600 bg-purple-50" /><span className="text-[11px] text-slate-400 block text-center mt-1">{lang === 'ar' ? `المستحق الحالي لهذا القسط: ${Number(appModal.props.partnerAmt).toLocaleString()}` : `Current Due: ${Number(appModal.props.partnerAmt).toLocaleString()}`}</span></div><div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.date}</label><CustomDateInput value={appModal.props.partnerDateVal || todayDateStr} onChange={(d) => setAppModal(p => ({ ...p, props: { ...p.props, partnerDateVal: d } }))} /></div><div><label className="text-xs font-bold text-slate-500 mb-1 block">{t.deductFromSafe}</label><CustomSelect options={custodyOptions} value={appModal.props.partnerCustodyVal || ''} onChange={(v) => setAppModal(p => ({ ...p, props: { ...p.props, partnerCustodyVal: v } }))} placeholder={t.generalSafe} /></div><div className="flex gap-2 pt-2"><button type="submit" className="flex-1 bg-purple-600 text-white py-3 rounded-xl font-bold shadow hover:bg-purple-700">{t.save}</button><button type="button" onClick={closeModal} className="flex-1 bg-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-300">{t.no}</button></div></form></div> )}
               {appModal.type === 'REQUEST_FUNDS' && (
                 <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up shadow-2xl relative" onClick={e=>e.stopPropagation()}>
@@ -770,7 +936,7 @@
                       e.preventDefault();
                       const amt = Number(e.target.reqAmt.value.replace(/[^0-9]/g, ''));
                       if(!amt) return;
-                      updateData(p => ({ ...p, requests: [...(p.requests||[]), { id: 'req_'+Date.now(), custodyId: appModal.props.custId, personName: currentUserData.name, amount: amt, date: getTodayStr(), status: 'pending' }] }));
+                      updateData(p => ({ ...p, requests: [...(p.requests||[]), { id: 'req_'+Date.now(), custodyId: appModal.props.custId, personName: currentUserData.name, amount: amt, date: getTodayStr(), status: 'pending' }] }), { action: 'طلب استعاضة', details: `طلب استعاضة مالية بمبلغ ${amt} ج.م` });
                       closeModal(); showMsg(lang === 'ar' ? 'تم إرسال الطلب للمدير بنجاح' : 'Request sent to manager successfully');
                    }} className="space-y-4">
                       <div><label className="text-xs font-bold text-slate-500 mb-1 block">{lang === 'ar' ? 'المبلغ المطلوب من الخزينة العامة' : 'Amount requested from General Safe'}:</label><NumberInput name="reqAmt" required className="w-full border-2 border-blue-300 p-3 text-2xl font-black text-center text-blue-800 rounded-xl outline-none focus:border-blue-600 bg-blue-50" /></div>
@@ -781,11 +947,11 @@
             </div>
           )}
 
-          <main className={`flex-grow p-4 mx-auto w-full max-w-7xl relative z-10 ${appModal.type === 'RECEIPT' ? 'print-hide' : ''}`}>
+          <main className={`flex-grow p-4 mx-auto w-full max-w-7xl relative z-10 ${appModal.type === 'RECEIPT' || appModal.type === 'OFFICIAL_CONTRACT' ? 'print-hide' : ''}`}>
             
             {activeTab === 'dashboard' && (
               <>
-                {/* --- لوحة تحكم الشريك (المرحلة الرابعة) مع نموذج الطباعة --- */}
+                {/* --- لوحة تحكم الشريك مع نموذج الطباعة --- */}
                 {isPartnerRole && partnerReportData ? (
                    <>
                      {/* النموذج المخفي للطباعة */}
@@ -911,7 +1077,7 @@
                     </div>
                   )}
 
-                  {/* --- زراير الاستعاضة والتصفية لمسؤول العهدة (تظهر تحت الواجهة الموحدة) --- */}
+                  {/* --- زراير الاستعاضة والتصفية لمسؤول العهدة --- */}
                   {isCustodyRole && dashboardCustodyFilter.length > 0 && !dashboardCustodyFilter.includes('ALL') && (
                      <div className="space-y-3">
                         {dashboardCustodyFilter.map(cId => {
@@ -955,7 +1121,7 @@
                                     )}
                                   </td>
                                   <td className="p-3 flex flex-col gap-2">
-                                    <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptCollect, defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId)=>payInstallment(inst.id, c?.clientName, c?.buildingId, amt, dt, custId) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">{t.collect}</button>
+                                    <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptCollect, defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId, pAmt, dAmt)=>payInstallment(inst.id, c?.clientName, c?.buildingId, amt, dt, custId, pAmt, dAmt) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">{t.collect}</button>
                                     <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptEditInst, showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>editInstallment(inst.id, amt, dt) }})} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">{t.edit}</button>
                                   </td>
                                 </tr>
@@ -1045,7 +1211,6 @@
                 <div className="mb-5 bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
                    <label className="font-bold block text-slate-800 text-sm">{t.activeCustody}:</label>
                    
-                   {/* فلتر المسؤولين يظهر للأدمن فقط */}
                    {userRole === 'admin' && (
                       <div className="relative z-30">
                          <MultiSelectDropdown options={responsibleOptions} selected={selectedResponsibles} onChange={setSelectedResponsibles} placeholder={lang === 'ar' ? "-- تصفية بمسؤول معين --" : "-- Filter by Manager --"} />
@@ -1178,7 +1343,7 @@
                                   <tr key={inst.id} className="border-b border-red-100 hover:bg-white transition-colors">
                                     <td className="p-2 font-bold text-slate-800">{c?.clientName} {inst.isDownPayment && <span className="text-[10px] bg-blue-100 text-blue-800 px-1 rounded ml-1">{lang === 'ar' ? 'مقدم' : 'DP'}</span>}</td><td className="p-2 font-mono text-xs text-red-600" dir="ltr">{formatShortDate(inst.dueDate)}</td>
                                     <td className="p-2"><div className="font-black text-slate-900 text-base">{Number(inst.amount).toLocaleString()}</div>{b?.hasPartner && b.partnerPercent > 0 && <div className="text-[10px] text-slate-500 mt-1 space-y-0.5"><span className="bg-blue-50 text-blue-700 px-1 rounded block">{t.myShare}: {Math.round(inst.amount * ((100 - b.partnerPercent)/100)).toLocaleString()}</span><span className="bg-purple-50 text-purple-700 px-1 rounded block">{t.partnerShare}: {Math.round(inst.amount * (b.partnerPercent/100)).toLocaleString()}</span></div>}</td>
-                                    <td className="p-2 flex flex-col gap-2"><button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptCollect, defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId)=>payInstallment(inst.id, c.clientName, c.buildingId, amt, dt, custId) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">{t.collect}</button><button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptEditInst, showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>editInstallment(inst.id, amt, dt) }})} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">{t.edit}</button></td>
+                                    <td className="p-2 flex flex-col gap-2"><button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptCollect, defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId, pAmt, dAmt)=>payInstallment(inst.id, c.clientName, c.buildingId, amt, dt, custId, pAmt, dAmt) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">{t.collect}</button><button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptEditInst, showDate:true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm:(amt, dt)=>editInstallment(inst.id, amt, dt) }})} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">{t.edit}</button></td>
                                   </tr>
                                 )
                               })}
@@ -1202,13 +1367,23 @@
                           const b = (data.buildings || []).find(bd => bd.id === c.buildingId);
                           const isExpanded = expandedBuildings[c.id]; 
                           const suspendedPool = Number(c.suspendedAmount || 0);
+                          const cInsts = (data.installments || []).filter(i => i.contractId === c.id);
+
                           return (
                             <div key={c.id} className="bg-white p-2.5 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-blue-300 transition" onClick={() => setExpandedBuildings(p => ({...p, [c.id]: !p[c.id]}))}>
                               <div className="flex justify-between items-center gap-2"><div className="flex items-center gap-2 min-w-0 flex-grow">{suspendedPool > 0 && <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" title={lang==='ar'?"يوجد رصيد معلق":"Suspended balance exists"}></span>}<p className="font-black text-blue-900 text-sm truncate">{c.clientName}</p></div><div className="flex items-center gap-2 shrink-0"><button className="text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm border border-blue-100">{isExpanded ? t.hideDetails : t.showDetails}</button></div></div>
                               
                               {isExpanded && (
                                 <div className="mt-3 border-t pt-3 animate-slide-up" onClick={e=>e.stopPropagation()}>
-                                  <div className="flex justify-between items-center mb-3 bg-slate-50 p-2.5 rounded-xl border flex-wrap gap-2 text-xs font-bold"><span className="text-slate-700 bg-white px-2.5 py-1 rounded-lg border border-slate-200">🏢 {b?.name} - {t.unit} {u?.unitNumber}</span>{suspendedPool > 0 && <span className="text-amber-800 bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-300">⚠️ {lang === 'ar' ? `رصيد معلق مجمع: ${suspendedPool.toLocaleString()} ج.م` : `Suspended Balance: ${suspendedPool.toLocaleString()}`}</span>}<div className={`flex gap-2 ${lang==='ar'?'mr-auto':'ml-auto'}`}><button onClick={(e)=>{ e.stopPropagation(); requirePin(() => { setEditingContractId(c.id); const cInsts = (data.installments || []).filter(i => i.contractId === c.id).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate)); const firstDate = cInsts.length > 0 ? cInsts[0].dueDate : todayDateStr; setNewContract({ clientName: c.clientName, unitId: c.unitId, totalAmount: c.totalAmount, downPayment: c.downPayment || '', custodyId: '', installmentsCount: c.installmentsCount || cInsts.length, firstInstallmentDate: firstDate, interval: c.interval || '1' }); window.scrollTo({ top: 0, behavior: 'smooth' }); }); }} className="text-xs text-amber-700 bg-amber-50 px-3 py-1 rounded-xl font-bold border border-amber-200 hover:bg-amber-100 transition">{lang === 'ar' ? 'تعديل العقد' : 'Edit Contract'}</button><button onClick={(e) => { e.stopPropagation(); requirePin(()=>setAppModal({show:true, type:'CONFIRM', props:{title: t.cancelContract, message: t.confirmCancel, onConfirm:()=>{ updateData(p=>({...p, contracts: p.contracts.map(ct=>ct.id===c.id?{...ct,status:'canceled'}:ct), installments: p.installments.filter(i=>!(i.contractId===c.id && i.status==='pending')), units: p.units.map(un=>un.id===c.unitId?{...un,status:'available'}:un)})); showMsg(t.success); }}})); }} className="text-xs text-red-600 bg-red-50 px-3 py-1 rounded-xl font-bold border border-red-100 hover:bg-red-100 transition">{t.cancelContract}</button></div></div>
+                                  <div className="flex justify-between items-center mb-3 bg-slate-50 p-2.5 rounded-xl border flex-wrap gap-2 text-xs font-bold">
+                                    <span className="text-slate-700 bg-white px-2.5 py-1 rounded-lg border border-slate-200">🏢 {b?.name} - {t.unit} {u?.unitNumber}</span>
+                                    {suspendedPool > 0 && <span className="text-amber-800 bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-300">⚠️ {lang === 'ar' ? `رصيد معلق مجمع: ${suspendedPool.toLocaleString()} ج.م` : `Suspended Balance: ${suspendedPool.toLocaleString()}`}</span>}
+                                    <div className={`flex gap-2 flex-wrap ${lang==='ar'?'mr-auto':'ml-auto'}`}>
+                                      <button onClick={() => setAppModal({ show: true, type: 'OFFICIAL_CONTRACT', props: { contract: c, buildingName: b?.name, unitNumber: u?.unitNumber, installments: cInsts } })} className="text-xs text-blue-700 bg-blue-50 px-3 py-1 rounded-xl font-bold border border-blue-200 hover:bg-blue-100 transition">🖨️ طباعة العقد الشامل</button>
+                                      <button onClick={(e)=>{ e.stopPropagation(); requirePin(() => { setEditingContractId(c.id); const sortedInsts = [...cInsts].sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate)); const firstDate = sortedInsts.length > 0 ? sortedInsts[0].dueDate : todayDateStr; setNewContract({ clientName: c.clientName, unitId: c.unitId, totalAmount: c.totalAmount, downPayment: c.downPayment || '', custodyId: '', installmentsCount: c.installmentsCount || sortedInsts.length, firstInstallmentDate: firstDate, interval: c.interval || '1' }); window.scrollTo({ top: 0, behavior: 'smooth' }); }); }} className="text-xs text-amber-700 bg-amber-50 px-3 py-1 rounded-xl font-bold border border-amber-200 hover:bg-amber-100 transition">{lang === 'ar' ? 'تعديل العقد' : 'Edit Contract'}</button>
+                                      <button onClick={(e) => { e.stopPropagation(); requirePin(()=>setAppModal({show:true, type:'CONFIRM', props:{title: t.cancelContract, message: t.confirmCancel, onConfirm:()=>{ updateData(p=>({...p, contracts: p.contracts.map(ct=>ct.id===c.id?{...ct,status:'canceled'}:ct), installments: p.installments.filter(i=>!(i.contractId===c.id && i.status==='pending')), units: p.units.map(un=>un.id===c.unitId?{...un,status:'available'}:un)}), { action: 'فسخ عقد', details: `فسخ عقد العميل ${c.clientName}` }); showMsg(t.success); }}})); }} className="text-xs text-red-600 bg-red-50 px-3 py-1 rounded-xl font-bold border border-red-100 hover:bg-red-100 transition">{t.cancelContract}</button>
+                                    </div>
+                                  </div>
                                   <div className="overflow-x-auto mb-4">
                                     <table className="w-full text-sm text-right" style={{textAlign: lang==='en'?'left':'right'}}>
                                       <thead className="text-slate-400 border-b-2"><tr><th className="p-2 pb-2 font-medium">{t.dueDate}</th><th className="p-2 pb-2 font-medium">{t.amount}</th><th className="p-2 pb-2 font-medium">{t.status}</th><th className="p-2 pb-2 font-medium">{t.action}</th></tr></thead>
@@ -1223,7 +1398,7 @@
                                               <td className="p-2 font-mono text-xs text-slate-500 whitespace-nowrap" dir="ltr">{formatShortDate(inst.dueDate)}</td>
                                               <td className="p-2"><div className="font-bold text-slate-800 text-base">{Number(inst.amount).toLocaleString()} {inst.isDownPayment && <span className="text-[10px] bg-blue-100 text-blue-800 px-1 rounded ml-1">{lang === 'ar' ? 'مقدم' : 'DP'}</span>}</div>{b?.hasPartner && b.partnerPercent > 0 && <div className="text-[10px] text-slate-500 mt-1 space-y-0.5"><span className="bg-blue-50 text-blue-700 px-1 rounded block">{t.myShare}: {Math.round(inst.amount * ((100 - b.partnerPercent)/100)).toLocaleString()}</span><span className="bg-purple-50 text-purple-700 px-1 rounded block">{t.partnerShare}: {totalPartnerShare.toLocaleString()} {currentPaidToPartner > 0 && (lang === 'ar' ? `(تم توريد ${currentPaidToPartner.toLocaleString()})` : `(Paid ${currentPaidToPartner.toLocaleString()})`)}</span></div>}</td>
                                               <td className="p-2">{inst.status === 'suspended' || Number(inst.amount) === 0 ? <span className="text-slate-500 font-bold text-xs bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">{t.suspended}</span> : inst.status === 'paid' ? <span className="text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-lg text-xs border border-emerald-100">{t.paid}</span> : <span className="text-amber-500 font-bold text-xs bg-amber-50 px-3 py-1 rounded-lg border border-amber-100">{t.pending}</span>}</td>
-                                              <td className="p-2 flex flex-col gap-2">{inst.status === 'pending' && Number(inst.amount) > 0 && <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptCollect, defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId)=>payInstallment(inst.id, c.clientName, b?.id, amt, dt, custId) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">{t.collect}</button>}
+                                              <td className="p-2 flex flex-col gap-2">{inst.status === 'pending' && Number(inst.amount) > 0 && <button onClick={() => setAppModal({show:true, type:'PROMPT_INST', props:{title: t.promptCollect, defaultAmount: inst.amount, showCustody: true, onConfirm:(amt, dt, custId, pAmt, dAmt)=>payInstallment(inst.id, c.clientName, b?.id, amt, dt, custId, pAmt, dAmt) }})} className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">{t.collect}</button>}
                                                 <button onClick={() => setAppModal({ show: true, type: 'PROMPT_INST', props: { title: t.promptEditInst, showDate: true, defaultAmount: inst.amount, defaultDate: inst.dueDate, onConfirm: (amt, dt) => editInstallment(inst.id, amt, dt) } })} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">{t.edit}</button>
                                                 {inst.status === 'paid' && remainingToPartner > 0 && b?.hasPartner && b.partnerPercent > 0 && <button onClick={() => setAppModal({ show:true, type:'PAY_PARTNER', props:{ partnerAmt: remainingToPartner, onConfirm:(actualAmt, dt, custId)=>payPartnerShare(inst.id, actualAmt, c.clientName, b.name, custId, dt) } })} className="bg-purple-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-purple-600 transition">{t.payPartnerBtn} {currentPaidToPartner > 0 ? (lang === 'ar' ? '(متبقي)' : '(Remaining)') : ''}</button>}
                                                 {inst.status === 'paid' && <button onClick={() => { const contractInsts = (data.installments || []).filter(i => i.contractId === c.id); const paidSum = contractInsts.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.amount), 0); const unitPrice = Number(c.totalAmount || 0); const remaining = unitPrice - paidSum; setAppModal({ show: true, type:'RECEIPT', props:{ date: formatShortDate(todayDateStr), dueDate: formatShortDate(inst.dueDate), clientName: inst.isDownPayment ? (lang==='ar'?`${c.clientName} (مقدم)`:`${c.clientName} (DP)`) : c.clientName, buildingName: `${b?.name} - ${t.unit} ${u?.unitNumber}`, amount: inst.amount, unitPrice: unitPrice, totalPaid: paidSum, remainingAmount: remaining } }); }} className="bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-slate-900 transition flex justify-center items-center gap-1">🖨️ {lang === 'ar' ? 'إيصال' : 'Receipt'}</button>}
@@ -1359,7 +1534,33 @@
             {activeTab === 'settings' && (
               <div className="animate-fade-in print-hide space-y-4">
                 
-                {/* 1. إعدادات اللغة */}
+                {/* 1. سجل العمليات والأنشطة (Audit Log) للمدير */}
+                {userRole === 'admin' && (
+                  <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all">
+                     <div className="p-4 bg-slate-50 hover:bg-slate-100 cursor-pointer flex justify-between items-center transition-colors" onClick={() => toggleSetting('logs')}>
+                        <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">📜 سجل الأحداث والعمليات (Audit Trail)</h3>
+                        <span className={`text-xl text-blue-600 font-bold transition-transform duration-300 ${expandedSettings['logs'] ? 'rotate-45' : ''}`}>➕</span>
+                     </div>
+                     {expandedSettings['logs'] && (
+                        <div className="p-6 border-t border-slate-100 animate-slide-up bg-white">
+                           <div className="max-h-80 overflow-y-auto space-y-2">
+                             {(data.logs || []).map(log => (
+                               <div key={log.id} className="p-3 bg-slate-50 border rounded-xl flex justify-between items-center text-xs">
+                                 <div>
+                                   <p className="font-bold text-slate-800">{log.action} - <span className="text-blue-700">{log.userName}</span> ({log.role})</p>
+                                   <p className="text-slate-600 mt-0.5">{log.details}</p>
+                                 </div>
+                                 <span className="font-mono text-slate-400">{new Date(log.timestamp).toLocaleString('ar-EG')}</span>
+                               </div>
+                             ))}
+                             {(!data.logs || data.logs.length === 0) && <p className="text-center text-slate-400 font-bold p-4">لا توجد عمليات مسجلة بعد.</p>}
+                           </div>
+                        </div>
+                     )}
+                  </div>
+                )}
+
+                {/* 2. إعدادات اللغة */}
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all">
                    <div className="p-4 bg-slate-50 hover:bg-slate-100 cursor-pointer flex justify-between items-center transition-colors" onClick={() => toggleSetting('lang')}>
                       <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">🌐 {t.langTitle}</h3>
@@ -1372,7 +1573,7 @@
                    )}
                 </div>
 
-                {/* 2. تصنيفات المصروفات */}
+                {/* 3. تصنيفات المصروفات */}
                 {!isPartnerRole && (
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all">
                        <div className="p-4 bg-slate-50 hover:bg-slate-100 cursor-pointer flex justify-between items-center transition-colors" onClick={() => toggleSetting('cats')}>
@@ -1388,7 +1589,7 @@
                     </div>
                 )}
 
-                {/* 3. فتح عهدة جديدة */}
+                {/* 4. فتح عهدة جديدة */}
                 {['admin', 'custody', 'engineer'].includes(userRole) && (
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all">
                        <div className="p-4 bg-slate-50 hover:bg-slate-100 cursor-pointer flex justify-between items-center transition-colors" onClick={() => toggleSetting('new_custody')}>
@@ -1402,7 +1603,7 @@
                                   const pName = userRole === 'admin' ? newCustody.personName : currentUserData?.name;
                                   if (!pName) { showMsg(lang === 'ar' ? 'يرجى اختيار المسؤول' : 'Please select manager', true); return; }
                                   if (!newCustody.custodyName) { showMsg(lang === 'ar' ? 'يرجى كتابة اسم العهدة' : 'Please enter custody name', true); return; }
-                                  updateData(p=>({...p, custodies: [...(p.custodies || []), {id: 'cus_'+Date.now(), personName: pName, custodyName: newCustody.custodyName, totalAmount: newCustody.totalAmount, status: 'active'}]}));
+                                  updateData(p=>({...p, custodies: [...(p.custodies || []), {id: 'cus_'+Date.now(), personName: pName, custodyName: newCustody.custodyName, totalAmount: newCustody.totalAmount, status: 'active'}]}), { action: 'فتح عهدة', details: `فتح عهدة باسم ${newCustody.custodyName} للمسؤول ${pName}` });
                                   setNewCustody({personName:'', custodyName:'', totalAmount:'', notes:''});
                                   showMsg(t.success);
                               }} className="space-y-4 relative">
@@ -1433,7 +1634,7 @@
                     </div>
                 )}
 
-                {/* 4. الحماية والنسخ الاحتياطي */}
+                {/* 5. الحماية والنسخ الاحتياطي */}
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all">
                    <div className="p-4 bg-slate-50 hover:bg-slate-100 cursor-pointer flex justify-between items-center transition-colors" onClick={() => toggleSetting('security')}>
                       <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">🔒 {lang === 'ar' ? 'الحماية والنسخ الاحتياطي' : 'Security & Backup'}</h3>
@@ -1501,7 +1702,7 @@
                    )}
                 </div>
 
-                {/* 5. المزامنة السحابية */}
+                {/* 6. المزامنة السحابية */}
                 {userRole === 'admin' && (
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all">
                        <div className="p-4 bg-slate-50 hover:bg-slate-100 cursor-pointer flex justify-between items-center transition-colors" onClick={() => toggleSetting('cloud')}>
@@ -1520,7 +1721,7 @@
                     </div>
                 )}
 
-                {/* 6. إدارة المستخدمين */}
+                {/* 7. إدارة المستخدمين */}
                 {userRole === 'admin' && (
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all">
                        <div className="p-4 bg-slate-50 hover:bg-slate-100 cursor-pointer flex justify-between items-center transition-colors" onClick={() => toggleSetting('users')}>
@@ -1551,7 +1752,9 @@
                                               required={true}
                                           />
                                        </div>
-                                       <button disabled={isCreatingUser} className={`w-full text-white py-4 rounded-xl font-bold shadow transition ${isCreatingUser ? 'bg-slate-400' : 'bg-slate-800 hover:bg-slate-900'}`}>{isCreatingUser ? (lang === 'ar' ? 'جاري الإنشاء...' : 'Creating...') : (lang === 'ar' ? '➕ إضافة الموظف' : '➕ Add Employee')}</button>
+                                       <button disabled={isCreatingUser} className={`w-full text-white py-4 rounded-xl font-bold shadow transition ${isCreatingUser ? 'bg-slate-400' : 'bg-slate-800 hover:bg-slate-900'}`}>{isCreatingUser ? (lang === 'ar' ? 'جاري الإنشاء...' : 'Creating...') : (lang === 'ar' ? '➕ إضافة المأنا مجرد نموذج لغوي، وهذا الأمر يفوق ما صُمِّمت لأجله.
+
+          [source: 1]'➕ إضافة الموظف' : '➕ Add Employee')}</button>
                                     </form>
                                  </div>
                                  <div className="lg:col-span-2">
@@ -1656,3 +1859,4 @@
   </script>
 </body>
 </html>
+                                                                                                                                                                                                                                                                                           

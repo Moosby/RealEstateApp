@@ -1710,7 +1710,26 @@
       <h4 className="font-bold text-slate-700 mb-4">{lang === 'ar' ? 'إنشاء حساب موظف جديد' : 'Create New Employee'}</h4>
       <form onSubmit={handleCreateUser} className="space-y-4">
          <div><label className="text-xs font-bold text-slate-500 mb-1 block">{lang === 'ar' ? 'الاسم' : 'Name'}</label><input type="text" required className="w-full border-2 p-3 rounded-xl font-bold outline-none focus:border-blue-500" value={newUser.name} onChange={e=>setNewUser({...newUser, name: e.target.value})} /></div>
-
+         <div><label className="text-xs font-bold text-slate-500 mb-1 block">{lang === 'ar' ? 'البريد (للدخول)' : 'Login Email'}</label><input type="email" required className="w-full border-2 p-3 rounded-xl font-bold outline-none focus:border-blue-500 text-left" dir="ltr" placeholder="eng@realstate.com" value={newUser.email} onChange={e=>setNewUser({...newUser, email: e.target.value})} /></div>
+         <div><label className="text-xs font-bold text-slate-500 mb-1 block">{lang === 'ar' ? 'كلمة المرور (6 حروف)' : 'Password (min 6 chars)'}</label><input type="text" required minLength="6" className="w-full border-2 p-3 rounded-xl font-black tracking-widest outline-none focus:border-blue-500 text-left" dir="ltr" value={newUser.password} onChange={e=>setNewUser({...newUser, password: e.target.value})} /></div>
+         <div className="relative z-30">
+            <label className="text-xs font-bold text-slate-500 mb-1 block">{lang === 'ar' ? 'الصلاحية' : 'Role'}</label>
+            <CustomSelect 
+                options={[
+                   {value: 'admin', label: lang === 'ar' ? 'مدير نظام' : 'Admin'}, 
+                   {value: 'custody', label: lang === 'ar' ? 'مشرف موقع' : 'Site Supervisor'}, 
+                   {value: 'engineer', label: lang === 'ar' ? 'مهندس' : 'Engineer'}, 
+                   {value: 'partner', label: lang === 'ar' ? 'شريك / مستثمر' : 'Partner/Investor'}
+                ]} 
+                value={newUser.role} 
+                onChange={v => setNewUser({...newUser, role: v})} 
+                placeholder={lang === 'ar' ? "-- اختر الصلاحية --" : "-- Select Role --"} 
+                required={true}
+            />
+         </div>
+         <button disabled={isCreatingUser} className={`w-full text-white py-4 rounded-xl font-bold shadow transition ${isCreatingUser ? 'bg-slate-400' : 'bg-slate-800 hover:bg-slate-900'}`}>{isCreatingUser ? (lang === 'ar' ? 'جاري الإنشاء...' : 'Creating...') : (lang === 'ar' ? '➕ إضافة الموظف' : '➕ Add Employee')}</button>
+      </form>
+   </div>
 
                                                                           <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner h-fit">
                                     <h4 className="font-bold text-slate-700 mb-4">{lang === 'ar' ? 'إنشاء حساب موظف جديد' : 'Create New Employee'}</h4>

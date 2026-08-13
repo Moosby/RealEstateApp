@@ -1,4 +1,4 @@
-const CACHE_NAME = 'real-estate-offline-v72'; // تم رفع الإصدار لتحديث الكاش ومسح النسخة القديمة
+const CACHE_NAME = 'real-estate-offline-v73'; // تم رفع الإصدار لتحديث الكاش ومسح النسخة القديمة
 const urlsToCache = [
   './',
   'index.html',

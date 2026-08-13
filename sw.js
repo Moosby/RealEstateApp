@@ -1,4 +1,4 @@
-const CACHE_NAME = 'real-estate-offline-v73'; // تم رفع الإصدار لتحديث الكاش ومسح النسخة القديمة
+const CACHE_NAME = 'real-estate-offline-v74';
 const urlsToCache = [
   './',
   'index.html',
@@ -7,11 +7,7 @@ const urlsToCache = [
   'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
   'https://unpkg.com/@babel/standalone/babel.min.js',
   'https://cdn.tailwindcss.com',
-  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
-  'https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js',
-  'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js',
-  'https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js',
-  'https://www.gstatic.com/firebasejs/10.8.1/firebase-storage-compat.js'
+  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
 ];
 
 self.addEventListener('install', event => { 
@@ -32,7 +28,6 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => { 
-  // استثناء طلبات Firebase وقواعد البيانات والطلبات غير العادية من الكاش
   if (
     event.request.method !== 'GET' || 
     event.request.url.includes('firebaseio.com') || 
@@ -43,14 +38,23 @@ self.addEventListener('fetch', event => {
   }
 
   event.respondWith(
-    fetch(event.request)
-      .then(networkResponse => {
+    caches.match(event.request).then(cachedResponse => {
+      if (cachedResponse) {
+        // تحديث الكاش في الخلفية
+        fetch(event.request).then(networkResponse => {
+           if (networkResponse && networkResponse.status === 200) {
+              caches.open(CACHE_NAME).then(cache => cache.put(event.request, networkResponse));
+           }
+        }).catch(() => {});
+        return cachedResponse;
+      }
+      return fetch(event.request).then(networkResponse => {
         if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseToCache));
         }
         return networkResponse;
-      })
-      .catch(() => caches.match(event.request))
+      });
+    })
   ); 
 });

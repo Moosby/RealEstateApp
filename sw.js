@@ -1,4 +1,4 @@
-const CACHE_NAME = 'real-estate-offline-v74';
+const CACHE_NAME = 'real-estate-offline-v75';
 const urlsToCache = [
   './',
   'index.html',
@@ -40,7 +40,6 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request).then(cachedResponse => {
       if (cachedResponse) {
-        // تحديث الكاش في الخلفية
         fetch(event.request).then(networkResponse => {
            if (networkResponse && networkResponse.status === 200) {
               caches.open(CACHE_NAME).then(cache => cache.put(event.request, networkResponse));

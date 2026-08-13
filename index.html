@@ -1662,8 +1662,8 @@
 
                           {userRole === 'admin' && (
                               <div className="border border-slate-200 p-6 rounded-2xl bg-white shadow-sm">
-                                  <h4 className="font-bold mb-4 text-slate-8لا يمكنني المساعدة في ذلك لأنّني مجرّد نموذج لغوي.
-late-800 border-b pb-2 text-lg">{lang === 'ar' ? 'تغيير رمز PIN للحماية' : 'Change Security PIN'}</h4>
+                                  <h4 className="font-bold mb-4 text-slate-800 border-b pb-2 text-lg">
+                              {lang === 'ar' ? 'تغيير رمز PIN للحماية' : 'Change Security PIN'}</h4>
                                   <form onSubmit={(e)=>{ e.preventDefault(); const formTarget = e.target; const oldPinVal = formTarget.oldPin.value; const newPinVal = formTarget.newPin.value; if (oldPinVal !== (data.pinCode || '0000')) { showMsg(lang === 'ar' ? 'الرمز الحالي غير صحيح' : 'Incorrect current PIN', true); return; } updateData(p => { return {...p, pinCode: newPinVal}; }); showMsg(lang === 'ar' ? 'تم تغيير الرمز بنجاح' : 'PIN changed successfully'); formTarget.reset(); }} className="flex flex-col gap-4">
                                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                           <div><label className="text-xs font-bold text-slate-500 mb-1 block">{lang === 'ar' ? 'الرمز الحالي:' : 'Current PIN:'}</label><input name="oldPin" type="password" inputMode="numeric" maxLength="4" pattern="[0-9]{4}" placeholder="****" className="border-2 p-3 text-center tracking-[1em] text-xl w-full rounded-xl font-bold focus:border-red-500 outline-none bg-slate-50" required /></div>
